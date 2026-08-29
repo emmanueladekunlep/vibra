@@ -3,21 +3,19 @@
  * Module: Authentication
  * 
  * This service handles all authentication operations including:
- * - Phone login (mock - no Opay verification at login)
+ * - Phone login (connects to PHP backend)
  * - User ID generation (VIB-XXXX)
  * - Local caching of user data
  * - Session management
- * 
- * All API calls are mocked. Replace with real endpoints when available.
  */
 
+const API_URL = 'https://api.vibra.ng';
 const STORAGE_KEY = 'vibra_user';
 const SESSION_KEY = 'vibra_session';
 
-// Mock user database (in production, this is on your backend)
+// Mock user database for fallback (if API is down)
 let MOCK_USERS = [];
 
-// Load existing users from localStorage
 try {
   const saved = localStorage.getItem('vibra_mock_users');
   if (saved) MOCK_USERS = JSON.parse(saved);
@@ -31,13 +29,11 @@ export const generateUserId = () => {
   const existingIds = MOCK_USERS.map(u => u.userId).filter(id => id);
   let counter = 1001;
   
-  // Find the highest existing ID
   existingIds.forEach(id => {
     const num = parseInt(id.replace('VIB-', ''));
     if (num >= counter) counter = num + 1;
   });
   
-  // Ensure we don't exceed 9999
   if (counter > 9999) counter = 1001;
   
   return `VIB-${counter}`;
@@ -53,13 +49,40 @@ export const getUserByUserId = (userId) => {
 };
 
 /**
- * Mock phone login - creates user with just phone number
- * No Opay verification at login. Opay check happens only at withdrawal.
+ * Phone login - connects to PHP backend API
  * @param {string} phone - User's phone number
  * @returns {Promise<Object>} User data
  */
 export const loginWithOpay = async (phone) => {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  try {
+    const response = await fetch(`${API_URL}/api/login.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        phone: phone, 
+        name: `User ${phone.slice(-4)}` 
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      cacheUserData(data.user);
+      return { success: true, user: data.user };
+    } else {
+      return { success: false, error: data.message || 'Login failed' };
+    }
+  } catch (error) {
+    console.warn('API login failed, falling back to mock:', error);
+    return fallbackLogin(phone);
+  }
+};
+
+/**
+ * Fallback mock login (when API is down)
+ */
+const fallbackLogin = async (phone) => {
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   let user = MOCK_USERS.find((u) => u.phone === phone);
 
