@@ -1,0 +1,82 @@
+/**
+ * VIBRA - Global Styles
+ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+    'Helvetica Neue', Arial, sans-serif;
+  background-color: #f5f5f5;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6C3CE1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5a2fc4;
+}
+
+/* Input focus styles */
+input:focus, textarea:focus, select:focus {
+  border-color: #6C3CE1 !important;
+  box-shadow: 0 0 0 3px rgba(108, 60, 225, 0.1) !important;
+}
+
+/* Button hover effects */
+button:hover:not(:disabled) {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+/* Utility */
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: #888;
+}
+
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+
+/* Brand gradient */
+.brand-gradient {
+  background: linear-gradient(135deg, #6C3CE1, #00B894);
+}
+
+.brand-text {
+  background: linear-gradient(135deg, #6C3CE1, #00B894);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

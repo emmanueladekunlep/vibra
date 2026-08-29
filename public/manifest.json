@@ -1,0 +1,23 @@
+{
+  "name": "VIBRA - Connect. Vibe. Love.",
+  "short_name": "VIBRA",
+  "description": "Nigerian dating platform with verified users and real gifts",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#6C3CE1",
+  "theme_color": "#6C3CE1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

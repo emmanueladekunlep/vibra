@@ -1,0 +1,25 @@
+{
+  "name": "vibra",
+  "version": "1.0.0",
+  "description": "VIBRA - Nigerian dating platform with verified users and real gifts",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": ["dating", "nigeria", "gifts", "verification", "social"],
+  "author": "LabelReach",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.0",
+    "vite": "^8.2.2"
+  }
+}
