@@ -9,7 +9,7 @@
  * - Session management
  */
 
-const API_URL = 'https://api.vibra.ng';
+const API_URL = 'https://api.vibra.ng/api';
 const STORAGE_KEY = 'vibra_user';
 const SESSION_KEY = 'vibra_session';
 
