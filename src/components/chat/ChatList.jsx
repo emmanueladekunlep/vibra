@@ -68,17 +68,18 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
       const data = await chatService.getConversations(user.id);
       
       // Filter out conversations with blocked users
-      const blockedUsers = profileService.getBlockedUsers();
+      const blockedUsers = await profileService.getBlockedUsers();
+      const blockedArray = Array.isArray(blockedUsers) ? blockedUsers : [];
       const filteredData = data.filter(conv => 
-        !blockedUsers.includes(conv.otherUser?.id)
+        !blockedArray.includes(conv.otherUser?.id)
       );
       
       setConversations(filteredData);
       
-      const total = filteredData.reduce((sum, conv) => sum + conv.unreadCount, 0);
+      const total = filteredData.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
       
       if (total > previousUnreadRef.current && total > 0) {
-        const newConv = filteredData.find(conv => conv.unreadCount > 0);
+        const newConv = filteredData.find(conv => (conv.unreadCount || 0) > 0);
         if (newConv && newConv.lastMessage) {
           const senderName = newConv.otherUser?.name || 'Someone';
           const message = newConv.lastMessage.text || 'sent you a message';
