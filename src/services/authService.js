@@ -9,7 +9,7 @@
  * - Session management
  */
 
-const API_URL = 'https://api.vibra.ng/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 const STORAGE_KEY = 'vibra_user';
 const SESSION_KEY = 'vibra_session';
 
@@ -55,7 +55,7 @@ export const getUserByUserId = (userId) => {
  */
 export const loginWithOpay = async (phone) => {
   try {
-    const response = await fetch(`${API_URL}/api/login.php`, {
+    const response = await fetch(`${API_URL}/login.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
