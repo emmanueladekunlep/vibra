@@ -1,8 +1,6 @@
 /**
  * VIBRA - Referral Service
  * Module: Referral System
- * Author: Emmanuel Adekunle Peace
- * Website: www.emmanueladekunlepeace.com
  * 
  * Handles all referral operations:
  * - Generate standard referral codes
@@ -22,8 +20,8 @@ const VIP_CODES_KEY = 'vibra_vip_codes';
 const MOCK_REFERRALS = {};
 const MOCK_VIP_CODES = {};
 
-// Point values
-const POINTS = {
+// Point values - EXPORTED for use in components
+export const POINTS = {
   STANDARD_REFERRER: 500,
   STANDARD_NEW_USER: 200,
   VIP_SILVER: 10000,
@@ -319,7 +317,13 @@ export const getReferralStats = async (userId) => {
  * Share referral code (generates share text)
  */
 export const getShareText = (code, userName) => {
-  return `🚀 Join VIBRA - Nigerian, Verified, Real Dates!\n\nUse my referral code: ${code}\n\nDownload now: https://vibra.ng/download\n\n#VIBRA #RealDates #Nigeria`;
+  return `Join VIBRA - Nigerian, Verified, Real Dates!
+
+Use my referral code: ${code}
+
+Download now: https://vibra.ng/download
+
+#VIBRA #RealDates #Nigeria`;
 };
 
 /**

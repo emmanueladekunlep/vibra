@@ -2375,3 +2375,196 @@ Register as merchant
 Admin panel (founder only)
 
 Data is in localStorage → not permanent across devices until backend is built.
+
+
+❌ NEEDED FOR LAUNCH
+#	Task	Priority
+1	Build photo upload API	High
+2	Build get-profile API (to show photos)	High
+3	Build update-profile API (bio, interests, location)	High
+4	Build gift API (send gift, save to database)	High
+5	Build redeem API (redeem gift with code)	High
+6	Build add-points API (admin adds points manually)	High
+7	Update frontend to call these APIs	High
+8	Create test users (men & women)	High
+9	Add event invites to database	Medium
+10	Build event API (create, RSVP, get events)	Medium
+🟢 AFTER LAUNCH
+Task	Priority
+OPay integration (when keys ready)	Medium
+Real withdrawals	Medium
+Identity locking	Medium
+Merchant registration API	Low
+Chat real-time (WebSocket)	Low
+WHAT DO YOU WANT ME TO BUILD FIRST?
+Choose one:
+
+Photo upload + Profile API (so users can upload and see photos)
+
+Gift API (so users can send/redeem gifts)
+
+Event API (so events work with database)
+
+
+You are right. No more circles. Here is the **complete production plan** with all file paths.
+
+---
+
+## 🚀 VIBRA - Production Backend File Structure
+
+### 📁 Server Files (Truehost - `public_html/api.vibra.ng/`)
+
+| # | File Path | Purpose |
+|---|-----------|---------|
+| 1 | `public_html/api.vibra.ng/api/config.php` | Database connection + constants |
+| 2 | `public_html/api.vibra.ng/api/login.php` | User login/register |
+| 3 | `public_html/api.vibra.ng/api/get_user.php` | Get user by ID |
+| 4 | `public_html/api.vibra.ng/api/update_user.php` | Update user (name, bio, location) |
+| 5 | `public_html/api.vibra.ng/api/upload_photo.php` | Upload profile photo |
+| 6 | `public_html/api.vibra.ng/api/get_profile.php` | Get full profile with photos |
+| 7 | `public_html/api.vibra.ng/api/create_gift.php` | Send gift, generate code |
+| 8 | `public_html/api.vibra.ng/api/redeem_gift.php` | Redeem gift with code |
+| 9 | `public_html/api.vibra.ng/api/my_gifts.php` | Get user's sent/received gifts |
+| 10 | `public_html/api.vibra.ng/api/add_points.php` | Admin: add points to user |
+| 11 | `public_html/api.vibra.ng/api/get_user_by_id.php` | Admin: search by User ID |
+| 12 | `public_html/api.vibra.ng/api/create_event.php` | Create event |
+| 13 | `public_html/api.vibra.ng/api/get_events.php` | Get events feed |
+| 14 | `public_html/api.vibra.ng/api/rsvp_event.php` | RSVP to event |
+| 15 | `public_html/api.vibra.ng/api/get_chat.php` | Get conversations/messages |
+| 16 | `public_html/api.vibra.ng/api/send_message.php` | Send chat message |
+| 17 | `public_html/api.vibra.ng/api/block_user.php` | Block/unblock user |
+| 18 | `public_html/api.vibra.ng/api/report_user.php` | Report user |
+| 19 | `public_html/api.vibra.ng/api/admin_users.php` | Admin: get all users |
+| 20 | `public_html/api.vibra.ng/api/admin_update.php` | Admin: update user (points, level, verify) |
+
+---
+
+### 📁 Frontend Files (Vibra - `C:\Users\Peace\Desktop\vibra\src\services\`)
+
+| # | File Path | What To Do |
+|---|-----------|------------|
+| 1 | `src/services/authService.js` | Remove mock, call real API |
+| 2 | `src/services/profileService.js` | Remove mock, call real API |
+| 3 | `src/services/giftService.js` | Remove mock, call real API |
+| 4 | `src/services/chatService.js` | Keep mock (WebSocket later) |
+| 5 | `src/services/eventService.js` | Remove mock, call real API |
+| 6 | `src/services/levelService.js` | Remove mock, call real API |
+| 7 | `src/services/merchantService.js` | Remove mock, call real API |
+| 8 | `src/services/adminService.js` | Remove mock, call real API |
+| 9 | `src/services/referralService.js` | Remove mock, call real API |
+
+---
+
+### 📁 Frontend Files (Vibra - Components to update)
+
+| # | File Path | What To Do |
+|---|-----------|------------|
+| 1 | `src/components/auth/Login.jsx` | Call real `authService` ✅ Already done |
+| 2 | `src/components/profile/Profile.jsx` | Display real profile data |
+| 3 | `src/components/profile/EditProfile.jsx` | Save to real API |
+| 4 | `src/components/gifts/GiftStore.jsx` | Send gift via real API |
+| 5 | `src/components/gifts/GiftRedemption.jsx` | Redeem via real API |
+| 6 | `src/components/gifts/MyGifts.jsx` | Fetch from real API |
+| 7 | `src/components/events/EventList.jsx` | Fetch from real API |
+| 8 | `src/components/events/EventHost.jsx` | Save to real API |
+| 9 | `src/components/events/EventDetails.jsx` | Fetch from real API |
+| 10 | `src/components/admin/UserManagement.jsx` | Fetch/update via real API |
+
+---
+
+### 📁 Environment Files
+
+| # | File Path | What To Do |
+|---|-----------|------------|
+| 1 | `C:\Users\Peace\Desktop\vibra\.env` | Create with `VITE_API_URL=https://api.vibra.ng` |
+| 2 | `C:\Users\Peace\Desktop\vibra\.env.example` | Already created ✅ |
+| 3 | `C:\Users\Peace\Desktop\vibra\.gitignore` | Already created ✅ |
+
+---
+
+### 📁 Deployment Files
+
+| # | File Path | What To Do |
+|---|-----------|------------|
+| 1 | `C:\Users\Peace\Desktop\vibra\vite.config.js` | Already fixed ✅ |
+| 2 | `C:\Users\Peace\Desktop\vibra\package.json` | Already fixed ✅ |
+
+---
+
+## ✅ What Is Production Ready Now
+
+| File | Status |
+|------|--------|
+| `Login.jsx` | ✅ Working |
+| `authService.js` | ⚠️ Needs mock removal |
+| `Profile.jsx` | ⚠️ Needs API connection |
+| `EditProfile.jsx` | ⚠️ Needs API connection |
+| `GiftStore.jsx` | ⚠️ Needs API connection |
+| `GiftRedemption.jsx` | ⚠️ Needs API connection |
+| `MyGifts.jsx` | ⚠️ Needs API connection |
+| `EventList.jsx` | ⚠️ Needs API connection |
+| `EventHost.jsx` | ⚠️ Needs API connection |
+| `EventDetails.jsx` | ⚠️ Needs API connection |
+| `UserManagement.jsx` | ⚠️ Needs API connection |
+
+---
+
+## 🛠️ What I Will Build Next (One At A Time)
+
+### Phase 1: User & Profile APIs (Foundation)
+1. `config.php` → Database connection ✅ Already exists
+2. `login.php` → Login/register ✅ Already working
+3. `get_user.php` → Get user by ID
+4. `update_user.php` → Update profile
+5. `upload_photo.php` → Upload photo
+6. `get_profile.php` → Get profile with photos
+
+### Phase 2: Gift APIs
+7. `create_gift.php` → Send gift
+8. `redeem_gift.php` → Redeem gift
+9. `my_gifts.php` → Get user gifts
+
+### Phase 3: Event APIs
+10. `create_event.php` → Create event
+11. `get_events.php` → Get events
+12. `rsvp_event.php` → RSVP
+
+### Phase 4: Admin APIs
+13. `add_points.php` → Add points
+14. `get_user_by_id.php` → Search by User ID
+15. `admin_users.php` → Get all users
+16. `admin_update.php` → Update user
+
+### Phase 5: Chat & Block APIs
+17. `get_chat.php` → Get messages
+18. `send_message.php` → Send message
+19. `block_user.php` → Block user
+20. `report_user.php` → Report user
+
+---
+
+## ⚠️ Important Notes
+
+1. **All API endpoints will be at:** `https://api.vibra.ng/api/`
+2. **All frontend services will use:** `import.meta.env.VITE_API_URL`
+3. **I will give you FULL files, not snippets**
+4. **Each step will be ONE file at a time**
+
+---
+
+## 📝 What You Need To Do
+
+1. Create `.env` file in your frontend project root:
+```env
+VITE_API_URL=https://api.vibra.ng/api
+```
+
+2. Note down all file paths above (save this message)
+
+---
+
+## 🚀 Next Step
+
+**Send me:** `C:\Users\Peace\Desktop\vibra\src\services\profileService.js`
+
+I will remove all mock code and make it production-ready with real API calls.
