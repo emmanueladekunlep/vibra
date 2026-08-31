@@ -146,6 +146,9 @@ export const updateVibraScore = async (userId, rating) => {
 
 // ========== BLOCK / UNBLOCK ==========
 
+// Local storage key for blocked users
+const BLOCKED_KEY = 'vibra_blocked_users';
+
 /**
  * Block a user
  * @param {string} userId - User ID to block
@@ -153,19 +156,12 @@ export const updateVibraScore = async (userId, rating) => {
  */
 export const blockUser = async (userId) => {
   try {
-    const response = await fetch(`${API_URL}/block_user.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId })
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      return data;
-    } else {
-      throw new Error(data.message || 'Failed to block user');
+    const blocked = getBlockedUsersSync();
+    if (!blocked.includes(userId)) {
+      blocked.push(userId);
+      localStorage.setItem(BLOCKED_KEY, JSON.stringify(blocked));
     }
+    return { success: true };
   } catch (error) {
     console.error('Block user error:', error);
     throw error;
@@ -179,19 +175,10 @@ export const blockUser = async (userId) => {
  */
 export const unblockUser = async (userId) => {
   try {
-    const response = await fetch(`${API_URL}/unblock_user.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId })
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      return data;
-    } else {
-      throw new Error(data.message || 'Failed to unblock user');
-    }
+    let blocked = getBlockedUsersSync();
+    blocked = blocked.filter(id => id !== userId);
+    localStorage.setItem(BLOCKED_KEY, JSON.stringify(blocked));
+    return { success: true };
   } catch (error) {
     console.error('Unblock user error:', error);
     throw error;
@@ -199,23 +186,25 @@ export const unblockUser = async (userId) => {
 };
 
 /**
- * Get list of blocked user IDs
+ * Get list of blocked user IDs (sync)
+ * @returns {Array} List of blocked user IDs
+ */
+export const getBlockedUsersSync = () => {
+  try {
+    const data = localStorage.getItem(BLOCKED_KEY);
+    const parsed = data ? JSON.parse(data) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Get list of blocked user IDs (async)
  * @returns {Promise<Array>} List of blocked user IDs
  */
 export const getBlockedUsers = async () => {
-  try {
-    const response = await fetch(`${API_URL}/get_blocked.php`);
-    const data = await response.json();
-    
-    if (data.success) {
-      return data.blocked;
-    } else {
-      return [];
-    }
-  } catch (error) {
-    console.error('Get blocked users error:', error);
-    return [];
-  }
+  return getBlockedUsersSync();
 };
 
 /**
@@ -224,7 +213,7 @@ export const getBlockedUsers = async () => {
  * @returns {Promise<boolean>} True if blocked
  */
 export const isUserBlocked = async (userId) => {
-  const blocked = await getBlockedUsers();
+  const blocked = getBlockedUsersSync();
   return blocked.includes(userId);
 };
 
@@ -286,6 +275,7 @@ export default {
   blockUser,
   unblockUser,
   getBlockedUsers,
+  getBlockedUsersSync,
   isUserBlocked,
   reportUser,
   getReports,
