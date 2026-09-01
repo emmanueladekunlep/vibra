@@ -8,8 +8,6 @@
  * - VIP code generation
  * - System settings
  * - Content moderation
- * 
- * All API calls are mocked. Replace with real endpoints when available.
  */
 
 // Storage keys
@@ -174,16 +172,33 @@ for (const id in MOCK_USER_DB) {
 
 /**
  * Check if user is admin/founder
- * @param {string} userId - User ID
+ * @param {string} userId - User ID or user object
  * @returns {Promise<boolean>} True if admin
  */
 export const isAdmin = async (userId) => {
   await new Promise((resolve) => setTimeout(resolve, 200));
   
-  const user = MOCK_USERS[userId];
-  if (!user) return false;
+  // Check if userId is a user object
+  if (typeof userId === 'object' && userId !== null) {
+    return userId.isFounder === true;
+  }
   
-  return user.isFounder === true;
+  // Check if userId is a string/number (ID)
+  // First check mock users
+  const user = MOCK_USERS[userId];
+  if (user && user.isFounder === true) {
+    return true;
+  }
+  
+  // Check if userId matches the founder in mock DB
+  for (const key in MOCK_USERS) {
+    if (MOCK_USERS[key].isFounder === true && 
+        (MOCK_USERS[key].id === userId || MOCK_USERS[key].userId === userId)) {
+      return true;
+    }
+  }
+  
+  return false;
 };
 
 /**
