@@ -270,6 +270,51 @@ const ChatPage = () => {
 };
 
 /**
+ * Chat Window Page - for direct chat via URL
+ */
+const ChatWindowPage = () => {
+  const { conversationId } = useParams();
+  const { user } = useAuth();
+  const [otherUser, setOtherUser] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const loadChat = async () => {
+      try {
+        const conv = await import('./services/chatService').then(m => m.getConversations(user.id));
+        const found = conv.find(c => c.id === conversationId);
+        if (found) {
+          setOtherUser(found.otherUser);
+        }
+      } catch (err) {
+        console.error('Failed to load chat:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (conversationId && user) {
+      loadChat();
+    }
+  }, [conversationId, user]);
+
+  if (loading) {
+    return <div style={styles.loading}>Loading chat...</div>;
+  }
+
+  if (!otherUser) {
+    return <div style={styles.loading}>Conversation not found</div>;
+  }
+
+  return (
+    <ChatWindow 
+      conversationId={conversationId}
+      otherUser={otherUser}
+      onBack={() => window.history.back()}
+    />
+  );
+};
+
+/**
  * Gifts Page
  */
 const GiftsPage = () => {
@@ -516,6 +561,13 @@ const App = () => {
             <ProtectedRoute>
               <AppLayout>
                 <ChatPage />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/chat/:conversationId" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ChatWindowPage />
               </AppLayout>
             </ProtectedRoute>
           } />

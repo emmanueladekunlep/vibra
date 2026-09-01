@@ -1,8 +1,6 @@
 /**
  * VIBRA - Chat Service
  * Module: Chat
- * Author: Emmanuel Adekunle Peace
- * Website: www.emmanueladekunlepeace.com
  * 
  * Handles all chat operations:
  * - Get conversations
@@ -10,8 +8,6 @@
  * - Mark messages as read
  * - Get unread counts
  * - Real-time updates (mock with polling)
- * 
- * All API calls are mocked. Replace with real endpoints when available.
  */
 
 // Storage keys
@@ -33,18 +29,6 @@ try {
   if (savedMsg) MOCK_MESSAGES = JSON.parse(savedMsg);
 } catch {}
 
-// Generate mock users for demo
-const MOCK_USERS = {
-  'user_1': { id: 'user_1', name: 'Peace Emmanuel', level: 'Diamond', isVerified: true, photos: [] },
-  'user_2': { id: 'user_2', name: 'Test User', level: 'Bronze', isVerified: true, photos: [] },
-  'user_3': { id: 'user_3', name: 'Chioma Okafor', level: 'Gold', isVerified: true, photos: [] },
-  'user_4': { id: 'user_4', name: 'Tunde Bakare', level: 'Silver', isVerified: false, photos: [] },
-  'user_5': { id: 'user_5', name: 'Amina Suleiman', level: 'Platinum', isVerified: true, photos: [] },
-  'user_6': { id: 'user_6', name: 'Chidi Nwosu', level: 'Gold', isVerified: true, photos: [] },
-  'user_7': { id: 'user_7', name: 'Folake Adeyemi', level: 'Silver', isVerified: true, photos: [] },
-  'user_8': { id: 'user_8', name: 'Emeka Obi', level: 'Bronze', isVerified: false, photos: [] },
-};
-
 /**
  * Get or create a conversation between two users
  * @param {string} userId1 - Current user ID
@@ -54,20 +38,18 @@ const MOCK_USERS = {
 export const getOrCreateConversation = async (userId1, userId2) => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
-  // Check if conversation exists
   const convId = getConversationId(userId1, userId2);
   
   if (MOCK_CONVERSATIONS[convId]) {
     return MOCK_CONVERSATIONS[convId];
   }
 
-  // Create new conversation
   const conversation = {
     id: convId,
-    participants: [userId1, userId2],
+    participants: [String(userId1), String(userId2)],
     lastMessage: null,
     lastMessageTime: null,
-    unreadCount: { [userId1]: 0, [userId2]: 0 },
+    unreadCount: { [String(userId1)]: 0, [String(userId2)]: 0 },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -89,21 +71,34 @@ export const getConversations = async (userId) => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const conversations = [];
+  const userIdStr = String(userId);
   
   for (const convId in MOCK_CONVERSATIONS) {
     const conv = MOCK_CONVERSATIONS[convId];
-    if (conv.participants.includes(userId)) {
-      const otherUserId = conv.participants.find(id => id !== userId);
-      const otherUser = MOCK_USERS[otherUserId] || { 
-        id: otherUserId, 
-        name: 'Unknown User', 
-        level: 'Bronze',
-        isVerified: false,
-        photos: []
-      };
+    if (conv.participants.includes(userIdStr)) {
+      const otherUserId = conv.participants.find(id => id !== userIdStr);
+      
+      // Try to get real user data from API
+      let otherUser = { id: otherUserId, name: 'User', level: 'Bronze', isVerified: false, photos: [] };
+      try {
+        const response = await fetch(`https://api.vibra.ng/api/get_user.php?user_id=${otherUserId}`);
+        const data = await response.json();
+        if (data.success && data.user) {
+          otherUser = {
+            id: data.user.id,
+            userId: data.user.userId,
+            name: data.user.name,
+            level: data.user.level,
+            isVerified: data.user.isVerified,
+            photos: data.user.photos || [],
+          };
+        }
+      } catch (err) {
+        console.warn('Failed to fetch user:', err);
+      }
       
       const messages = MOCK_MESSAGES[convId] || [];
-      const unread = conv.unreadCount?.[userId] || 0;
+      const unread = conv.unreadCount?.[userIdStr] || 0;
 
       conversations.push({
         ...conv,
@@ -136,7 +131,6 @@ export const getMessages = async (conversationId, limit = 50, startAfter = null)
 
   let messages = MOCK_MESSAGES[conversationId] || [];
 
-  // Sort by timestamp (oldest first for display)
   messages = [...messages].sort((a, b) => 
     new Date(a.timestamp) - new Date(b.timestamp)
   );
@@ -148,7 +142,6 @@ export const getMessages = async (conversationId, limit = 50, startAfter = null)
     }
   }
 
-  // Apply limit
   if (messages.length > limit) {
     messages = messages.slice(-limit);
   }
@@ -170,7 +163,6 @@ export const sendMessage = async (conversationId, senderId, text) => {
     throw new Error('Message cannot be empty');
   }
 
-  // Check for prohibited phrases (AI moderation mock)
   const prohibited = ['send me money', 'give me cash', 'pay me', 'transfer'];
   if (prohibited.some(p => text.toLowerCase().includes(p))) {
     throw new Error('Message contains prohibited content');
@@ -179,27 +171,24 @@ export const sendMessage = async (conversationId, senderId, text) => {
   const message = {
     id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     conversationId,
-    senderId,
+    senderId: String(senderId),
     text: text.trim(),
     timestamp: new Date().toISOString(),
     read: false,
   };
 
-  // Save message
   if (!MOCK_MESSAGES[conversationId]) {
     MOCK_MESSAGES[conversationId] = [];
   }
   MOCK_MESSAGES[conversationId].push(message);
 
-  // Update conversation
   const conv = MOCK_CONVERSATIONS[conversationId];
   if (conv) {
     conv.lastMessage = message;
     conv.lastMessageTime = message.timestamp;
     conv.updatedAt = message.timestamp;
     
-    // Increment unread count for other participants
-    const otherUserId = conv.participants.find(id => id !== senderId);
+    const otherUserId = conv.participants.find(id => id !== String(senderId));
     if (otherUserId) {
       conv.unreadCount[otherUserId] = (conv.unreadCount[otherUserId] || 0) + 1;
     }
@@ -227,19 +216,17 @@ export const markAsRead = async (conversationId, userId) => {
     throw new Error('Conversation not found');
   }
 
-  // Mark messages as read
   const messages = MOCK_MESSAGES[conversationId] || [];
   let updatedCount = 0;
   
   messages.forEach(msg => {
-    if (msg.senderId !== userId && !msg.read) {
+    if (msg.senderId !== String(userId) && !msg.read) {
       msg.read = true;
       updatedCount++;
     }
   });
 
-  // Reset unread count for this user
-  conv.unreadCount[userId] = 0;
+  conv.unreadCount[String(userId)] = 0;
   MOCK_CONVERSATIONS[conversationId] = conv;
 
   saveMessages();
@@ -257,10 +244,11 @@ export const getUnreadCount = async (userId) => {
   await new Promise((resolve) => setTimeout(resolve, 200));
 
   let total = 0;
+  const userIdStr = String(userId);
   for (const convId in MOCK_CONVERSATIONS) {
     const conv = MOCK_CONVERSATIONS[convId];
-    if (conv.participants.includes(userId)) {
-      total += conv.unreadCount?.[userId] || 0;
+    if (conv.participants.includes(userIdStr)) {
+      total += conv.unreadCount?.[userIdStr] || 0;
     }
   }
   return total;
@@ -287,7 +275,7 @@ export const deleteConversation = async (conversationId) => {
  * Get conversation ID from two user IDs
  */
 const getConversationId = (userId1, userId2) => {
-  const sorted = [userId1, userId2].sort();
+  const sorted = [String(userId1), String(userId2)].sort();
   return `conv_${sorted[0]}_${sorted[1]}`;
 };
 
@@ -317,7 +305,7 @@ const saveMessages = () => {
  * Get user info (mock)
  */
 export const getUserInfo = (userId) => {
-  return MOCK_USERS[userId] || { 
+  return { 
     id: userId, 
     name: 'User', 
     level: 'Bronze',
