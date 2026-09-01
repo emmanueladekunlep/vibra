@@ -1,6 +1,3 @@
-
-// FORCE_REBUILD_2026
-// v2 - Force rebuild
 /**
  * VIBRA - Chat List Component
  * Module: Chat
@@ -73,9 +70,10 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
       // Filter out conversations with blocked users
       const blockedUsers = await profileService.getBlockedUsers();
       const blockedArray = Array.isArray(blockedUsers) ? blockedUsers : [];
-      const filteredData = data.filter(conv => 
-        !blockedArray.includes(conv.otherUser?.id)
-      );
+      const filteredData = data.filter(conv => {
+        const otherUserId = conv.otherUser?.id;
+        return otherUserId ? !blockedArray.includes(otherUserId) : true;
+      });
       
       setConversations(filteredData);
       
