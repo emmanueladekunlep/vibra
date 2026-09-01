@@ -3,6 +3,7 @@
  * Module: Referral System
  * 
  * Displays user's referral code, stats, and share functionality.
+ * Also allows users to redeem other people's referral codes.
  * Professional design - no emojis.
  */
 
@@ -11,11 +12,17 @@ import { useAuth } from '../../context/AuthContext';
 import * as referralService from '../../services/referralService';
 
 const ReferralSection = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [referralData, setReferralData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [shareSuccess, setShareSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Redeem state
+  const [redeemCode, setRedeemCode] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [redeemError, setRedeemError] = useState(null);
+  const [redeemSuccess, setRedeemSuccess] = useState(null);
 
   useEffect(() => {
     const loadReferral = async () => {
@@ -93,6 +100,41 @@ const ReferralSection = () => {
     }
   };
 
+  const handleRedeem = async (e) => {
+    e.preventDefault();
+    setRedeemError(null);
+    setRedeemSuccess(null);
+
+    if (!redeemCode.trim()) {
+      setRedeemError('Please enter a referral code');
+      return;
+    }
+
+    if (!referralService.isValidReferralCode(redeemCode.trim())) {
+      setRedeemError('Invalid referral code format');
+      return;
+    }
+
+    setIsRedeeming(true);
+    try {
+      const result = await referralService.redeemReferralCode(redeemCode.trim(), user.id);
+      setRedeemSuccess(result.message);
+      setRedeemCode('');
+      
+      // Refresh user data to update points
+      if (updateUser) {
+        const updatedUser = await import('../../services/authService').then(m => m.getCachedUser());
+        if (updatedUser) {
+          updateUser(updatedUser);
+        }
+      }
+    } catch (err) {
+      setRedeemError(err.message || 'Failed to redeem code');
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div style={styles.container}>
@@ -117,6 +159,7 @@ const ReferralSection = () => {
           Share your code. Earn {referralService.POINTS.STANDARD_REFERRER} points per referral!
         </p>
 
+        {/* Your Referral Code */}
         <div style={styles.codeContainer}>
           <span style={styles.codeLabel}>Your Referral Code</span>
           <div style={styles.codeBox}>
@@ -131,6 +174,45 @@ const ReferralSection = () => {
           Share with Friends
         </button>
 
+        {/* Redeem Someone Else's Code */}
+        <div style={styles.redeemContainer}>
+          <h4 style={styles.redeemTitle}>Redeem a Referral Code</h4>
+          <p style={styles.redeemSubtitle}>
+            Enter someone's referral code to earn bonus points
+          </p>
+
+          {redeemError && (
+            <div style={styles.errorBox}>
+              <p style={styles.errorText}>{redeemError}</p>
+            </div>
+          )}
+          {redeemSuccess && (
+            <div style={styles.successBox}>
+              <p style={styles.successText}>{redeemSuccess}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleRedeem} style={styles.redeemForm}>
+            <input
+              type="text"
+              value={redeemCode}
+              onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
+              placeholder="VIB-XXXX-XXXX"
+              style={styles.redeemInput}
+              maxLength="17"
+              disabled={isRedeeming}
+            />
+            <button
+              type="submit"
+              style={styles.redeemButton}
+              disabled={isRedeeming || !redeemCode.trim()}
+            >
+              {isRedeeming ? 'Redeeming...' : 'Redeem Code'}
+            </button>
+          </form>
+        </div>
+
+        {/* Stats */}
         <div style={styles.statsGrid}>
           <div style={styles.statItem}>
             <span style={styles.statNumber}>{referralData.totalReferrals || 0}</span>
@@ -247,6 +329,80 @@ const styles = {
     marginBottom: '20px',
     fontFamily: 'inherit',
   },
+  redeemContainer: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: '12px',
+    padding: '16px',
+    marginBottom: '20px',
+    border: '2px solid #e8e8e8',
+  },
+  redeemTitle: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#1a1a1a',
+    margin: '0 0 4px 0',
+  },
+  redeemSubtitle: {
+    fontSize: '13px',
+    color: '#666',
+    margin: '0 0 12px 0',
+  },
+  redeemForm: {
+    display: 'flex',
+    gap: '10px',
+  },
+  redeemInput: {
+    flex: 1,
+    padding: '10px 14px',
+    fontSize: '16px',
+    fontFamily: 'monospace',
+    fontWeight: '600',
+    border: '2px solid #e0e0e0',
+    borderRadius: '10px',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+  },
+  redeemButton: {
+    padding: '10px 20px',
+    backgroundColor: '#6C3CE1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
+  },
+  errorBox: {
+    backgroundColor: '#ffebee',
+    borderRadius: '8px',
+    padding: '8px 12px',
+    marginBottom: '10px',
+    border: '1px solid #ffcdd2',
+  },
+  errorText: {
+    color: '#c62828',
+    fontSize: '13px',
+    margin: 0,
+  },
+  successBox: {
+    backgroundColor: '#e8f5e9',
+    padding: '12px',
+    borderRadius: '10px',
+    textAlign: 'center',
+    color: '#2e7d32',
+    fontSize: '14px',
+    marginTop: '12px',
+  },
+  successText: {
+    color: '#2e7d32',
+    fontSize: '14px',
+    fontWeight: '600',
+    margin: 0,
+  },
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
@@ -287,15 +443,6 @@ const styles = {
     fontSize: '13px',
     color: '#555',
     lineHeight: '1.8',
-  },
-  successBox: {
-    backgroundColor: '#e8f5e9',
-    padding: '12px',
-    borderRadius: '10px',
-    textAlign: 'center',
-    color: '#2e7d32',
-    fontSize: '14px',
-    marginTop: '12px',
   },
   loading: {
     textAlign: 'center',
