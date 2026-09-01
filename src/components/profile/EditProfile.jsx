@@ -2,7 +2,8 @@
  * VIBRA - Edit Profile Component
  * Module: User Profile
  * 
- * Edit profile form with photo upload, bio, interests, location, and DOB.
+ * Edit profile form with photo upload, bio, interests, location, DOB,
+ * and advanced matching features (life goals, dealbreakers, dating pace, lifestyle).
  * Self-contained - does not affect other modules.
  */
 
@@ -55,6 +56,47 @@ const getLuckyNumber = (dob) => {
   return sum;
 };
 
+// Options for matching fields
+const LIFE_GOALS_OPTIONS = [
+  'Ready to settle down & buy a home',
+  'Focusing heavily on career/building wealth',
+  'Looking to travel extensively before settling',
+  'Open to anything, going with the flow',
+  'Building a family and raising children',
+  'Focusing on personal growth and self-improvement',
+  'Ready for marriage within 1-2 years',
+];
+
+const DEALBREAKERS_OPTIONS = [
+  'Must want children',
+  'Must not want children',
+  'Must be non-smoker',
+  'Must be Christian',
+  'Must be Muslim',
+  'Must be financially stable',
+  'Must be ambitious',
+  'Must be family-oriented',
+  'Must have a degree',
+  'Must be fit/active',
+  'Must not have children',
+  'No dealbreakers - open to anyone',
+];
+
+const DATING_PACE_OPTIONS = [
+  { value: 'fast', label: 'Fast Tracker - Meet within 2-3 days' },
+  { value: 'medium', label: 'Vetter - Text for a week, then video call' },
+  { value: 'slow', label: 'Pen Pal - Take it slow, text for weeks' },
+];
+
+const LIFESTYLE_OPTIONS = [
+  { value: 'homebody', label: 'Homebody & Budget-Conscious' },
+  { value: 'luxury', label: 'Fine Dining & High Luxury' },
+  { value: 'adventurer', label: 'Outdoor Adventurer & Backpacking' },
+  { value: 'social', label: 'Social Butterfly - Always out' },
+  { value: 'balanced', label: 'Balanced - A mix of everything' },
+  { value: 'fitness', label: 'Fitness Enthusiast - Gym & Wellness' },
+];
+
 const EditProfile = ({ userId, onSave, onCancel }) => {
   const { user, updateUser } = useAuth();
   const [profile, setProfile] = useState(null);
@@ -73,6 +115,10 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
     location: '',
     interests: '',
     dateOfBirth: '',
+    lifeGoals: '',
+    dealbreakers: '',
+    datingPace: '',
+    lifestyle: '',
   });
 
   const [zodiacSign, setZodiacSign] = useState(null);
@@ -94,6 +140,10 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
           location: data.location || '',
           interests: (data.interests || []).join(', '),
           dateOfBirth: dob,
+          lifeGoals: data.lifeGoals || '',
+          dealbreakers: data.dealbreakers || '',
+          datingPace: data.datingPace || '',
+          lifestyle: data.lifestyle || '',
         });
         if (dob) {
           setZodiacSign(getZodiacSign(dob));
@@ -122,6 +172,10 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
     }
   };
 
+  const handleMultiSelectChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
@@ -142,6 +196,10 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
         location: formData.location.trim(),
         interests: interests,
         dateOfBirth: formData.dateOfBirth || null,
+        lifeGoals: formData.lifeGoals || null,
+        dealbreakers: formData.dealbreakers || null,
+        datingPace: formData.datingPace || null,
+        lifestyle: formData.lifestyle || null,
       };
 
       Object.keys(updates).forEach((key) => {
@@ -291,6 +349,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
         )}
 
         <form onSubmit={handleSubmit} style={styles.form}>
+          {/* Basic Info */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Full Name</label>
             <input
@@ -395,6 +454,75 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
               style={styles.input}
               placeholder="Tech, Music, Food, Travel"
             />
+          </div>
+
+          {/* ===== ADVANCED MATCHING ===== */}
+          <div style={styles.divider}>
+            <span style={styles.dividerText}>Matching Preferences</span>
+          </div>
+
+          {/* Life Goals */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Life Goals (1-3 years)</label>
+            <select
+              name="lifeGoals"
+              value={formData.lifeGoals}
+              onChange={handleChange}
+              style={styles.select}
+            >
+              <option value="">Select your life goals</option>
+              {LIFE_GOALS_OPTIONS.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dealbreakers */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Top Dealbreaker</label>
+            <select
+              name="dealbreakers"
+              value={formData.dealbreakers}
+              onChange={handleChange}
+              style={styles.select}
+            >
+              <option value="">Select your top dealbreaker</option>
+              {DEALBREAKERS_OPTIONS.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dating Pace */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Dating Pace</label>
+            <select
+              name="datingPace"
+              value={formData.datingPace}
+              onChange={handleChange}
+              style={styles.select}
+            >
+              <option value="">Select your dating pace</option>
+              {DATING_PACE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Lifestyle */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Lifestyle</label>
+            <select
+              name="lifestyle"
+              value={formData.lifestyle}
+              onChange={handleChange}
+              style={styles.select}
+            >
+              <option value="">Select your lifestyle</option>
+              {LIFESTYLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
           </div>
 
           <div style={styles.buttonRow}>
@@ -561,6 +689,16 @@ const styles = {
     boxSizing: 'border-box',
     fontFamily: 'inherit',
   },
+  select: {
+    width: '100%',
+    padding: '12px 14px',
+    fontSize: '15px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '10px',
+    outline: 'none',
+    backgroundColor: 'white',
+    fontFamily: 'inherit',
+  },
   textarea: {
     resize: 'vertical',
     minHeight: '80px',
@@ -570,6 +708,19 @@ const styles = {
     color: '#6C3CE1',
     marginTop: '4px',
     display: 'block',
+  },
+  divider: {
+    display: 'flex',
+    alignItems: 'center',
+    margin: '8px 0 16px 0',
+  },
+  dividerText: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#6C3CE1',
+    backgroundColor: '#f0edff',
+    padding: '4px 14px',
+    borderRadius: '12px',
   },
   buttonRow: {
     display: 'flex',

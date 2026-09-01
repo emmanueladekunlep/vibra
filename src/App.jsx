@@ -45,6 +45,9 @@ import Privacy from './pages/Privacy';
 // Settings Page
 import Settings from './pages/Settings';
 
+// Blocked Page
+import Blocked from './pages/Blocked';
+
 // Navigation
 import Navigation from './components/common/Navigation';
 
@@ -604,6 +607,13 @@ const App = () => {
             <ProtectedRoute>
               <AppLayout>
                 <Settings />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/blocked" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Blocked />
               </AppLayout>
             </ProtectedRoute>
           } />

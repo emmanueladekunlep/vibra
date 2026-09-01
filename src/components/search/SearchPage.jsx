@@ -2,8 +2,7 @@
  * VIBRA - Search Page Component
  * Module: Search
  * 
- * Search for users by location, name, or phone.
- * Shows nearest locations if exact match not found.
+ * Search for users by location, name, phone, or matching criteria.
  * Fully mobile responsive.
  */
 
@@ -13,6 +12,46 @@ import { useNavigate } from 'react-router-dom';
 import * as chatService from '../../services/chatService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
+
+const LIFE_GOALS_OPTIONS = [
+  'Ready to settle down & buy a home',
+  'Focusing heavily on career/building wealth',
+  'Looking to travel extensively before settling',
+  'Open to anything, going with the flow',
+  'Building a family and raising children',
+  'Focusing on personal growth and self-improvement',
+  'Ready for marriage within 1-2 years',
+];
+
+const DEALBREAKERS_OPTIONS = [
+  'Must want children',
+  'Must not want children',
+  'Must be non-smoker',
+  'Must be Christian',
+  'Must be Muslim',
+  'Must be financially stable',
+  'Must be ambitious',
+  'Must be family-oriented',
+  'Must have a degree',
+  'Must be fit/active',
+  'Must not have children',
+  'No dealbreakers - open to anyone',
+];
+
+const DATING_PACE_OPTIONS = [
+  { value: 'fast', label: 'Fast Tracker' },
+  { value: 'medium', label: 'Vetter' },
+  { value: 'slow', label: 'Pen Pal' },
+];
+
+const LIFESTYLE_OPTIONS = [
+  { value: 'homebody', label: 'Homebody & Budget-Conscious' },
+  { value: 'luxury', label: 'Fine Dining & High Luxury' },
+  { value: 'adventurer', label: 'Outdoor Adventurer & Backpacking' },
+  { value: 'social', label: 'Social Butterfly' },
+  { value: 'balanced', label: 'Balanced' },
+  { value: 'fitness', label: 'Fitness Enthusiast' },
+];
 
 const SearchPage = () => {
   const { user } = useAuth();
@@ -24,6 +63,15 @@ const SearchPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    lifeGoals: '',
+    dealbreakers: '',
+    datingPace: '',
+    lifestyle: '',
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -46,8 +94,32 @@ const SearchPage = () => {
     }
   };
 
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const applyFilters = (users) => {
+    let filtered = users;
+
+    if (filters.lifeGoals) {
+      filtered = filtered.filter(u => u.lifeGoals === filters.lifeGoals);
+    }
+    if (filters.dealbreakers) {
+      filtered = filtered.filter(u => u.dealbreakers === filters.dealbreakers);
+    }
+    if (filters.datingPace) {
+      filtered = filtered.filter(u => u.datingPace === filters.datingPace);
+    }
+    if (filters.lifestyle) {
+      filtered = filtered.filter(u => u.lifestyle === filters.lifestyle);
+    }
+
+    return filtered;
+  };
+
   const handleSearch = () => {
-    if (!searchQuery.trim()) {
+    if (!searchQuery.trim() && !showFilters) {
       setResults([]);
       setSuggestions([]);
       return;
@@ -57,42 +129,33 @@ const SearchPage = () => {
     setError(null);
 
     try {
-      let filtered = [];
-      let exactMatches = [];
-      let partialMatches = [];
+      let filtered = allUsers;
 
-      if (searchType === 'location') {
-        filtered = allUsers.filter(u => 
-          u.location && u.location.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-
-        exactMatches = filtered.filter(u => 
-          u.location.toLowerCase() === searchQuery.toLowerCase()
-        );
-        partialMatches = filtered.filter(u => 
-          u.location.toLowerCase() !== searchQuery.toLowerCase() &&
-          u.location.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-
-        if (exactMatches.length === 0 && partialMatches.length > 0) {
-          setResults(partialMatches);
-          setSuggestions([]);
-        } else if (exactMatches.length === 0 && partialMatches.length === 0) {
-          setResults([]);
-          setSuggestions([
-            'No users found in this location',
-            'Try a different location',
-            'Browse all users'
-          ]);
+      // Apply text search
+      if (searchQuery.trim()) {
+        if (searchType === 'location') {
+          filtered = filtered.filter(u => 
+            u.location && u.location.toLowerCase().includes(searchQuery.toLowerCase())
+          );
         } else {
-          setResults([...exactMatches, ...partialMatches]);
-          setSuggestions([]);
+          filtered = filtered.filter(u => 
+            u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            u.phone?.includes(searchQuery)
+          );
         }
+      }
+
+      // Apply filters
+      filtered = applyFilters(filtered);
+
+      if (filtered.length === 0 && searchQuery.trim()) {
+        setSuggestions([
+          'No users found matching your criteria',
+          'Try removing some filters',
+          'Try a different search',
+        ]);
+        setResults([]);
       } else {
-        filtered = allUsers.filter(u => 
-          u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.phone?.includes(searchQuery)
-        );
         setResults(filtered);
         setSuggestions([]);
       }
@@ -124,11 +187,23 @@ const SearchPage = () => {
     }
   };
 
+  const clearFilters = () => {
+    setFilters({
+      lifeGoals: '',
+      dealbreakers: '',
+      datingPace: '',
+      lifestyle: '',
+    });
+    setSearchQuery('');
+    setResults([]);
+    setSuggestions([]);
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <h3 style={styles.title}>Search People</h3>
-        <p style={styles.subtitle}>Find people by location, name, or phone</p>
+        <p style={styles.subtitle}>Find people by location, name, phone, or preferences</p>
 
         <div style={styles.toggleContainer}>
           <button
@@ -149,6 +224,15 @@ const SearchPage = () => {
           >
             Name / Phone
           </button>
+          <button
+            style={{
+              ...styles.toggleButton,
+              ...(showFilters ? styles.toggleActive : {}),
+            }}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            Filters
+          </button>
         </div>
 
         <div style={styles.searchContainer}>
@@ -168,6 +252,66 @@ const SearchPage = () => {
             Search
           </button>
         </div>
+
+        {showFilters && (
+          <div style={styles.filterContainer}>
+            <div style={styles.filterRow}>
+              <select
+                name="lifeGoals"
+                value={filters.lifeGoals}
+                onChange={handleFilterChange}
+                style={styles.filterSelect}
+              >
+                <option value="">Life Goals (Any)</option>
+                {LIFE_GOALS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+
+              <select
+                name="dealbreakers"
+                value={filters.dealbreakers}
+                onChange={handleFilterChange}
+                style={styles.filterSelect}
+              >
+                <option value="">Dealbreaker (Any)</option>
+                {DEALBREAKERS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={styles.filterRow}>
+              <select
+                name="datingPace"
+                value={filters.datingPace}
+                onChange={handleFilterChange}
+                style={styles.filterSelect}
+              >
+                <option value="">Dating Pace (Any)</option>
+                {DATING_PACE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+
+              <select
+                name="lifestyle"
+                value={filters.lifestyle}
+                onChange={handleFilterChange}
+                style={styles.filterSelect}
+              >
+                <option value="">Lifestyle (Any)</option>
+                {LIFESTYLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <button onClick={clearFilters} style={styles.clearFiltersButton}>
+              Clear All Filters
+            </button>
+          </div>
+        )}
 
         {suggestions.length > 0 && (
           <div style={styles.suggestionsContainer}>
@@ -208,6 +352,12 @@ const SearchPage = () => {
                   <span style={styles.resultDetails}>
                     {u.location || 'Location not set'} • {u.level || 'Bronze'}
                   </span>
+                  {u.lifeGoals && (
+                    <span style={styles.resultTag}>🎯 {u.lifeGoals}</span>
+                  )}
+                  {u.datingPace && (
+                    <span style={styles.resultTag}>⏱️ {u.datingPace}</span>
+                  )}
                   <span style={styles.resultPhone}>{u.phone}</span>
                 </div>
                 <button
@@ -219,10 +369,10 @@ const SearchPage = () => {
               </div>
             ))}
           </div>
-        ) : searchQuery && !isLoading ? (
+        ) : searchQuery || showFilters ? (
           <div style={styles.emptyState}>
             <p style={styles.emptyText}>No users found</p>
-            <p style={styles.emptySubtext}>Try a different search</p>
+            <p style={styles.emptySubtext}>Try adjusting your search or filters</p>
           </div>
         ) : (
           <div style={styles.emptyState}>
@@ -323,6 +473,39 @@ const styles = {
     whiteSpace: 'nowrap',
     flexShrink: 0,
   },
+  filterContainer: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: '12px',
+    padding: '16px',
+    marginBottom: '16px',
+  },
+  filterRow: {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '10px',
+  },
+  filterSelect: {
+    flex: 1,
+    padding: '10px 12px',
+    fontSize: '13px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '8px',
+    outline: 'none',
+    backgroundColor: 'white',
+    fontFamily: 'inherit',
+  },
+  clearFiltersButton: {
+    width: '100%',
+    padding: '10px',
+    backgroundColor: '#e74c3c',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  },
   suggestionsContainer: {
     backgroundColor: '#fff3cd',
     borderRadius: '10px',
@@ -392,6 +575,16 @@ const styles = {
   verifiedBadge: {
     color: '#00B894',
     fontSize: '13px',
+  },
+  resultTag: {
+    display: 'inline-block',
+    fontSize: '11px',
+    color: '#6C3CE1',
+    backgroundColor: '#f0edff',
+    padding: '2px 8px',
+    borderRadius: '10px',
+    marginRight: '4px',
+    marginTop: '2px',
   },
   resultDetails: {
     display: 'block',
