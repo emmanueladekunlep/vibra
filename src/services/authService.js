@@ -101,6 +101,7 @@ const fallbackLogin = async (phone) => {
       isIdentityLocked: false,
       verifiedLegalName: null,
       hasWithdrawn: false,
+      isFounder: false,
     };
     MOCK_USERS.push(user);
     try {
