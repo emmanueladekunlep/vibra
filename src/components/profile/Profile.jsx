@@ -8,7 +8,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import * as profileService from '../../services/profileService';
+import * as chatService from '../../services/chatService';
 
 // Zodiac sign calculator
 const getZodiacSign = (dob) => {
@@ -82,11 +84,13 @@ const LoadingSpinner = () => (
 
 const Profile = ({ userId, onEdit }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [blocked, setBlocked] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [startingChat, setStartingChat] = useState(false);
 
   const isOwner = user?.id === userId || user?.userId === userId;
 
@@ -163,6 +167,21 @@ const Profile = ({ userId, onEdit }) => {
       console.error(err);
     } finally {
       setReporting(false);
+    }
+  };
+
+  const handleChat = async () => {
+    if (!user || !profile) return;
+    
+    setStartingChat(true);
+    try {
+      const conversation = await chatService.getOrCreateConversation(user.id, profile.id);
+      navigate(`/chat/${conversation.id}`);
+    } catch (err) {
+      console.error('Failed to start chat:', err);
+      alert('Failed to start chat. Please try again.');
+    } finally {
+      setStartingChat(false);
     }
   };
 
@@ -311,19 +330,26 @@ const Profile = ({ userId, onEdit }) => {
 
         {!isOwner && (
           <div style={styles.actionRow}>
+            <button
+              onClick={handleChat}
+              disabled={startingChat}
+              style={{...styles.actionButton, backgroundColor: '#6C3CE1'}}
+            >
+              {startingChat ? 'Starting...' : '💬 Chat'}
+            </button>
             {blocked ? (
               <button
                 onClick={handleUnblock}
                 style={{...styles.actionButton, backgroundColor: '#00B894'}}
               >
-                Unblock User
+                Unblock
               </button>
             ) : (
               <button
                 onClick={handleBlock}
                 style={{...styles.actionButton, backgroundColor: '#e74c3c'}}
               >
-                Block User
+                Block
               </button>
             )}
             <button
@@ -331,7 +357,7 @@ const Profile = ({ userId, onEdit }) => {
               disabled={reporting}
               style={{...styles.actionButton, backgroundColor: '#f39c12'}}
             >
-              {reporting ? 'Reporting...' : 'Report User'}
+              {reporting ? 'Reporting...' : 'Report'}
             </button>
           </div>
         )}
@@ -521,6 +547,7 @@ const styles = {
     display: 'flex',
     gap: '10px',
     marginTop: '12px',
+    flexWrap: 'wrap',
   },
   actionButton: {
     flex: 1,
@@ -533,6 +560,7 @@ const styles = {
     cursor: 'pointer',
     fontFamily: 'inherit',
     transition: 'background-color 0.2s',
+    minWidth: '80px',
   },
   errorCard: {
     padding: '40px',

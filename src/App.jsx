@@ -42,6 +42,9 @@ import SearchPage from './components/search/SearchPage';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 
+// Settings Page
+import Settings from './pages/Settings';
+
 // Navigation
 import Navigation from './components/common/Navigation';
 
@@ -414,6 +417,7 @@ const ProfileDetailPage = () => {
  */
 const ProfilePage = () => {
   const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = React.useState(false);
   const [showReferral, setShowReferral] = React.useState(false);
   const [showPoints, setShowPoints] = React.useState(false);
@@ -425,12 +429,10 @@ const ProfilePage = () => {
   React.useEffect(() => {
     const checkAdmin = async () => {
       try {
-        // First check: user object has isFounder
         if (user && user.isFounder === true) {
           setIsAdmin(true);
           return;
         }
-        // Second check: via adminService
         const admin = await import('./services/adminService');
         const status = await admin.isAdmin(user?.id);
         setIsAdmin(status);
@@ -514,6 +516,12 @@ const ProfilePage = () => {
         >
           Merchant Dashboard
         </button>
+        <button 
+          onClick={() => navigate('/settings')} 
+          style={styles.profileActionButton}
+        >
+          Settings
+        </button>
         {isAdmin && (
           <button 
             onClick={() => setShowAdmin(true)} 
@@ -589,6 +597,13 @@ const App = () => {
             <ProtectedRoute>
               <AppLayout>
                 <ProfileDetailPage />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Settings />
               </AppLayout>
             </ProtectedRoute>
           } />

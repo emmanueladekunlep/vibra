@@ -194,14 +194,14 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
                     }}
                   >
                     <p style={styles.messageText}>{msg.text}</p>
-                    <span style={styles.messageTime}>
-                      {formatTime(msg.timestamp)}
-                      {isOwn && (
-                        <span style={styles.messageStatus}>
-                          {msg.read ? ' Read' : ' Sent'}
-                        </span>
-                      )}
-                    </span>
+                    <div style={styles.messageFooter}>
+                      <span style={styles.messageSender}>
+                        {isOwn ? 'You' : otherUser.name}
+                      </span>
+                      <span style={styles.messageTime}>
+                        {formatTime(msg.timestamp)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
@@ -349,8 +349,8 @@ const styles = {
   },
   messageBubble: {
     maxWidth: '75%',
-    padding: '10px 14px',
-    borderRadius: '16px',
+    padding: '8px 14px',
+    borderRadius: '12px',
     wordWrap: 'break-word',
   },
   messageOwn: {
@@ -359,23 +359,31 @@ const styles = {
     borderBottomRightRadius: '4px',
   },
   messageOther: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#e8e8e8',
     color: '#1a1a1a',
     borderBottomLeftRadius: '4px',
   },
   messageText: {
     fontSize: '15px',
     lineHeight: '1.4',
-    margin: '0 0 4px 0',
+    margin: '0 0 2px 0',
+  },
+  messageFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    fontSize: '10px',
+    opacity: 0.7,
+    gap: '8px',
+  },
+  messageSender: {
+    fontWeight: '500',
+    opacity: 0.6,
+    fontSize: '10px',
   },
   messageTime: {
-    fontSize: '11px',
-    opacity: 0.7,
-    display: 'block',
-    textAlign: 'right',
-  },
-  messageStatus: {
-    marginLeft: '6px',
+    fontSize: '10px',
+    opacity: 0.6,
   },
   loadingState: {
     display: 'flex',
