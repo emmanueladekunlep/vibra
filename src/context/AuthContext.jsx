@@ -21,6 +21,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState(null);
+  const [requiresPin, setRequiresPin] = useState(false);
 
   // Load cached user on mount
   useEffect(() => {
@@ -44,30 +45,62 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Login with phone number (no Opay verification at login)
+   * Login with phone number
    * @param {string} phone - User's phone number
+   * @param {string} pin - Optional PIN
    */
-  const loginWithOpay = useCallback(async (phone) => {
+  const loginWithOpay = useCallback(async (phone, pin = null) => {
     setError(null);
     setIsLoading(true);
+    setRequiresPin(false);
     
     try {
-      const result = await authService.loginWithOpay(phone);
+      const result = await authService.loginWithOpay(phone, pin);
       if (result.success) {
-        // Ensure hasWithdrawn is set
-        if (result.user.hasWithdrawn === undefined) {
-          result.user.hasWithdrawn = false;
+        if (result.user) {
+          if (result.user.hasWithdrawn === undefined) {
+            result.user.hasWithdrawn = false;
+          }
+          setUser(result.user);
+          setIsAuthenticated(true);
         }
-        setUser(result.user);
-        setIsAuthenticated(true);
-        return { success: true, user: result.user };
+        return { 
+          success: true, 
+          user: result.user,
+          requiresPin: result.requiresPin || false,
+        };
       }
-      return { success: false, error: 'Login failed' };
+      
+      // Check if PIN is required
+      if (result.requiresPin) {
+        setRequiresPin(true);
+        return { 
+          success: false, 
+          requiresPin: true, 
+          error: 'PIN required' 
+        };
+      }
+      
+      return { success: false, error: result.error || 'Login failed' };
     } catch (err) {
       setError(err.message || 'Login failed');
       return { success: false, error: err.message };
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  /**
+   * Set PIN for user
+   * @param {string} phone - User's phone number
+   * @param {string} pin - 4-digit PIN
+   */
+  const setPin = useCallback(async (phone, pin) => {
+    try {
+      const result = await authService.setPin(phone, pin);
+      return result;
+    } catch (err) {
+      return { success: false, error: err.message };
     }
   }, []);
 
@@ -79,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setError(null);
+    setRequiresPin(false);
   }, []);
 
   /**
@@ -117,7 +151,9 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     isLoading,
     error,
+    requiresPin,
     loginWithOpay,
+    setPin,
     logout,
     updateUser,
     checkOpayStatus,

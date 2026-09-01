@@ -4,7 +4,9 @@
  * 
  * This service handles all authentication operations including:
  * - Phone login (connects to PHP backend)
- * - User ID generation (VIB-XXXX)
+ * - PIN verification
+ * - PIN setup
+ * - User ID generation
  * - Local caching of user data
  * - Session management
  */
@@ -13,7 +15,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 const STORAGE_KEY = 'vibra_user';
 const SESSION_KEY = 'vibra_session';
 
-// Mock user database for fallback (if API is down)
 let MOCK_USERS = [];
 
 try {
@@ -21,10 +22,6 @@ try {
   if (saved) MOCK_USERS = JSON.parse(saved);
 } catch {}
 
-/**
- * Generate a unique User ID (VIB-XXXX)
- * @returns {string} User ID like VIB-1001
- */
 export const generateUserId = () => {
   const existingIds = MOCK_USERS.map(u => u.userId).filter(id => id);
   let counter = 1001;
@@ -39,36 +36,37 @@ export const generateUserId = () => {
   return `VIB-${counter}`;
 };
 
-/**
- * Get user by User ID
- * @param {string} userId - User ID like VIB-1001
- * @returns {Object|null} User or null
- */
 export const getUserByUserId = (userId) => {
   return MOCK_USERS.find(u => u.userId === userId) || null;
 };
 
-/**
- * Phone login - connects to PHP backend API
- * @param {string} phone - User's phone number
- * @returns {Promise<Object>} User data
- */
-export const loginWithOpay = async (phone) => {
+export const loginWithOpay = async (phone, pin = null) => {
   try {
+    const body = { 
+      phone: phone, 
+      name: `User ${phone.slice(-4)}`,
+    };
+    
+    if (pin !== null && pin !== undefined) {
+      body.pin = pin;
+    }
+    
     const response = await fetch(`${API_URL}/login.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        phone: phone, 
-        name: `User ${phone.slice(-4)}` 
-      })
+      body: JSON.stringify(body)
     });
     
     const data = await response.json();
     
     if (data.success) {
       cacheUserData(data.user);
-      return { success: true, user: data.user };
+      return { 
+        success: true, 
+        user: data.user,
+        requiresPin: data.requiresPin || false,
+        pinEnabled: data.user?.pinEnabled || false,
+      };
     } else {
       return { success: false, error: data.message || 'Login failed' };
     }
@@ -78,9 +76,33 @@ export const loginWithOpay = async (phone) => {
   }
 };
 
-/**
- * Fallback mock login (when API is down)
- */
+export const setPin = async (userId, pin) => {
+  try {
+    const response = await fetch(`${API_URL}/set_pin.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, pin: pin })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // Update cached user
+      const cached = getCachedUser();
+      if (cached) {
+        cached.pinEnabled = true;
+        cacheUserData(cached);
+      }
+      return { success: true, message: data.message };
+    } else {
+      return { success: false, error: data.message || 'Failed to set PIN' };
+    }
+  } catch (error) {
+    console.error('Set PIN error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 const fallbackLogin = async (phone) => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -102,6 +124,7 @@ const fallbackLogin = async (phone) => {
       verifiedLegalName: null,
       hasWithdrawn: false,
       isFounder: false,
+      pinEnabled: false,
     };
     MOCK_USERS.push(user);
     try {
@@ -114,14 +137,12 @@ const fallbackLogin = async (phone) => {
   return {
     success: true,
     user: user,
+    requiresPin: false,
+    pinEnabled: user.pinEnabled || false,
     token: `mock_token_${Date.now()}`,
   };
 };
 
-/**
- * Cache user data to localStorage
- * @param {Object} user - User data to cache
- */
 const cacheUserData = (user) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
@@ -134,10 +155,6 @@ const cacheUserData = (user) => {
   }
 };
 
-/**
- * Get cached user data
- * @returns {Object|null} Cached user or null
- */
 export const getCachedUser = () => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
@@ -148,10 +165,6 @@ export const getCachedUser = () => {
   }
 };
 
-/**
- * Check if user is currently logged in (session active)
- * @returns {boolean} True if session exists
- */
 export const isLoggedIn = () => {
   try {
     const session = localStorage.getItem(SESSION_KEY);
@@ -163,9 +176,6 @@ export const isLoggedIn = () => {
   }
 };
 
-/**
- * Logout user - clear local cache
- */
 export const logout = () => {
   try {
     localStorage.removeItem(STORAGE_KEY);
@@ -175,11 +185,6 @@ export const logout = () => {
   }
 };
 
-/**
- * Update user data in cache
- * @param {Object} updates - Fields to update
- * @returns {Object|null} Updated user or null
- */
 export const updateCachedUser = (updates) => {
   try {
     const current = getCachedUser();
@@ -193,10 +198,6 @@ export const updateCachedUser = (updates) => {
   }
 };
 
-/**
- * Check if Opay API is available (for withdrawal only)
- * @returns {Promise<boolean>} True if available
- */
 export const checkOpayStatus = async () => {
   await new Promise((resolve) => setTimeout(resolve, 500));
   return Math.random() < 0.9;
@@ -204,6 +205,7 @@ export const checkOpayStatus = async () => {
 
 export default {
   loginWithOpay,
+  setPin,
   getCachedUser,
   isLoggedIn,
   logout,

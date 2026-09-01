@@ -2,8 +2,7 @@
  * VIBRA - Login Component
  * Module: Authentication
  * 
- * Login screen - simple phone number entry.
- * No Opay verification at login. Opay check happens only at withdrawal.
+ * Login screen - phone number entry with 4-digit PIN support.
  */
 
 import React, { useState } from 'react';
@@ -19,10 +18,21 @@ const LoadingSpinner = () => (
 
 const Login = () => {
   const navigate = useNavigate();
-  const { loginWithOpay, isLoading, error, isAuthenticated } = useAuth();
+  const { loginWithOpay, setPin, isLoading, error, isAuthenticated } = useAuth();
   
   const [phone, setPhone] = useState('');
+  const [pin, setPinInput] = useState('');
   const [loginError, setLoginError] = useState(null);
+  const [requiresPin, setRequiresPin] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [showSetPin, setShowSetPin] = useState(false);
+  const [showForgotPin, setShowForgotPin] = useState(false);
+  const [resetPhone, setResetPhone] = useState('');
+  const [resetPin, setResetPin] = useState('');
+  const [resetConfirmPin, setResetConfirmPin] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
 
   // Redirect if already authenticated
   React.useEffect(() => {
@@ -40,11 +50,102 @@ const Login = () => {
       return;
     }
 
-    const result = await loginWithOpay(phone);
+    const result = await loginWithOpay(phone, pin || null);
+    
     if (!result.success) {
       setLoginError(result.error || 'Login failed. Please try again.');
-    } else {
+      return;
+    }
+
+    // Check if PIN is required
+    if (result.requiresPin && !pin) {
+      setRequiresPin(true);
+      return;
+    }
+
+    // Check if user needs to set PIN
+    if (result.user && !result.user.pinEnabled) {
+      setIsNewUser(true);
+      setShowSetPin(true);
+      return;
+    }
+
+    navigate('/', { replace: true });
+  };
+
+  const handleSetPin = async (e) => {
+    e.preventDefault();
+    setLoginError(null);
+
+    if (!newPin || newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+      setLoginError('PIN must be 4 digits');
+      return;
+    }
+
+    if (newPin !== confirmPin) {
+      setLoginError('PINs do not match');
+      return;
+    }
+
+    const result = await setPin(phone, newPin);
+    
+    if (!result.success) {
+      setLoginError(result.error || 'Failed to set PIN');
+      return;
+    }
+
+    // Login again with PIN
+    const loginResult = await loginWithOpay(phone, newPin);
+    if (loginResult.success) {
       navigate('/', { replace: true });
+    } else {
+      setLoginError(loginResult.error || 'Login failed');
+    }
+  };
+
+  const handleForgotPin = async (e) => {
+    e.preventDefault();
+    setLoginError(null);
+
+    if (!resetPhone || resetPhone.length < 10) {
+      setLoginError('Please enter a valid phone number');
+      return;
+    }
+
+    if (!resetPin || resetPin.length !== 4 || !/^\d{4}$/.test(resetPin)) {
+      setLoginError('PIN must be 4 digits');
+      return;
+    }
+
+    if (resetPin !== resetConfirmPin) {
+      setLoginError('PINs do not match');
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      // Call API to reset PIN
+      const response = await fetch('https://api.vibra.ng/api/reset_pin.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: resetPhone, pin: resetPin })
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setLoginError(null);
+        setShowForgotPin(false);
+        setResetPhone('');
+        setResetPin('');
+        setResetConfirmPin('');
+        alert('PIN reset successfully! Please login with your new PIN.');
+      } else {
+        setLoginError(data.message || 'Failed to reset PIN');
+      }
+    } catch (err) {
+      setLoginError('Failed to reset PIN. Please try again.');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -56,6 +157,215 @@ const Login = () => {
     );
   }
 
+  // PIN Setup Screen
+  if (showSetPin) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <div style={styles.logoContainer}>
+            <h1 style={styles.logoText}>VIBRA</h1>
+            <p style={styles.tagline}>Set Your 4-Digit PIN</p>
+          </div>
+
+          {(error || loginError) && (
+            <div style={styles.errorContainer}>
+              <p style={styles.errorText}>{error || loginError}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSetPin} style={styles.form}>
+            <p style={styles.subtitle}>Create a 4-digit PIN to secure your account</p>
+            
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Create PIN</label>
+              <input
+                type="password"
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="1234"
+                style={styles.input}
+                maxLength="4"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoFocus
+              />
+            </div>
+
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Confirm PIN</label>
+              <input
+                type="password"
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="1234"
+                style={styles.input}
+                maxLength="4"
+                inputMode="numeric"
+                pattern="[0-9]*"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              style={styles.button}
+              disabled={isLoading || newPin.length !== 4 || confirmPin.length !== 4}
+            >
+              Set PIN & Continue
+            </button>
+          </form>
+
+          <p style={styles.credit}>Powered by LabelReach</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Forgot PIN Screen
+  if (showForgotPin) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <div style={styles.logoContainer}>
+            <h1 style={styles.logoText}>VIBRA</h1>
+            <p style={styles.tagline}>Reset Your PIN</p>
+          </div>
+
+          {(error || loginError) && (
+            <div style={styles.errorContainer}>
+              <p style={styles.errorText}>{error || loginError}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleForgotPin} style={styles.form}>
+            <p style={styles.subtitle}>Enter your phone number and set a new PIN</p>
+            
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Phone Number</label>
+              <input
+                type="tel"
+                value={resetPhone}
+                onChange={(e) => setResetPhone(e.target.value)}
+                placeholder="08012345678"
+                style={styles.input}
+                disabled={isResetting}
+              />
+            </div>
+
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>New PIN</label>
+              <input
+                type="password"
+                value={resetPin}
+                onChange={(e) => setResetPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="1234"
+                style={styles.input}
+                maxLength="4"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                disabled={isResetting}
+              />
+            </div>
+
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Confirm New PIN</label>
+              <input
+                type="password"
+                value={resetConfirmPin}
+                onChange={(e) => setResetConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="1234"
+                style={styles.input}
+                maxLength="4"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                disabled={isResetting}
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              style={styles.button}
+              disabled={isResetting || resetPin.length !== 4 || resetConfirmPin.length !== 4}
+            >
+              {isResetting ? 'Resetting...' : 'Reset PIN'}
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => setShowForgotPin(false)}
+              style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}
+            >
+              Back to Login
+            </button>
+          </form>
+
+          <p style={styles.credit}>Powered by LabelReach</p>
+        </div>
+      </div>
+    );
+  }
+
+  // PIN Required Screen
+  if (requiresPin) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <div style={styles.logoContainer}>
+            <h1 style={styles.logoText}>VIBRA</h1>
+            <p style={styles.tagline}>Enter Your PIN</p>
+          </div>
+
+          {(error || loginError) && (
+            <div style={styles.errorContainer}>
+              <p style={styles.errorText}>{error || loginError}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} style={styles.form}>
+            <p style={styles.subtitle}>Enter your 4-digit PIN to continue</p>
+            
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>PIN</label>
+              <input
+                type="password"
+                value={pin}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="1234"
+                style={styles.input}
+                maxLength="4"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoFocus
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              style={styles.button}
+              disabled={isLoading || pin.length !== 4}
+            >
+              {isLoading ? 'Verifying...' : 'Verify PIN'}
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => {
+                setRequiresPin(false);
+                setPinInput('');
+                setShowForgotPin(true);
+              }}
+              style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}
+            >
+              Forgot PIN?
+            </button>
+          </form>
+
+          <p style={styles.credit}>Powered by LabelReach</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Login Screen
   return (
     <div style={styles.container}>
       <div style={styles.card}>
@@ -193,6 +503,8 @@ const styles = {
     transition: 'border-color 0.2s',
     boxSizing: 'border-box',
     fontFamily: 'inherit',
+    textAlign: 'center',
+    letterSpacing: '8px',
   },
   button: {
     width: '100%',
@@ -207,6 +519,10 @@ const styles = {
     transition: 'background-color 0.2s, transform 0.1s',
     marginTop: '8px',
     fontFamily: 'inherit',
+  },
+  skipButton: {
+    backgroundColor: '#e0e0e0',
+    color: '#333',
   },
   errorContainer: {
     backgroundColor: '#ffebee',
