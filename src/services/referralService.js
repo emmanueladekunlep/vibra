@@ -38,20 +38,23 @@ export const POINTS = {
 export const generateReferralCode = async (userId) => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
+  // Ensure userId is a string
+  const userIdStr = String(userId);
+
   // Check if user already has a code
-  const existing = getReferralCode(userId);
+  const existing = getReferralCode(userIdStr);
   if (existing) {
     return existing;
   }
 
   // Generate unique code: VIB + user ID suffix + random
-  const suffix = userId.slice(-4).toUpperCase();
+  const suffix = userIdStr.slice(-4).toUpperCase();
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
   const code = `VIB-${suffix}-${random}`;
 
   const referralData = {
     code,
-    userId,
+    userId: userIdStr,
     createdAt: new Date().toISOString(),
     totalReferrals: 0,
     totalPoints: 0,
@@ -59,8 +62,8 @@ export const generateReferralCode = async (userId) => {
   };
 
   // Save to mock
-  MOCK_REFERRALS[userId] = referralData;
-  saveReferralData(userId, referralData);
+  MOCK_REFERRALS[userIdStr] = referralData;
+  saveReferralData(userIdStr, referralData);
 
   return referralData;
 };
@@ -71,8 +74,9 @@ export const generateReferralCode = async (userId) => {
  * @returns {Object|null} Referral code data
  */
 export const getReferralCode = (userId) => {
+  const userIdStr = String(userId);
   try {
-    const data = localStorage.getItem(`${REFERRAL_KEY}_${userId}`);
+    const data = localStorage.getItem(`${REFERRAL_KEY}_${userIdStr}`);
     return data ? JSON.parse(data) : null;
   } catch {
     return null;
@@ -88,8 +92,10 @@ export const getReferralCode = (userId) => {
 export const redeemReferralCode = async (code, newUserId) => {
   await new Promise((resolve) => setTimeout(resolve, 800));
 
+  const newUserIdStr = String(newUserId);
+
   // Check if it's a VIP code
-  const vipResult = await redeemVIPCode(code, newUserId);
+  const vipResult = await redeemVIPCode(code, newUserIdStr);
   if (vipResult) {
     return vipResult;
   }
@@ -102,14 +108,14 @@ export const redeemReferralCode = async (code, newUserId) => {
 
   // Check if code was already used by this user
   const referralData = getReferralCode(referrerId);
-  if (referralData.redeemedBy.includes(newUserId)) {
+  if (referralData.redeemedBy.includes(newUserIdStr)) {
     throw new Error('You have already used this referral code');
   }
 
   // Update referrer
   referralData.totalReferrals += 1;
   referralData.totalPoints += POINTS.STANDARD_REFERRER;
-  referralData.redeemedBy.push(newUserId);
+  referralData.redeemedBy.push(newUserIdStr);
   saveReferralData(referrerId, referralData);
 
   // Update referrer's profile points
@@ -119,8 +125,8 @@ export const redeemReferralCode = async (code, newUserId) => {
   });
 
   // Update new user's points
-  const newUserProfile = await getProfile(newUserId);
-  await updateProfile(newUserId, {
+  const newUserProfile = await getProfile(newUserIdStr);
+  await updateProfile(newUserIdStr, {
     points: (newUserProfile.points || 0) + POINTS.STANDARD_NEW_USER,
   });
 
@@ -179,6 +185,7 @@ export const generateVIPCode = async (level, recipientPhone = null) => {
  * @returns {Promise<Object|null>} Redemption result or null if not VIP
  */
 export const redeemVIPCode = async (code, newUserId) => {
+  const newUserIdStr = String(newUserId);
   const vipData = getVIPCode(code);
   if (!vipData) return null;
 
@@ -188,13 +195,13 @@ export const redeemVIPCode = async (code, newUserId) => {
 
   // Mark as used
   vipData.used = true;
-  vipData.usedBy = newUserId;
+  vipData.usedBy = newUserIdStr;
   vipData.usedAt = new Date().toISOString();
   saveVIPCode(code, vipData);
 
   // Update user's profile with VIP level and points (locked)
-  const userProfile = await getProfile(newUserId);
-  await updateProfile(newUserId, {
+  const userProfile = await getProfile(newUserIdStr);
+  await updateProfile(newUserIdStr, {
     level: vipData.level,
     points: vipData.points,
     isVIP: true,
@@ -253,8 +260,9 @@ const findReferrerByCode = (code) => {
 // ========== CACHE HELPERS ==========
 
 const saveReferralData = (userId, data) => {
+  const userIdStr = String(userId);
   try {
-    localStorage.setItem(`${REFERRAL_KEY}_${userId}`, JSON.stringify(data));
+    localStorage.setItem(`${REFERRAL_KEY}_${userIdStr}`, JSON.stringify(data));
   } catch (error) {
     console.warn('Failed to save referral data:', error);
   }
