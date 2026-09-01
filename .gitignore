@@ -31,3 +31,5 @@ desktop.ini
 # Temporary files
 *.tmp
 *.temp
+.vercel
+.env*
