@@ -2,13 +2,77 @@
  * VIBRA - Profile Component
  * Module: User Profile
  * 
- * Displays user profile with photos, bio, interests, and level badge.
+ * Displays user profile with photos, bio, interests, level badge, and zodiac.
  * Professional design - no emojis.
  */
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as profileService from '../../services/profileService';
+
+// Zodiac sign calculator
+const getZodiacSign = (dob) => {
+  if (!dob) return null;
+  const date = new Date(dob);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  
+  const signs = [
+    { sign: 'Capricorn', start: { month: 1, day: 1 }, end: { month: 1, day: 19 } },
+    { sign: 'Aquarius', start: { month: 1, day: 20 }, end: { month: 2, day: 18 } },
+    { sign: 'Pisces', start: { month: 2, day: 19 }, end: { month: 3, day: 20 } },
+    { sign: 'Aries', start: { month: 3, day: 21 }, end: { month: 4, day: 19 } },
+    { sign: 'Taurus', start: { month: 4, day: 20 }, end: { month: 5, day: 20 } },
+    { sign: 'Gemini', start: { month: 5, day: 21 }, end: { month: 6, day: 20 } },
+    { sign: 'Cancer', start: { month: 6, day: 21 }, end: { month: 7, day: 22 } },
+    { sign: 'Leo', start: { month: 7, day: 23 }, end: { month: 8, day: 22 } },
+    { sign: 'Virgo', start: { month: 8, day: 23 }, end: { month: 9, day: 22 } },
+    { sign: 'Libra', start: { month: 9, day: 23 }, end: { month: 10, day: 22 } },
+    { sign: 'Scorpio', start: { month: 10, day: 23 }, end: { month: 11, day: 21 } },
+    { sign: 'Sagittarius', start: { month: 11, day: 22 }, end: { month: 12, day: 21 } },
+    { sign: 'Capricorn', start: { month: 12, day: 22 }, end: { month: 12, day: 31 } },
+  ];
+
+  for (const s of signs) {
+    if (month === s.start.month && day >= s.start.day) return s.sign;
+    if (month === s.end.month && day <= s.end.day) return s.sign;
+  }
+  return 'Capricorn';
+};
+
+// Lucky number calculator
+const getLuckyNumber = (dob) => {
+  if (!dob) return null;
+  const date = new Date(dob);
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  
+  let sum = day + month + year;
+  while (sum > 9) {
+    sum = String(sum).split('').reduce((a, b) => a + Number(b), 0);
+  }
+  return sum;
+};
+
+// Zodiac emoji
+const getZodiacEmoji = (sign) => {
+  const map = {
+    'Aries': '♈',
+    'Taurus': '♉',
+    'Gemini': '♊',
+    'Cancer': '♋',
+    'Leo': '♌',
+    'Virgo': '♍',
+    'Libra': '♎',
+    'Scorpio': '♏',
+    'Sagittarius': '♐',
+    'Capricorn': '♑',
+    'Aquarius': '♒',
+    'Pisces': '♓',
+  };
+  return map[sign] || '♈';
+};
 
 const LoadingSpinner = () => (
   <div style={styles.spinnerContainer}>
@@ -124,6 +188,9 @@ const Profile = ({ userId, onEdit }) => {
     return emojis[level] || '🥉';
   };
 
+  const zodiacSign = profile?.dateOfBirth ? getZodiacSign(profile.dateOfBirth) : null;
+  const luckyNumber = profile?.dateOfBirth ? getLuckyNumber(profile.dateOfBirth) : null;
+
   if (isLoading) {
     return (
       <div style={styles.container}>
@@ -181,6 +248,11 @@ const Profile = ({ userId, onEdit }) => {
               )}
             </div>
             <p style={styles.location}>{profile.location || 'Location not set'}</p>
+            {zodiacSign && (
+              <p style={styles.zodiacText}>
+                {getZodiacEmoji(zodiacSign)} {zodiacSign} • Lucky #{luckyNumber}
+              </p>
+            )}
             <div style={styles.stats}>
               <span style={styles.stat}>Score: {profile.vibraScore || 3.5}</span>
               <span style={styles.stat}>Photos: {profile.photos?.length || 0}</span>
@@ -366,7 +438,13 @@ const styles = {
   location: {
     fontSize: '14px',
     color: '#666',
-    margin: '0 0 8px 0',
+    margin: '0 0 4px 0',
+  },
+  zodiacText: {
+    fontSize: '13px',
+    color: '#6C3CE1',
+    fontWeight: '500',
+    margin: '0 0 6px 0',
   },
   stats: {
     display: 'flex',

@@ -2,13 +2,58 @@
  * VIBRA - Edit Profile Component
  * Module: User Profile
  * 
- * Edit profile form with photo upload, bio, interests, and location.
+ * Edit profile form with photo upload, bio, interests, location, and DOB.
  * Self-contained - does not affect other modules.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as profileService from '../../services/profileService';
+
+// Zodiac sign calculator
+const getZodiacSign = (dob) => {
+  if (!dob) return null;
+  const date = new Date(dob);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  
+  const signs = [
+    { sign: 'Capricorn', start: { month: 1, day: 1 }, end: { month: 1, day: 19 } },
+    { sign: 'Aquarius', start: { month: 1, day: 20 }, end: { month: 2, day: 18 } },
+    { sign: 'Pisces', start: { month: 2, day: 19 }, end: { month: 3, day: 20 } },
+    { sign: 'Aries', start: { month: 3, day: 21 }, end: { month: 4, day: 19 } },
+    { sign: 'Taurus', start: { month: 4, day: 20 }, end: { month: 5, day: 20 } },
+    { sign: 'Gemini', start: { month: 5, day: 21 }, end: { month: 6, day: 20 } },
+    { sign: 'Cancer', start: { month: 6, day: 21 }, end: { month: 7, day: 22 } },
+    { sign: 'Leo', start: { month: 7, day: 23 }, end: { month: 8, day: 22 } },
+    { sign: 'Virgo', start: { month: 8, day: 23 }, end: { month: 9, day: 22 } },
+    { sign: 'Libra', start: { month: 9, day: 23 }, end: { month: 10, day: 22 } },
+    { sign: 'Scorpio', start: { month: 10, day: 23 }, end: { month: 11, day: 21 } },
+    { sign: 'Sagittarius', start: { month: 11, day: 22 }, end: { month: 12, day: 21 } },
+    { sign: 'Capricorn', start: { month: 12, day: 22 }, end: { month: 12, day: 31 } },
+  ];
+
+  for (const s of signs) {
+    if (month === s.start.month && day >= s.start.day) return s.sign;
+    if (month === s.end.month && day <= s.end.day) return s.sign;
+  }
+  return 'Capricorn';
+};
+
+// Lucky number calculator
+const getLuckyNumber = (dob) => {
+  if (!dob) return null;
+  const date = new Date(dob);
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  
+  let sum = day + month + year;
+  while (sum > 9) {
+    sum = String(sum).split('').reduce((a, b) => a + Number(b), 0);
+  }
+  return sum;
+};
 
 const EditProfile = ({ userId, onSave, onCancel }) => {
   const { user, updateUser } = useAuth();
@@ -27,7 +72,11 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
     gender: '',
     location: '',
     interests: '',
+    dateOfBirth: '',
   });
+
+  const [zodiacSign, setZodiacSign] = useState(null);
+  const [luckyNumber, setLuckyNumber] = useState(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -36,6 +85,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       try {
         const data = await profileService.getProfile(userId);
         setProfile(data);
+        const dob = data.dateOfBirth || '';
         setFormData({
           name: data.name || '',
           bio: data.bio || '',
@@ -43,7 +93,12 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
           gender: data.gender || '',
           location: data.location || '',
           interests: (data.interests || []).join(', '),
+          dateOfBirth: dob,
         });
+        if (dob) {
+          setZodiacSign(getZodiacSign(dob));
+          setLuckyNumber(getLuckyNumber(dob));
+        }
       } catch (err) {
         setError('Failed to load profile');
         console.error(err);
@@ -60,6 +115,11 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'dateOfBirth' && value) {
+      setZodiacSign(getZodiacSign(value));
+      setLuckyNumber(getLuckyNumber(value));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -81,6 +141,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
         gender: formData.gender,
         location: formData.location.trim(),
         interests: interests,
+        dateOfBirth: formData.dateOfBirth || null,
       };
 
       Object.keys(updates).forEach((key) => {
@@ -210,6 +271,14 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
           </div>
         </div>
 
+        {/* Zodiac & Lucky Number Preview */}
+        {zodiacSign && luckyNumber && (
+          <div style={styles.zodiacBox}>
+            <span style={styles.zodiacText}>♈ Zodiac: {zodiacSign}</span>
+            <span style={styles.zodiacText}>🍀 Lucky Number: {luckyNumber}</span>
+          </div>
+        )}
+
         {error && (
           <div style={styles.errorBox}>
             <p style={styles.errorText}>{error}</p>
@@ -249,17 +318,17 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
 
           <div style={styles.row}>
             <div style={{...styles.formGroup, flex: 1}}>
-              <label style={styles.label}>Age</label>
+              <label style={styles.label}>Date of Birth</label>
               <input
-                type="number"
-                name="age"
-                value={formData.age}
+                type="date"
+                name="dateOfBirth"
+                value={formData.dateOfBirth}
                 onChange={handleChange}
                 style={styles.input}
-                placeholder="25"
-                min="18"
-                max="99"
               />
+              {zodiacSign && (
+                <span style={styles.helperText}>Zodiac: {zodiacSign}</span>
+              )}
             </div>
             <div style={{...styles.formGroup, flex: 1}}>
               <label style={styles.label}>Gender</label>
@@ -275,6 +344,32 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
                 <option value="Non-binary">Non-binary</option>
                 <option value="Prefer not to say">Prefer not to say</option>
               </select>
+            </div>
+          </div>
+
+          <div style={styles.row}>
+            <div style={{...styles.formGroup, flex: 1}}>
+              <label style={styles.label}>Age</label>
+              <input
+                type="number"
+                name="age"
+                value={formData.age}
+                onChange={handleChange}
+                style={styles.input}
+                placeholder="25"
+                min="18"
+                max="99"
+              />
+            </div>
+            <div style={{...styles.formGroup, flex: 1}}>
+              <label style={styles.label}>Lucky Number</label>
+              <input
+                type="text"
+                value={luckyNumber || ''}
+                style={{...styles.input, backgroundColor: '#f5f5f5'}}
+                disabled
+                placeholder="Auto-calculated"
+              />
             </div>
           </div>
 
@@ -423,6 +518,20 @@ const styles = {
     color: '#999',
     margin: '2px 0 0 0',
   },
+  zodiacBox: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '10px 16px',
+    backgroundColor: '#f0edff',
+    borderRadius: '10px',
+    marginBottom: '16px',
+    border: '1px solid #d4c4f0',
+  },
+  zodiacText: {
+    fontSize: '13px',
+    color: '#6C3CE1',
+    fontWeight: '500',
+  },
   form: {
     display: 'flex',
     flexDirection: 'column',
@@ -455,6 +564,12 @@ const styles = {
   textarea: {
     resize: 'vertical',
     minHeight: '80px',
+  },
+  helperText: {
+    fontSize: '12px',
+    color: '#6C3CE1',
+    marginTop: '4px',
+    display: 'block',
   },
   buttonRow: {
     display: 'flex',
