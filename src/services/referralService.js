@@ -8,17 +8,9 @@
  * - Validate and redeem codes
  * - Track referrals and points
  * - VIP code locking (no cash out)
- * 
- * All API calls are mocked. Replace with real endpoints when available.
  */
 
-// Storage keys
-const REFERRAL_KEY = 'vibra_referrals';
-const VIP_CODES_KEY = 'vibra_vip_codes';
-
-// Mock database
-const MOCK_REFERRALS = {};
-const MOCK_VIP_CODES = {};
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 
 // Point values - EXPORTED for use in components
 export const POINTS = {
@@ -36,31 +28,33 @@ export const POINTS = {
  * @returns {Promise<Object>} Referral code data
  */
 export const generateReferralCode = async (userId) => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  const userIdStr = String(userId);
-
-  const existing = getReferralCode(userIdStr);
-  if (existing) {
-    return existing;
+  // Get user from API to get referral_code
+  try {
+    const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+    const data = await response.json();
+    if (data.success && data.user.referralCode) {
+      return {
+        code: data.user.referralCode,
+        userId: userId,
+        createdAt: new Date().toISOString(),
+        totalReferrals: data.user.totalReferrals || 0,
+        totalPoints: 0,
+        redeemedBy: [],
+      };
+    }
+  } catch (error) {
+    console.error('Failed to get referral code:', error);
   }
-
-  // Generate 6-digit numeric code
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-
-  const referralData = {
-    code,
-    userId: userIdStr,
+  
+  // Fallback: generate mock code
+  return {
+    code: String(Math.floor(100000 + Math.random() * 900000)),
+    userId: userId,
     createdAt: new Date().toISOString(),
     totalReferrals: 0,
     totalPoints: 0,
     redeemedBy: [],
   };
-
-  MOCK_REFERRALS[userIdStr] = referralData;
-  saveReferralData(userIdStr, referralData);
-
-  return referralData;
 };
 
 /**
@@ -68,71 +62,57 @@ export const generateReferralCode = async (userId) => {
  * @param {string} userId - User ID
  * @returns {Object|null} Referral code data
  */
-export const getReferralCode = (userId) => {
-  const userIdStr = String(userId);
+export const getReferralCode = async (userId) => {
   try {
-    const data = localStorage.getItem(`${REFERRAL_KEY}_${userIdStr}`);
-    return data ? JSON.parse(data) : null;
-  } catch {
-    return null;
+    const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+    const data = await response.json();
+    if (data.success && data.user.referralCode) {
+      return {
+        code: data.user.referralCode,
+        userId: userId,
+        createdAt: new Date().toISOString(),
+        totalReferrals: data.user.totalReferrals || 0,
+        totalPoints: 0,
+        redeemedBy: [],
+      };
+    }
+  } catch (error) {
+    console.error('Failed to get referral code:', error);
   }
+  return null;
 };
 
 /**
  * Redeem a referral code
- * @param {string} code - Referral code to redeem
+ * @param {string} code - Referral code (6 digits)
  * @param {string} newUserId - New user's ID
  * @returns {Promise<Object>} Redemption result
  */
 export const redeemReferralCode = async (code, newUserId) => {
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  const newUserIdStr = String(newUserId);
-  const cleanCode = code.replace(/\s/g, '');
-
-  // Check if it's a VIP code
-  const vipResult = await redeemVIPCode(cleanCode, newUserIdStr);
-  if (vipResult) {
-    return vipResult;
+  try {
+    const response = await fetch(`${API_URL}/redeem_referral.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code.trim(), user_id: newUserId }),
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      return {
+        success: true,
+        type: 'standard',
+        referrerId: data.referrer_id,
+        pointsEarned: data.points_earned,
+        message: data.message,
+      };
+    } else {
+      throw new Error(data.message || 'Failed to redeem code');
+    }
+  } catch (error) {
+    console.error('Redeem referral error:', error);
+    throw new Error(error.message || 'Invalid referral code');
   }
-
-  // Standard code redemption
-  const referrerId = findReferrerByCode(cleanCode);
-  if (!referrerId) {
-    throw new Error('Invalid referral code');
-  }
-
-  const referralData = getReferralCode(referrerId);
-  if (!referralData) {
-    throw new Error('Invalid referral code');
-  }
-
-  if (referralData.redeemedBy.includes(newUserIdStr)) {
-    throw new Error('You have already used this referral code');
-  }
-
-  referralData.totalReferrals += 1;
-  referralData.totalPoints += POINTS.STANDARD_REFERRER;
-  referralData.redeemedBy.push(newUserIdStr);
-  saveReferralData(referrerId, referralData);
-
-  const referrerProfile = await getProfile(referrerId);
-  await updateProfile(referrerId, {
-    points: (referrerProfile.points || 0) + POINTS.STANDARD_REFERRER,
-  });
-
-  const newUserProfile = await getProfile(newUserIdStr);
-  await updateProfile(newUserIdStr, {
-    points: (newUserProfile.points || 0) + POINTS.STANDARD_NEW_USER,
-  });
-
-  return {
-    success: true,
-    type: 'standard',
-    referrerId,
-    pointsEarned: POINTS.STANDARD_NEW_USER,
-    message: `You earned ${POINTS.STANDARD_NEW_USER} points!`,
-  };
 };
 
 /**
@@ -166,8 +146,10 @@ export const generateVIPCode = async (level, recipientPhone = null) => {
     canCashOut: false,
   };
 
-  MOCK_VIP_CODES[code] = vipData;
-  saveVIPCode(code, vipData);
+  // Save to localStorage for now
+  const all = getVIPCodes();
+  all[code] = vipData;
+  localStorage.setItem('vibra_vip_codes', JSON.stringify(all));
 
   return vipData;
 };
@@ -179,9 +161,7 @@ export const generateVIPCode = async (level, recipientPhone = null) => {
  * @returns {Promise<Object|null>} Redemption result or null if not VIP
  */
 export const redeemVIPCode = async (code, newUserId) => {
-  const newUserIdStr = String(newUserId);
-  const cleanCode = code.replace(/\s/g, '');
-  const vipData = getVIPCode(cleanCode);
+  const vipData = getVIPCode(code);
   if (!vipData) return null;
 
   if (vipData.used) {
@@ -189,19 +169,12 @@ export const redeemVIPCode = async (code, newUserId) => {
   }
 
   vipData.used = true;
-  vipData.usedBy = newUserIdStr;
+  vipData.usedBy = newUserId;
   vipData.usedAt = new Date().toISOString();
-  saveVIPCode(cleanCode, vipData);
-
-  const userProfile = await getProfile(newUserIdStr);
-  await updateProfile(newUserIdStr, {
-    level: vipData.level,
-    points: vipData.points,
-    isVIP: true,
-    canCashOut: false,
-    vipLevel: vipData.level,
-    vipPointsLocked: true,
-  });
+  
+  const all = getVIPCodes();
+  all[code] = vipData;
+  localStorage.setItem('vibra_vip_codes', JSON.stringify(all));
 
   return {
     success: true,
@@ -209,7 +182,7 @@ export const redeemVIPCode = async (code, newUserId) => {
     level: vipData.level,
     pointsEarned: vipData.points,
     canCashOut: false,
-    message: ` You are now a ${vipData.level} member!`,
+    message: `You are now a ${vipData.level} member!`,
   };
 };
 
@@ -226,49 +199,7 @@ const getVIPPoints = (level) => {
   return map[level] || 0;
 };
 
-/**
- * Find referrer by code
- */
-const findReferrerByCode = (code) => {
-  for (const userId in MOCK_REFERRALS) {
-    if (MOCK_REFERRALS[userId].code === code) {
-      return userId;
-    }
-  }
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith(REFERRAL_KEY)) {
-      try {
-        const data = JSON.parse(localStorage.getItem(key));
-        if (data.code === code) {
-          return data.userId;
-        }
-      } catch {}
-    }
-  }
-  return null;
-};
-
-// ========== CACHE HELPERS ==========
-
-const saveReferralData = (userId, data) => {
-  const userIdStr = String(userId);
-  try {
-    localStorage.setItem(`${REFERRAL_KEY}_${userIdStr}`, JSON.stringify(data));
-  } catch (error) {
-    console.warn('Failed to save referral data:', error);
-  }
-};
-
-const saveVIPCode = (code, data) => {
-  try {
-    const all = getVIPCodes();
-    all[code] = data;
-    localStorage.setItem(VIP_CODES_KEY, JSON.stringify(all));
-  } catch (error) {
-    console.warn('Failed to save VIP code:', error);
-  }
-};
+// ========== VIP CODE HELPERS ==========
 
 export const getVIPCode = (code) => {
   try {
@@ -281,7 +212,7 @@ export const getVIPCode = (code) => {
 
 export const getVIPCodes = () => {
   try {
-    const data = localStorage.getItem(VIP_CODES_KEY);
+    const data = localStorage.getItem('vibra_vip_codes');
     return data ? JSON.parse(data) : {};
   } catch {
     return {};
@@ -293,22 +224,6 @@ export const getAllVIPCodes = () => {
 };
 
 // ========== UTILITY FUNCTIONS ==========
-
-export const getReferralStats = async (userId) => {
-  const data = getReferralCode(userId);
-  if (!data) {
-    return {
-      code: null,
-      totalReferrals: 0,
-      totalPoints: 0,
-    };
-  }
-  return {
-    code: data.code,
-    totalReferrals: data.totalReferrals || 0,
-    totalPoints: data.totalPoints || 0,
-  };
-};
 
 export const getShareText = (code, userName) => {
   return `Join VIBRA - Nigerian, Verified, Real Dates!
@@ -326,20 +241,6 @@ export const isValidReferralCode = (code) => {
   return /^\d{6}$/.test(clean);
 };
 
-// Mock getProfile and updateProfile
-async function getProfile(userId) {
-  return {
-    id: userId,
-    name: 'User',
-    points: 1000,
-    level: 'Bronze',
-  };
-}
-
-async function updateProfile(userId, updates) {
-  return { id: userId, ...updates };
-}
-
 export default {
   generateReferralCode,
   getReferralCode,
@@ -348,7 +249,6 @@ export default {
   redeemVIPCode,
   getVIPCode,
   getAllVIPCodes,
-  getReferralStats,
   getShareText,
   isValidReferralCode,
   POINTS,
