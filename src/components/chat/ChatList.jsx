@@ -1,3 +1,5 @@
+
+// FORCE_REBUILD_2026
 // v2 - Force rebuild
 /**
  * VIBRA - Chat List Component
@@ -7,7 +9,6 @@
  * Blocks: Blocked users are hidden from chat list.
  * Professional design - no emojis.
  */
-
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
