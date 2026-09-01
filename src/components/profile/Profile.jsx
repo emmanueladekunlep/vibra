@@ -34,8 +34,9 @@ const Profile = ({ userId, onEdit }) => {
         const data = await profileService.getProfile(userId);
         setProfile(data);
         
-        const blockedUsers = profileService.getBlockedUsers();
-        setBlocked(blockedUsers.includes(userId));
+        const blockedUsers = await profileService.getBlockedUsers();
+        const blockedArray = Array.isArray(blockedUsers) ? blockedUsers : [];
+        setBlocked(blockedArray.includes(userId));
       } catch (err) {
         setError('Failed to load profile');
         console.error(err);
