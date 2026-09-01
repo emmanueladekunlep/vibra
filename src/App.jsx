@@ -368,7 +368,7 @@ const ProfileDetailPage = () => {
  * Profile Page
  */
 const ProfilePage = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = React.useState(false);
   const [showReferral, setShowReferral] = React.useState(false);
   const [showPoints, setShowPoints] = React.useState(false);
@@ -380,6 +380,12 @@ const ProfilePage = () => {
   React.useEffect(() => {
     const checkAdmin = async () => {
       try {
+        // First check: user object has isFounder
+        if (user && user.isFounder === true) {
+          setIsAdmin(true);
+          return;
+        }
+        // Second check: via adminService
         const admin = await import('./services/adminService');
         const status = await admin.isAdmin(user?.id);
         setIsAdmin(status);

@@ -10,6 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import * as chatService from '../../services/chatService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 
@@ -113,6 +114,16 @@ const SearchPage = () => {
     navigate(`/profile/${userId}`);
   };
 
+  const handleChat = async (otherUserId) => {
+    try {
+      const conversation = await chatService.getOrCreateConversation(user.id, otherUserId);
+      navigate(`/chat/${conversation.id}`);
+    } catch (err) {
+      console.error('Failed to start chat:', err);
+      alert('Failed to start chat. Please try again.');
+    }
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
@@ -181,16 +192,15 @@ const SearchPage = () => {
               <div
                 key={u.id}
                 style={styles.resultCard}
-                onClick={() => handleUserClick(u.id)}
               >
-                <div style={styles.resultAvatar}>
+                <div style={styles.resultAvatar} onClick={() => handleUserClick(u.id)}>
                   {u.profilePhoto ? (
                     <img src={u.profilePhoto} alt={u.name} style={styles.avatarImage} />
                   ) : (
                     <div style={styles.avatarPlaceholder}>{u.name?.[0] || '?'}</div>
                   )}
                 </div>
-                <div style={styles.resultInfo}>
+                <div style={styles.resultInfo} onClick={() => handleUserClick(u.id)}>
                   <span style={styles.resultName}>
                     {u.name}
                     {u.isVerified && <span style={styles.verifiedBadge}> ✓</span>}
@@ -200,6 +210,12 @@ const SearchPage = () => {
                   </span>
                   <span style={styles.resultPhone}>{u.phone}</span>
                 </div>
+                <button
+                  onClick={() => handleChat(u.id)}
+                  style={styles.chatButton}
+                >
+                  💬 Chat
+                </button>
               </div>
             ))}
           </div>
@@ -336,8 +352,6 @@ const styles = {
     backgroundColor: '#f8f8f8',
     borderRadius: '12px',
     marginBottom: '8px',
-    cursor: 'pointer',
-    transition: 'background-color 0.15s',
   },
   resultAvatar: {
     width: '44px',
@@ -346,6 +360,7 @@ const styles = {
     overflow: 'hidden',
     flexShrink: 0,
     backgroundColor: '#6C3CE1',
+    cursor: 'pointer',
   },
   avatarImage: {
     width: '100%',
@@ -366,6 +381,7 @@ const styles = {
   resultInfo: {
     flex: 1,
     minWidth: 0,
+    cursor: 'pointer',
   },
   resultName: {
     display: 'block',
@@ -386,6 +402,19 @@ const styles = {
     display: 'block',
     fontSize: '11px',
     color: '#999',
+  },
+  chatButton: {
+    padding: '8px 16px',
+    backgroundColor: '#6C3CE1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '20px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
   emptyState: {
     textAlign: 'center',
