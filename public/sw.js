@@ -1,13 +1,11 @@
 // VIBRA - Service Worker
-const CACHE_NAME = 'vibra-v1';
+const CACHE_NAME = 'vibra-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/logo.png',
   '/favicon.ico',
-  '/src/main.jsx',
-  '/src/App.jsx',
-  '/src/App.css'
+  '/manifest.json'
 ];
 
 // Install service worker
