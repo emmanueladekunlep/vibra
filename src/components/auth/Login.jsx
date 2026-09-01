@@ -104,7 +104,7 @@ const Login = () => {
         </form>
 
         <p style={styles.footer}>
-          By continuing, you agree to VIBRA's Terms & Privacy Policy
+          By continuing, you agree to VIBRA's <a href="/terms" style={styles.link}>Terms</a> & <a href="/privacy" style={styles.link}>Privacy Policy</a>
         </p>
         <p style={styles.credit}>
           Powered by LabelReach
@@ -227,6 +227,11 @@ const styles = {
     marginTop: '24px',
     paddingTop: '16px',
     borderTop: '1px solid #f0f0f0',
+  },
+  link: {
+    color: '#6C3CE1',
+    textDecoration: 'none',
+    fontWeight: '500',
   },
   credit: {
     textAlign: 'center',

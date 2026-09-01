@@ -38,6 +38,10 @@ import MyGifts from './components/gifts/MyGifts';
 import BuyPoints from './components/gifts/BuyPoints';
 import SearchPage from './components/search/SearchPage';
 
+// Terms & Privacy Pages
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+
 // Navigation
 import Navigation from './components/common/Navigation';
 
@@ -462,6 +466,8 @@ const App = () => {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/referral" element={
             <ProtectedRoute>
               <ReferralInput />
