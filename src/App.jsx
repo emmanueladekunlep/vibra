@@ -367,11 +367,18 @@ const ProfilePage = () => {
 
   React.useEffect(() => {
     const checkAdmin = async () => {
-      const admin = await import('./services/adminService');
-      const status = await admin.isAdmin(user?.id);
-      setIsAdmin(status);
+      try {
+        const admin = await import('./services/adminService');
+        const status = await admin.isAdmin(user?.id);
+        setIsAdmin(status);
+      } catch (err) {
+        console.error('Admin check failed:', err);
+        setIsAdmin(false);
+      }
     };
-    if (user) checkAdmin();
+    if (user) {
+      checkAdmin();
+    }
   }, [user]);
 
   if (showMyGifts) {
