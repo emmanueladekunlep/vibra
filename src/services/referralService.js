@@ -38,19 +38,15 @@ export const POINTS = {
 export const generateReferralCode = async (userId) => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
-  // Ensure userId is a string
   const userIdStr = String(userId);
 
-  // Check if user already has a code
   const existing = getReferralCode(userIdStr);
   if (existing) {
     return existing;
   }
 
-  // Generate unique code: VIB + user ID suffix + random
-  const suffix = userIdStr.slice(-4).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  const code = `VIB-${suffix}-${random}`;
+  // Generate 6-digit numeric code
+  const code = String(Math.floor(100000 + Math.random() * 900000));
 
   const referralData = {
     code,
@@ -61,7 +57,6 @@ export const generateReferralCode = async (userId) => {
     redeemedBy: [],
   };
 
-  // Save to mock
   MOCK_REFERRALS[userIdStr] = referralData;
   saveReferralData(userIdStr, referralData);
 
@@ -93,38 +88,39 @@ export const redeemReferralCode = async (code, newUserId) => {
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   const newUserIdStr = String(newUserId);
+  const cleanCode = code.replace(/\s/g, '');
 
   // Check if it's a VIP code
-  const vipResult = await redeemVIPCode(code, newUserIdStr);
+  const vipResult = await redeemVIPCode(cleanCode, newUserIdStr);
   if (vipResult) {
     return vipResult;
   }
 
   // Standard code redemption
-  const referrerId = findReferrerByCode(code);
+  const referrerId = findReferrerByCode(cleanCode);
   if (!referrerId) {
     throw new Error('Invalid referral code');
   }
 
-  // Check if code was already used by this user
   const referralData = getReferralCode(referrerId);
+  if (!referralData) {
+    throw new Error('Invalid referral code');
+  }
+
   if (referralData.redeemedBy.includes(newUserIdStr)) {
     throw new Error('You have already used this referral code');
   }
 
-  // Update referrer
   referralData.totalReferrals += 1;
   referralData.totalPoints += POINTS.STANDARD_REFERRER;
   referralData.redeemedBy.push(newUserIdStr);
   saveReferralData(referrerId, referralData);
 
-  // Update referrer's profile points
   const referrerProfile = await getProfile(referrerId);
   await updateProfile(referrerId, {
     points: (referrerProfile.points || 0) + POINTS.STANDARD_REFERRER,
   });
 
-  // Update new user's points
   const newUserProfile = await getProfile(newUserIdStr);
   await updateProfile(newUserIdStr, {
     points: (newUserProfile.points || 0) + POINTS.STANDARD_NEW_USER,
@@ -153,7 +149,6 @@ export const generateVIPCode = async (level, recipientPhone = null) => {
     throw new Error('Invalid VIP level. Must be Silver, Gold, Platinum, or Diamond');
   }
 
-  // Generate unique code
   const prefix = level.toUpperCase().slice(0, 3);
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
   const code = `VIBRA-VIP-${prefix}-${random}`;
@@ -168,10 +163,9 @@ export const generateVIPCode = async (level, recipientPhone = null) => {
     usedAt: null,
     createdAt: new Date().toISOString(),
     isVIP: true,
-    canCashOut: false, // VIP points are locked
+    canCashOut: false,
   };
 
-  // Save to mock
   MOCK_VIP_CODES[code] = vipData;
   saveVIPCode(code, vipData);
 
@@ -186,26 +180,25 @@ export const generateVIPCode = async (level, recipientPhone = null) => {
  */
 export const redeemVIPCode = async (code, newUserId) => {
   const newUserIdStr = String(newUserId);
-  const vipData = getVIPCode(code);
+  const cleanCode = code.replace(/\s/g, '');
+  const vipData = getVIPCode(cleanCode);
   if (!vipData) return null;
 
   if (vipData.used) {
     throw new Error('This VIP code has already been used');
   }
 
-  // Mark as used
   vipData.used = true;
   vipData.usedBy = newUserIdStr;
   vipData.usedAt = new Date().toISOString();
-  saveVIPCode(code, vipData);
+  saveVIPCode(cleanCode, vipData);
 
-  // Update user's profile with VIP level and points (locked)
   const userProfile = await getProfile(newUserIdStr);
   await updateProfile(newUserIdStr, {
     level: vipData.level,
     points: vipData.points,
     isVIP: true,
-    canCashOut: false, // VIP points cannot be cashed out
+    canCashOut: false,
     vipLevel: vipData.level,
     vipPointsLocked: true,
   });
@@ -242,7 +235,6 @@ const findReferrerByCode = (code) => {
       return userId;
     }
   }
-  // Check localStorage
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith(REFERRAL_KEY)) {
@@ -302,9 +294,6 @@ export const getAllVIPCodes = () => {
 
 // ========== UTILITY FUNCTIONS ==========
 
-/**
- * Get referral stats for a user
- */
 export const getReferralStats = async (userId) => {
   const data = getReferralCode(userId);
   if (!data) {
@@ -321,9 +310,6 @@ export const getReferralStats = async (userId) => {
   };
 };
 
-/**
- * Share referral code (generates share text)
- */
 export const getShareText = (code, userName) => {
   return `Join VIBRA - Nigerian, Verified, Real Dates!
 
@@ -334,20 +320,13 @@ Download now: https://vibra.ng/download
 #VIBRA #RealDates #Nigeria`;
 };
 
-/**
- * Validate referral code format
- */
 export const isValidReferralCode = (code) => {
   if (!code) return false;
-  // Standard: VIB-XXXX-XXXX
-  // VIP: VIBRA-VIP-XXX-XXXXXX
-  const standardRegex = /^VIB-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-  const vipRegex = /^VIBRA-VIP-[A-Z]{3}-[A-Z0-9]{6}$/;
-  return standardRegex.test(code) || vipRegex.test(code);
+  const clean = code.replace(/\s/g, '');
+  return /^\d{6}$/.test(clean);
 };
 
-// Mock getProfile and updateProfile (from profileService)
-// These will be replaced with actual imports when integrated
+// Mock getProfile and updateProfile
 async function getProfile(userId) {
   return {
     id: userId,

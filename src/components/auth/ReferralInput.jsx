@@ -23,17 +23,14 @@ const ReferralInput = ({ userId, onRedeemed, onSkip }) => {
     setError(null);
     setSuccess(null);
 
-    const trimmedCode = code.trim().toUpperCase();
+    const trimmedCode = code.trim().replace(/\s/g, '');
     if (!trimmedCode) {
       setError('Please enter a referral code');
       return;
     }
 
-    // Accept both formats: VIB-XXXX-XXXX or VIBRA-VIP-XXX-XXXXXX
-    const standardRegex = /^VIB-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-    const vipRegex = /^VIBRA-VIP-[A-Z]{3}-[A-Z0-9]{6}$/;
-    if (!standardRegex.test(trimmedCode) && !vipRegex.test(trimmedCode)) {
-      setError('Invalid referral code format. Use VIB-XXXX-XXXX');
+    if (!/^\d{6}$/.test(trimmedCode)) {
+      setError('Please enter a 6-digit referral code');
       return;
     }
 
@@ -88,11 +85,11 @@ const ReferralInput = ({ userId, onRedeemed, onSkip }) => {
               <input
                 type="text"
                 value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="VIB-XXXX-XXXX"
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="123456"
                 style={styles.input}
                 disabled={isLoading}
-                maxLength="17"
+                maxLength="6"
                 autoFocus
               />
             </div>
@@ -115,7 +112,7 @@ const ReferralInput = ({ userId, onRedeemed, onSkip }) => {
               <button
                 type="submit"
                 style={styles.button}
-                disabled={isLoading}
+                disabled={isLoading || code.length !== 6}
               >
                 {isLoading ? 'Checking...' : 'Redeem Code'}
               </button>
@@ -186,17 +183,16 @@ const styles = {
   input: {
     width: '100%',
     padding: '14px 16px',
-    fontSize: '18px',
-    fontWeight: '600',
+    fontSize: '24px',
+    fontWeight: '700',
     fontFamily: 'monospace',
     border: '2px solid #e0e0e0',
     borderRadius: '12px',
     outline: 'none',
     transition: 'border-color 0.2s',
     boxSizing: 'border-box',
-    textTransform: 'uppercase',
     textAlign: 'center',
-    letterSpacing: '2px',
+    letterSpacing: '4px',
   },
   buttonRow: {
     display: 'flex',

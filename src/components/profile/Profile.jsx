@@ -24,19 +24,20 @@ const Profile = ({ userId, onEdit }) => {
   const [blocked, setBlocked] = useState(false);
   const [reporting, setReporting] = useState(false);
 
-  const isOwner = user?.id === userId;
+  const isOwner = user?.id === userId || user?.userId === userId;
 
   useEffect(() => {
     const loadProfile = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await profileService.getProfile(userId);
+        const userIdStr = String(userId);
+        const data = await profileService.getProfile(userIdStr);
         setProfile(data);
         
         const blockedUsers = await profileService.getBlockedUsers();
         const blockedArray = Array.isArray(blockedUsers) ? blockedUsers : [];
-        setBlocked(blockedArray.includes(userId));
+        setBlocked(blockedArray.includes(userIdStr));
       } catch (err) {
         setError('Failed to load profile');
         console.error(err);

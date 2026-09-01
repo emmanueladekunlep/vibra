@@ -107,16 +107,14 @@ const ReferralSection = () => {
     setRedeemError(null);
     setRedeemSuccess(null);
 
-    const trimmedCode = redeemCode.trim().toUpperCase();
+    const trimmedCode = redeemCode.trim().replace(/\s/g, '');
     if (!trimmedCode) {
       setRedeemError('Please enter a referral code');
       return;
     }
 
-    const standardRegex = /^VIB-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-    const vipRegex = /^VIBRA-VIP-[A-Z]{3}-[A-Z0-9]{6}$/;
-    if (!standardRegex.test(trimmedCode) && !vipRegex.test(trimmedCode)) {
-      setRedeemError('Invalid referral code format. Use VIB-XXXX-XXXX');
+    if (!/^\d{6}$/.test(trimmedCode)) {
+      setRedeemError('Please enter a 6-digit referral code');
       return;
     }
 
@@ -126,7 +124,6 @@ const ReferralSection = () => {
       setRedeemSuccess(result.message);
       setRedeemCode('');
       
-      // Refresh user data to update points
       if (updateUser) {
         const updatedUser = await import('../../services/authService').then(m => m.getCachedUser());
         if (updatedUser) {
@@ -193,7 +190,7 @@ const ReferralSection = () => {
         <div style={styles.redeemContainer}>
           <h4 style={styles.redeemTitle}>Redeem a Referral Code</h4>
           <p style={styles.redeemSubtitle}>
-            Enter someone's referral code to earn bonus points
+            Enter someone's 6-digit referral code to earn bonus points
           </p>
 
           {redeemError && (
@@ -211,16 +208,16 @@ const ReferralSection = () => {
             <input
               type="text"
               value={redeemCode}
-              onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
-              placeholder="VIB-XXXX-XXXX"
+              onChange={(e) => setRedeemCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="123456"
               style={styles.redeemInput}
-              maxLength="17"
+              maxLength="6"
               disabled={isRedeeming}
             />
             <button
               type="submit"
               style={styles.redeemButton}
-              disabled={isRedeeming || !redeemCode.trim()}
+              disabled={isRedeeming || redeemCode.length !== 6}
             >
               {isRedeeming ? 'Redeeming...' : 'Redeem Code'}
             </button>
@@ -335,10 +332,10 @@ const styles = {
   },
   code: {
     flex: 1,
-    fontSize: '18px',
+    fontSize: '24px',
     fontWeight: '700',
     color: '#6C3CE1',
-    letterSpacing: '1px',
+    letterSpacing: '2px',
     fontFamily: 'monospace',
   },
   copyButton: {
@@ -391,15 +388,15 @@ const styles = {
   redeemInput: {
     flex: 1,
     padding: '10px 14px',
-    fontSize: '16px',
+    fontSize: '20px',
     fontFamily: 'monospace',
-    fontWeight: '600',
+    fontWeight: '700',
     border: '2px solid #e0e0e0',
     borderRadius: '10px',
     outline: 'none',
     transition: 'border-color 0.2s',
-    textTransform: 'uppercase',
-    letterSpacing: '1px',
+    textAlign: 'center',
+    letterSpacing: '2px',
   },
   redeemButton: {
     padding: '10px 20px',

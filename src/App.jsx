@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import * as eventService from './services/eventService';
 
@@ -353,6 +353,18 @@ const GiftsPage = () => {
 };
 
 /**
+ * Profile Detail Page - for viewing other users
+ */
+const ProfileDetailPage = () => {
+  const { userId } = useParams();
+  return (
+    <div style={styles.profileContainer}>
+      <Profile userId={userId} />
+    </div>
+  );
+};
+
+/**
  * Profile Page
  */
 const ProfilePage = () => {
@@ -512,6 +524,13 @@ const App = () => {
             <ProtectedRoute>
               <AppLayout>
                 <ProfilePage />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/profile/:userId" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ProfileDetailPage />
               </AppLayout>
             </ProtectedRoute>
           } />
