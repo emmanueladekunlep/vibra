@@ -52,18 +52,18 @@ const Login = () => {
 
     const result = await loginWithOpay(phone, pin || null);
     
-    if (!result.success) {
-      setLoginError(result.error || 'Login failed. Please try again.');
-      return;
-    }
-
     // Check if PIN is required
-    if (result.requiresPin && !pin) {
+    if (result.requiresPin) {
       setRequiresPin(true);
       return;
     }
 
-    // Check if user needs to set PIN
+    if (!result.success) {
+      setLoginError(result.error || 'Login failed');
+      return;
+    }
+
+    // Check if user needs to set PIN (first time)
     if (result.user && !result.user.pinEnabled) {
       setIsNewUser(true);
       setShowSetPin(true);
@@ -124,7 +124,6 @@ const Login = () => {
 
     setIsResetting(true);
     try {
-      // Call API to reset PIN
       const response = await fetch('https://api.vibra.ng/api/reset_pin.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

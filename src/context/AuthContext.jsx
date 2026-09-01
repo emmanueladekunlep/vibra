@@ -56,32 +56,36 @@ export const AuthProvider = ({ children }) => {
     
     try {
       const result = await authService.loginWithOpay(phone, pin);
+      
       if (result.success) {
-        if (result.user) {
-          if (result.user.hasWithdrawn === undefined) {
-            result.user.hasWithdrawn = false;
+        const userData = result.user;
+        if (userData) {
+          // Check if PIN is required but not provided
+          if (userData.pinEnabled && !pin) {
+            setRequiresPin(true);
+            return { 
+              success: true, 
+              requiresPin: true,
+              user: userData,
+              error: 'PIN required'
+            };
           }
-          setUser(result.user);
+          
+          // Full authentication
+          if (userData.hasWithdrawn === undefined) userData.hasWithdrawn = false;
+          setUser(userData);
           setIsAuthenticated(true);
+          return { 
+            success: true, 
+            user: userData,
+            requiresPin: false,
+          };
+        } else {
+          return { success: false, error: 'No user data' };
         }
-        return { 
-          success: true, 
-          user: result.user,
-          requiresPin: result.requiresPin || false,
-        };
+      } else {
+        return { success: false, error: result.error || 'Login failed' };
       }
-      
-      // Check if PIN is required
-      if (result.requiresPin) {
-        setRequiresPin(true);
-        return { 
-          success: false, 
-          requiresPin: true, 
-          error: 'PIN required' 
-        };
-      }
-      
-      return { success: false, error: result.error || 'Login failed' };
     } catch (err) {
       setError(err.message || 'Login failed');
       return { success: false, error: err.message };
@@ -92,12 +96,12 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Set PIN for user
-   * @param {string} phone - User's phone number
+   * @param {string} userId - User ID
    * @param {string} pin - 4-digit PIN
    */
-  const setPin = useCallback(async (phone, pin) => {
+  const setPin = useCallback(async (userId, pin) => {
     try {
-      const result = await authService.setPin(phone, pin);
+      const result = await authService.setPin(userId, pin);
       return result;
     } catch (err) {
       return { success: false, error: err.message };
@@ -134,7 +138,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Mark user as having withdrawn (call this after successful withdrawal)
+   * Mark user as having withdrawn
    */
   const markHasWithdrawn = useCallback(async () => {
     if (!user) return;
@@ -145,7 +149,6 @@ export const AuthProvider = ({ children }) => {
     return updated;
   }, [user]);
 
-  // Context value
   const value = {
     user,
     isAuthenticated,
@@ -167,10 +170,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-/**
- * Custom hook to use auth context
- * @returns {Object} Auth context value
- */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
