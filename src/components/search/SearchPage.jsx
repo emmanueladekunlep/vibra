@@ -9,8 +9,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import * as adminService from '../../services/adminService';
 import { useNavigate } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 
 const SearchPage = () => {
   const { user } = useAuth();
@@ -28,12 +29,19 @@ const SearchPage = () => {
   }, []);
 
   const loadUsers = async () => {
+    setIsLoading(true);
     try {
-      const users = await adminService.getAllUsers();
-      const filtered = users.filter(u => u.id !== user?.id);
-      setAllUsers(filtered);
+      const response = await fetch(`${API_URL}/admin_users.php`);
+      const data = await response.json();
+      if (data.success) {
+        const filtered = data.users.filter(u => u.id !== user?.id);
+        setAllUsers(filtered);
+      }
     } catch (err) {
       console.error('Failed to load users:', err);
+      setError('Failed to load users');
+    } finally {
+      setIsLoading(false);
     }
   };
 

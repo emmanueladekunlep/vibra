@@ -9,10 +9,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import * as referralService from '../../services/referralService';
 
 const ReferralSection = () => {
   const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [referralData, setReferralData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [shareSuccess, setShareSuccess] = useState(false);
@@ -105,19 +107,22 @@ const ReferralSection = () => {
     setRedeemError(null);
     setRedeemSuccess(null);
 
-    if (!redeemCode.trim()) {
+    const trimmedCode = redeemCode.trim().toUpperCase();
+    if (!trimmedCode) {
       setRedeemError('Please enter a referral code');
       return;
     }
 
-    if (!referralService.isValidReferralCode(redeemCode.trim())) {
-      setRedeemError('Invalid referral code format');
+    const standardRegex = /^VIB-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+    const vipRegex = /^VIBRA-VIP-[A-Z]{3}-[A-Z0-9]{6}$/;
+    if (!standardRegex.test(trimmedCode) && !vipRegex.test(trimmedCode)) {
+      setRedeemError('Invalid referral code format. Use VIB-XXXX-XXXX');
       return;
     }
 
     setIsRedeeming(true);
     try {
-      const result = await referralService.redeemReferralCode(redeemCode.trim(), user.id);
+      const result = await referralService.redeemReferralCode(trimmedCode, user.id);
       setRedeemSuccess(result.message);
       setRedeemCode('');
       
@@ -133,6 +138,10 @@ const ReferralSection = () => {
     } finally {
       setIsRedeeming(false);
     }
+  };
+
+  const handleGoBack = () => {
+    navigate('/profile');
   };
 
   if (isLoading) {
@@ -154,7 +163,13 @@ const ReferralSection = () => {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h3 style={styles.title}>Refer and Earn</h3>
+        <div style={styles.header}>
+          <button onClick={handleGoBack} style={styles.backButton}>
+            ← Back
+          </button>
+          <h3 style={styles.title}>Refer and Earn</h3>
+          <div style={styles.headerSpacer}></div>
+        </div>
         <p style={styles.subtitle}>
           Share your code. Earn {referralService.POINTS.STANDARD_REFERRER} points per referral!
         </p>
@@ -267,16 +282,38 @@ const styles = {
     width: '100%',
     boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
   },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '4px',
+  },
+  backButton: {
+    background: 'none',
+    border: 'none',
+    color: '#6C3CE1',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    fontFamily: 'inherit',
+  },
+  headerSpacer: {
+    width: '60px',
+  },
   title: {
     fontSize: '20px',
     fontWeight: '700',
-    margin: '0 0 4px 0',
+    margin: 0,
     color: '#1a1a1a',
+    textAlign: 'center',
+    flex: 1,
   },
   subtitle: {
     fontSize: '14px',
     color: '#666',
     margin: '0 0 20px 0',
+    textAlign: 'center',
   },
   codeContainer: {
     marginBottom: '16px',

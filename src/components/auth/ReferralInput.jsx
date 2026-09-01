@@ -7,9 +7,11 @@
  */
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as referralService from '../../services/referralService';
 
 const ReferralInput = ({ userId, onRedeemed, onSkip }) => {
+  const navigate = useNavigate();
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -21,19 +23,23 @@ const ReferralInput = ({ userId, onRedeemed, onSkip }) => {
     setError(null);
     setSuccess(null);
 
-    if (!code.trim()) {
+    const trimmedCode = code.trim().toUpperCase();
+    if (!trimmedCode) {
       setError('Please enter a referral code');
       return;
     }
 
-    if (!referralService.isValidReferralCode(code.trim())) {
-      setError('Invalid referral code format');
+    // Accept both formats: VIB-XXXX-XXXX or VIBRA-VIP-XXX-XXXXXX
+    const standardRegex = /^VIB-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+    const vipRegex = /^VIBRA-VIP-[A-Z]{3}-[A-Z0-9]{6}$/;
+    if (!standardRegex.test(trimmedCode) && !vipRegex.test(trimmedCode)) {
+      setError('Invalid referral code format. Use VIB-XXXX-XXXX');
       return;
     }
 
     setIsLoading(true);
     try {
-      const result = await referralService.redeemReferralCode(code.trim(), userId);
+      const result = await referralService.redeemReferralCode(trimmedCode, userId);
       setSuccess(result.message);
       setShowInput(false);
       
@@ -49,7 +55,11 @@ const ReferralInput = ({ userId, onRedeemed, onSkip }) => {
 
   const handleSkip = () => {
     setShowInput(false);
-    if (onSkip) onSkip();
+    if (onSkip) {
+      onSkip();
+    } else {
+      navigate('/');
+    }
   };
 
   if (!showInput) {
@@ -68,6 +78,9 @@ const ReferralInput = ({ userId, onRedeemed, onSkip }) => {
         {success ? (
           <div style={styles.successBox}>
             <p style={styles.successText}>{success}</p>
+            <button onClick={handleSkip} style={styles.continueButton}>
+              Continue to App
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={styles.form}>
@@ -228,7 +241,18 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: '#2e7d32',
-    margin: 0,
+    margin: '0 0 12px 0',
+  },
+  continueButton: {
+    padding: '10px 24px',
+    backgroundColor: '#6C3CE1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
   },
   vipInfo: {
     marginTop: '16px',
