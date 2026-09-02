@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import * as eventService from './services/eventService';
+import { connectWebSocket, disconnectWebSocket } from './services/chatService';
 
 // Page Components
 import Login from './components/auth/Login';
@@ -78,6 +79,16 @@ const AppLayout = ({ children }) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Connect WebSocket when user is authenticated
+  useEffect(() => {
+    if (user) {
+      connectWebSocket(user.id);
+      return () => {
+        disconnectWebSocket();
+      };
+    }
+  }, [user]);
 
   // Load notifications
   useEffect(() => {

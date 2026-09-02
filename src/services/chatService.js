@@ -1,24 +1,27 @@
 /**
- * VIBRA - Chat Service
+ * VIBRA - Chat Service with WebSocket
  * Module: Chat
  * 
- * Handles all chat operations:
- * - Get conversations
- * - Send/receive messages (text only)
- * - Mark messages as read
- * - Get unread counts
- * - Real-time updates (mock with polling)
+ * Handles all chat operations with real-time WebSocket support.
  */
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
+const WS_URL = 'wss://api.vibra.ng:8080/chat';
 
 // Storage keys
 const CONVERSATIONS_KEY = 'vibra_conversations';
 const MESSAGES_KEY = 'vibra_messages';
 
+let ws = null;
+let wsCallbacks = [];
+let isConnecting = false;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 10;
+
 // Mock conversations database
 let MOCK_CONVERSATIONS = {};
 let MOCK_MESSAGES = {};
 
-// Load from localStorage if available
 try {
   const savedConv = localStorage.getItem(CONVERSATIONS_KEY);
   if (savedConv) MOCK_CONVERSATIONS = JSON.parse(savedConv);
@@ -29,136 +32,93 @@ try {
   if (savedMsg) MOCK_MESSAGES = JSON.parse(savedMsg);
 } catch {}
 
-/**
- * Get or create a conversation between two users
- * @param {string} userId1 - Current user ID
- * @param {string} userId2 - Other user ID
- * @returns {Promise<Object>} Conversation object
- */
-export const getOrCreateConversation = async (userId1, userId2) => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+// ========== WEBSOCKET ==========
 
-  const convId = getConversationId(userId1, userId2);
-  
-  if (MOCK_CONVERSATIONS[convId]) {
-    return MOCK_CONVERSATIONS[convId];
-  }
+export const connectWebSocket = (userId) => {
+  if (ws && ws.readyState === WebSocket.OPEN) return;
+  if (isConnecting) return;
 
-  const conversation = {
-    id: convId,
-    participants: [String(userId1), String(userId2)],
-    lastMessage: null,
-    lastMessageTime: null,
-    unreadCount: { [String(userId1)]: 0, [String(userId2)]: 0 },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  isConnecting = true;
 
-  MOCK_CONVERSATIONS[convId] = conversation;
-  MOCK_MESSAGES[convId] = [];
-  saveConversations();
-  saveMessages();
-
-  return conversation;
-};
-
-/**
- * Get all conversations for a user
- * @param {string} userId - User ID
- * @returns {Promise<Array>} List of conversations with user details
- */
-export const getConversations = async (userId) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  const conversations = [];
-  const userIdStr = String(userId);
-  
-  for (const convId in MOCK_CONVERSATIONS) {
-    const conv = MOCK_CONVERSATIONS[convId];
-    if (conv.participants.includes(userIdStr)) {
-      const otherUserId = conv.participants.find(id => id !== userIdStr);
+  try {
+    ws = new WebSocket(WS_URL);
+    
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      isConnecting = false;
+      reconnectAttempts = 0;
       
-      // Try to get real user data from API
-      let otherUser = { id: otherUserId, name: 'User', level: 'Bronze', isVerified: false, photos: [] };
-      try {
-        const response = await fetch(`https://api.vibra.ng/api/get_user.php?user_id=${otherUserId}`);
-        const data = await response.json();
-        if (data.success && data.user) {
-          otherUser = {
-            id: data.user.id,
-            userId: data.user.userId,
-            name: data.user.name,
-            level: data.user.level,
-            isVerified: data.user.isVerified,
-            photos: data.user.photos || [],
-          };
-        }
-      } catch (err) {
-        console.warn('Failed to fetch user:', err);
+      // Authenticate
+      ws.send(JSON.stringify({
+        type: 'auth',
+        userId: String(userId)
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      wsCallbacks.forEach(callback => callback(data));
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      isConnecting = false;
+      reconnectAttempts++;
+      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        setTimeout(() => {
+          console.log('Reconnecting...');
+          connectWebSocket(userId);
+        }, 3000 * reconnectAttempts);
       }
-      
-      const messages = MOCK_MESSAGES[convId] || [];
-      const unread = conv.unreadCount?.[userIdStr] || 0;
+    };
 
-      conversations.push({
-        ...conv,
-        otherUser,
-        unreadCount: unread,
-        lastMessage: messages.length > 0 ? messages[messages.length - 1] : null,
-      });
-    }
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+  } catch (error) {
+    console.error('WebSocket connection failed:', error);
+    isConnecting = false;
   }
-
-  // Sort by last message time (most recent first)
-  conversations.sort((a, b) => {
-    const timeA = a.lastMessage?.timestamp || a.createdAt;
-    const timeB = b.lastMessage?.timestamp || b.createdAt;
-    return new Date(timeB) - new Date(timeA);
-  });
-
-  return conversations;
 };
 
-/**
- * Get messages for a conversation
- * @param {string} conversationId - Conversation ID
- * @param {number} limit - Number of messages to fetch
- * @param {string} startAfter - Message ID to start after (for pagination)
- * @returns {Promise<Array>} List of messages
- */
-export const getMessages = async (conversationId, limit = 50, startAfter = null) => {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-
-  let messages = MOCK_MESSAGES[conversationId] || [];
-
-  messages = [...messages].sort((a, b) => 
-    new Date(a.timestamp) - new Date(b.timestamp)
-  );
-
-  if (startAfter) {
-    const index = messages.findIndex(m => m.id === startAfter);
-    if (index !== -1) {
-      messages = messages.slice(index + 1);
-    }
+export const disconnectWebSocket = () => {
+  if (ws) {
+    ws.close();
+    ws = null;
   }
-
-  if (messages.length > limit) {
-    messages = messages.slice(-limit);
-  }
-
-  return messages;
+  wsCallbacks = [];
 };
 
-/**
- * Send a message
- * @param {string} conversationId - Conversation ID
- * @param {string} senderId - Sender user ID
- * @param {string} text - Message text (plain text only)
- * @returns {Promise<Object>} Sent message
- */
+export const subscribeToMessages = (callback) => {
+  wsCallbacks.push(callback);
+  return () => {
+    wsCallbacks = wsCallbacks.filter(cb => cb !== callback);
+  };
+};
+
+export const sendTyping = (conversationId, senderId) => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'typing',
+      conversationId,
+      senderId: String(senderId)
+    }));
+  }
+};
+
+export const sendReadReceipt = (conversationId, userId) => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'read',
+      conversationId,
+      userId: String(userId)
+    }));
+  }
+};
+
+// ========== API CALLS (Fallback) ==========
+
 export const sendMessage = async (conversationId, senderId, text) => {
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
   if (!text || text.trim().length === 0) {
     throw new Error('Message cannot be empty');
   }
@@ -168,6 +128,27 @@ export const sendMessage = async (conversationId, senderId, text) => {
     throw new Error('Message contains prohibited content');
   }
 
+  // Send via WebSocket if connected
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'message',
+      conversationId,
+      senderId: String(senderId),
+      text: text.trim()
+    }));
+    
+    // Return optimistic message
+    return {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      conversationId,
+      senderId: String(senderId),
+      text: text.trim(),
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+  }
+
+  // Fallback: save to localStorage
   const message = {
     id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     conversationId,
@@ -202,12 +183,106 @@ export const sendMessage = async (conversationId, senderId, text) => {
   return message;
 };
 
-/**
- * Mark messages as read in a conversation
- * @param {string} conversationId - Conversation ID
- * @param {string} userId - User ID marking as read
- * @returns {Promise<Object>} Updated conversation
- */
+export const getConversations = async (userId) => {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const conversations = [];
+  const userIdStr = String(userId);
+  
+  for (const convId in MOCK_CONVERSATIONS) {
+    const conv = MOCK_CONVERSATIONS[convId];
+    if (conv.participants.includes(userIdStr)) {
+      const otherUserId = conv.participants.find(id => id !== userIdStr);
+      
+      let otherUser = { id: otherUserId, name: 'User', level: 'Bronze', isVerified: false, photos: [] };
+      try {
+        const response = await fetch(`${API_URL}/get_user.php?user_id=${otherUserId}`);
+        const data = await response.json();
+        if (data.success && data.user) {
+          otherUser = {
+            id: data.user.id,
+            userId: data.user.userId,
+            name: data.user.name,
+            level: data.user.level,
+            isVerified: data.user.isVerified,
+            photos: data.user.photos || [],
+          };
+        }
+      } catch (err) {
+        console.warn('Failed to fetch user:', err);
+      }
+      
+      const messages = MOCK_MESSAGES[convId] || [];
+      const unread = conv.unreadCount?.[userIdStr] || 0;
+
+      conversations.push({
+        ...conv,
+        otherUser,
+        unreadCount: unread,
+        lastMessage: messages.length > 0 ? messages[messages.length - 1] : null,
+      });
+    }
+  }
+
+  conversations.sort((a, b) => {
+    const timeA = a.lastMessage?.timestamp || a.createdAt;
+    const timeB = b.lastMessage?.timestamp || b.createdAt;
+    return new Date(timeB) - new Date(timeA);
+  });
+
+  return conversations;
+};
+
+export const getMessages = async (conversationId, limit = 50, startAfter = null) => {
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  let messages = MOCK_MESSAGES[conversationId] || [];
+
+  messages = [...messages].sort((a, b) => 
+    new Date(a.timestamp) - new Date(b.timestamp)
+  );
+
+  if (startAfter) {
+    const index = messages.findIndex(m => m.id === startAfter);
+    if (index !== -1) {
+      messages = messages.slice(index + 1);
+    }
+  }
+
+  if (messages.length > limit) {
+    messages = messages.slice(-limit);
+  }
+
+  return messages;
+};
+
+export const getOrCreateConversation = async (userId1, userId2) => {
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  const convId = getConversationId(userId1, userId2);
+  
+  if (MOCK_CONVERSATIONS[convId]) {
+    return MOCK_CONVERSATIONS[convId];
+  }
+
+  const conversation = {
+    id: convId,
+    participants: [String(userId1), String(userId2)],
+    lastMessage: null,
+    lastMessageTime: null,
+    unreadCount: { [String(userId1)]: 0, [String(userId2)]: 0 },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  MOCK_CONVERSATIONS[convId] = conversation;
+  MOCK_MESSAGES[convId] = [];
+  saveConversations();
+  saveMessages();
+
+  return conversation;
+};
+
 export const markAsRead = async (conversationId, userId) => {
   await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -232,14 +307,12 @@ export const markAsRead = async (conversationId, userId) => {
   saveMessages();
   saveConversations();
 
+  // Send read receipt via WebSocket
+  sendReadReceipt(conversationId, userId);
+
   return { success: true, messagesRead: updatedCount };
 };
 
-/**
- * Get total unread count for a user
- * @param {string} userId - User ID
- * @returns {Promise<number>} Total unread messages
- */
 export const getUnreadCount = async (userId) => {
   await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -254,11 +327,6 @@ export const getUnreadCount = async (userId) => {
   return total;
 };
 
-/**
- * Delete a conversation
- * @param {string} conversationId - Conversation ID
- * @returns {Promise<Object>} Result
- */
 export const deleteConversation = async (conversationId) => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -271,17 +339,11 @@ export const deleteConversation = async (conversationId) => {
   return { success: true };
 };
 
-/**
- * Get conversation ID from two user IDs
- */
 const getConversationId = (userId1, userId2) => {
   const sorted = [String(userId1), String(userId2)].sort();
   return `conv_${sorted[0]}_${sorted[1]}`;
 };
 
-/**
- * Save conversations to localStorage
- */
 const saveConversations = () => {
   try {
     localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(MOCK_CONVERSATIONS));
@@ -290,9 +352,6 @@ const saveConversations = () => {
   }
 };
 
-/**
- * Save messages to localStorage
- */
 const saveMessages = () => {
   try {
     localStorage.setItem(MESSAGES_KEY, JSON.stringify(MOCK_MESSAGES));
@@ -301,9 +360,6 @@ const saveMessages = () => {
   }
 };
 
-/**
- * Get user info (mock)
- */
 export const getUserInfo = (userId) => {
   return { 
     id: userId, 
@@ -314,40 +370,7 @@ export const getUserInfo = (userId) => {
   };
 };
 
-/**
- * Check if user has access to chat (always true - free for everyone)
- */
-export const canChat = () => {
-  return true;
-};
-
-/**
- * Subscribe to new messages (mock polling)
- * @param {string} conversationId - Conversation ID
- * @param {Function} callback - Callback function
- * @param {number} interval - Polling interval in ms
- * @returns {Function} Unsubscribe function
- */
-export const subscribeToMessages = (conversationId, callback, interval = 3000) => {
-  let lastMessageId = null;
-  const messages = MOCK_MESSAGES[conversationId] || [];
-  if (messages.length > 0) {
-    lastMessageId = messages[messages.length - 1].id;
-  }
-
-  const intervalId = setInterval(() => {
-    const currentMessages = MOCK_MESSAGES[conversationId] || [];
-    if (currentMessages.length > 0) {
-      const last = currentMessages[currentMessages.length - 1];
-      if (last.id !== lastMessageId) {
-        lastMessageId = last.id;
-        callback(currentMessages);
-      }
-    }
-  }, interval);
-
-  return () => clearInterval(intervalId);
-};
+export const canChat = () => true;
 
 export default {
   getOrCreateConversation,
@@ -359,5 +382,9 @@ export default {
   deleteConversation,
   getUserInfo,
   canChat,
+  connectWebSocket,
+  disconnectWebSocket,
   subscribeToMessages,
+  sendTyping,
+  sendReadReceipt,
 };

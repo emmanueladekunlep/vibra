@@ -3,6 +3,7 @@
  * Module: Chat
  * 
  * Individual chat window with messages.
+ * Real-time WebSocket support with polling fallback.
  * Professional design - no emojis.
  */
 
@@ -17,6 +18,8 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
+  const [typing, setTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -42,21 +45,48 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
     }
   }, [conversationId, loadMessages]);
 
+  // WebSocket subscription for real-time messages
   useEffect(() => {
     if (!conversationId) return;
 
-    const unsubscribe = chatService.subscribeToMessages(
-      conversationId,
-      (updatedMessages) => {
-        setMessages(updatedMessages);
+    const handleWebSocketMessage = (data) => {
+      if (data.type === 'new_message' && data.conversationId === conversationId) {
+        setMessages(prev => [...prev, data.message]);
         chatService.markAsRead(conversationId, user.id);
         scrollToBottom();
-      },
-      3000
-    );
+      }
+      
+      if (data.type === 'typing' && data.conversationId === conversationId) {
+        setTyping(true);
+        clearTimeout(typingTimeout);
+        const timeout = setTimeout(() => setTyping(false), 2000);
+        setTypingTimeout(timeout);
+      }
+      
+      if (data.type === 'read' && data.conversationId === conversationId) {
+        // Update message read status
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.senderId !== user.id ? { ...msg, read: true } : msg
+          )
+        );
+      }
+    };
 
-    return () => unsubscribe();
-  }, [conversationId, user.id]);
+    // Subscribe to WebSocket messages
+    const unsubscribe = chatService.subscribeToMessages(handleWebSocketMessage);
+
+    // Fallback polling (3 seconds)
+    const interval = setInterval(() => {
+      loadMessages();
+    }, 3000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+      if (typingTimeout) clearTimeout(typingTimeout);
+    };
+  }, [conversationId, user.id, typingTimeout, loadMessages]);
 
   useEffect(() => {
     scrollToBottom();
@@ -78,8 +108,13 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
     setError(null);
     
     try {
-      await chatService.sendMessage(conversationId, user.id, newMessage.trim());
+      const message = await chatService.sendMessage(conversationId, user.id, newMessage.trim());
       setNewMessage('');
+      
+      // Optimistically add message
+      if (message) {
+        setMessages(prev => [...prev, message]);
+      }
       
       await loadMessages();
       
@@ -88,6 +123,15 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       setError(err.message || 'Failed to send message');
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleTyping = (e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+    
+    if (value.length > 0) {
+      chatService.sendTyping(conversationId, user.id);
     }
   };
 
@@ -200,12 +244,20 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
                       </span>
                       <span style={styles.messageTime}>
                         {formatTime(msg.timestamp)}
+                        {isOwn && msg.read && (
+                          <span style={styles.readStatus}> ✓</span>
+                        )}
                       </span>
                     </div>
                   </div>
                 </div>
               );
             })}
+            {typing && (
+              <div style={styles.typingIndicator}>
+                <span>{otherUser.name} is typing...</span>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </>
         )}
@@ -225,7 +277,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
           ref={inputRef}
           type="text"
           value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
+          onChange={handleTyping}
           placeholder="Type a message..."
           style={styles.input}
           disabled={isSending || isLoading}
@@ -384,6 +436,16 @@ const styles = {
   messageTime: {
     fontSize: '10px',
     opacity: 0.6,
+  },
+  readStatus: {
+    fontSize: '10px',
+    color: '#00B894',
+  },
+  typingIndicator: {
+    padding: '4px 8px',
+    fontSize: '12px',
+    color: '#999',
+    fontStyle: 'italic',
   },
   loadingState: {
     display: 'flex',
