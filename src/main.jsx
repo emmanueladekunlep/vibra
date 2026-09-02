@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Service Worker disabled temporarily to fix caching issues
+// Service Worker disabled - remove sw.js file
 // if ('serviceWorker' in navigator) {
 //   window.addEventListener('load', () => {
 //     navigator.serviceWorker.register('/sw.js')
