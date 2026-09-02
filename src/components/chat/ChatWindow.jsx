@@ -64,7 +64,6 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       }
       
       if (data.type === 'read' && data.conversationId === conversationId) {
-        // Update message read status
         setMessages(prev => 
           prev.map(msg => 
             msg.senderId !== user.id ? { ...msg, read: true } : msg
@@ -73,10 +72,8 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       }
     };
 
-    // Subscribe to WebSocket messages
     const unsubscribe = chatService.subscribeToMessages(handleWebSocketMessage);
 
-    // Fallback polling (3 seconds)
     const interval = setInterval(() => {
       loadMessages();
     }, 3000);
@@ -111,7 +108,6 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       const message = await chatService.sendMessage(conversationId, user.id, newMessage.trim());
       setNewMessage('');
       
-      // Optimistically add message
       if (message) {
         setMessages(prev => [...prev, message]);
       }
@@ -245,7 +241,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
                       <span style={styles.messageTime}>
                         {formatTime(msg.timestamp)}
                         {isOwn && msg.read && (
-                          <span style={styles.readStatus}> ✓</span>
+                          <span style={styles.readStatus}>✓</span>
                         )}
                       </span>
                     </div>
@@ -401,24 +397,26 @@ const styles = {
   },
   messageBubble: {
     maxWidth: '75%',
-    padding: '8px 14px',
-    borderRadius: '12px',
+    padding: '10px 16px',
+    borderRadius: '16px',
     wordWrap: 'break-word',
   },
+  // Your messages - Purple (brand color)
   messageOwn: {
     backgroundColor: '#6C3CE1',
     color: 'white',
     borderBottomRightRadius: '4px',
   },
+  // Their messages - Light gray
   messageOther: {
-    backgroundColor: '#e8e8e8',
+    backgroundColor: '#f0f0f0',
     color: '#1a1a1a',
     borderBottomLeftRadius: '4px',
   },
   messageText: {
     fontSize: '15px',
-    lineHeight: '1.4',
-    margin: '0 0 2px 0',
+    lineHeight: '1.5',
+    margin: '0 0 4px 0',
   },
   messageFooter: {
     display: 'flex',
@@ -440,6 +438,7 @@ const styles = {
   readStatus: {
     fontSize: '10px',
     color: '#00B894',
+    marginLeft: '2px',
   },
   typingIndicator: {
     padding: '4px 8px',
