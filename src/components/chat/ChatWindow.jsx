@@ -28,7 +28,12 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
     
     try {
       const data = await chatService.getMessages(conversationId);
-      setMessages(data);
+      // Ensure messages have senderId as string for comparison
+      const formatted = data.map(msg => ({
+        ...msg,
+        senderId: String(msg.senderId || msg.sender_id || '')
+      }));
+      setMessages(formatted);
       
       await chatService.markAsRead(conversationId, user.id);
     } catch (err) {
@@ -51,7 +56,11 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
 
     const handleWebSocketMessage = (data) => {
       if (data.type === 'new_message' && data.conversationId === conversationId) {
-        setMessages(prev => [...prev, data.message]);
+        const newMsg = {
+          ...data.message,
+          senderId: String(data.message.senderId || data.message.sender_id || '')
+        };
+        setMessages(prev => [...prev, newMsg]);
         chatService.markAsRead(conversationId, user.id);
         scrollToBottom();
       }
@@ -66,7 +75,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       if (data.type === 'read' && data.conversationId === conversationId) {
         setMessages(prev => 
           prev.map(msg => 
-            msg.senderId !== user.id ? { ...msg, read: true } : msg
+            String(msg.senderId) !== String(user.id) ? { ...msg, read: true } : msg
           )
         );
       }
@@ -106,10 +115,14 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
     
     try {
       const message = await chatService.sendMessage(conversationId, user.id, newMessage.trim());
+      const formattedMsg = {
+        ...message,
+        senderId: String(message.senderId || message.sender_id || user.id)
+      };
       setNewMessage('');
       
-      if (message) {
-        setMessages(prev => [...prev, message]);
+      if (formattedMsg) {
+        setMessages(prev => [...prev, formattedMsg]);
       }
       
       await loadMessages();
@@ -132,6 +145,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
   };
 
   const formatTime = (timestamp) => {
+    if (!timestamp) return '';
     const date = new Date(timestamp);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -218,10 +232,14 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
         ) : (
           <>
             {messages.map((msg) => {
-              const isOwn = msg.senderId === user.id;
+              // Ensure both IDs are strings for comparison
+              const msgSenderId = String(msg.senderId || msg.sender_id || '');
+              const currentUserId = String(user.id);
+              const isOwn = msgSenderId === currentUserId;
+              
               return (
                 <div
-                  key={msg.id}
+                  key={msg.id || msg.timestamp + Math.random()}
                   style={{
                     ...styles.messageRow,
                     justifyContent: isOwn ? 'flex-end' : 'flex-start',
@@ -236,12 +254,12 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
                     <p style={styles.messageText}>{msg.text}</p>
                     <div style={styles.messageFooter}>
                       <span style={styles.messageSender}>
-                        {isOwn ? 'You' : otherUser.name}
+                        {isOwn ? 'You' : (otherUser.name || 'User')}
                       </span>
                       <span style={styles.messageTime}>
                         {formatTime(msg.timestamp)}
                         {isOwn && msg.read && (
-                          <span style={styles.readStatus}>✓</span>
+                          <span style={styles.readStatus}> ✓</span>
                         )}
                       </span>
                     </div>
@@ -393,7 +411,7 @@ const styles = {
   },
   messageRow: {
     display: 'flex',
-    marginBottom: '8px',
+    marginBottom: '10px',
   },
   messageBubble: {
     maxWidth: '75%',

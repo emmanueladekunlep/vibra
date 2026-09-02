@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const Settings = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -49,7 +49,7 @@ const Settings = () => {
 
     setIsLoading(true);
     try {
-      // First verify current PIN
+      // First verify current PIN via login
       const verifyRes = await fetch('https://api.vibra.ng/api/login.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,6 +59,7 @@ const Settings = () => {
 
       if (!verifyData.success) {
         setError('Current PIN is incorrect');
+        setIsLoading(false);
         return;
       }
 
@@ -76,6 +77,8 @@ const Settings = () => {
         setNewPin('');
         setConfirmPin('');
         setShowPinChange(false);
+        // Update local user
+        updateUser({ pinEnabled: true });
       } else {
         setError(updateData.message || 'Failed to change PIN');
       }
@@ -92,7 +95,6 @@ const Settings = () => {
     
     setIsLoading(true);
     try {
-      // Delete account API call
       const response = await fetch('https://api.vibra.ng/api/delete_account.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -157,6 +159,13 @@ const Settings = () => {
             <div style={styles.settingInfo}>
               <span style={styles.settingLabel}>Level</span>
               <span style={styles.settingValue}>{user?.level}</span>
+            </div>
+          </div>
+
+          <div style={styles.settingItem}>
+            <div style={styles.settingInfo}>
+              <span style={styles.settingLabel}>PIN Enabled</span>
+              <span style={styles.settingValue}>{user?.pinEnabled ? 'Yes' : 'No'}</span>
             </div>
           </div>
         </div>

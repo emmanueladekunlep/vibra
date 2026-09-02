@@ -5,7 +5,7 @@
  * Login screen - phone number entry with 4-digit PIN support.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 
@@ -18,12 +18,12 @@ const LoadingSpinner = () => (
 
 const Login = () => {
   const navigate = useNavigate();
-  const { loginWithOpay, setPin, isLoading, error, isAuthenticated, requiresPin: authRequiresPin, pendingPhone } = useAuth();
+  const { loginWithOpay, setPin, isLoading, error, isAuthenticated } = useAuth();
   
   const [phone, setPhone] = useState('');
   const [pin, setPinInput] = useState('');
   const [loginError, setLoginError] = useState(null);
-  const [showPinScreen, setShowPinScreen] = useState(false);
+  const [requiresPin, setRequiresPin] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -33,23 +33,13 @@ const Login = () => {
   const [resetPin, setResetPin] = useState('');
   const [resetConfirmPin, setResetConfirmPin] = useState('');
   const [isResetting, setIsResetting] = useState(false);
-  const [loginPhone, setLoginPhone] = useState('');
 
   // Redirect if already authenticated
-  useEffect(() => {
+  React.useEffect(() => {
     if (isAuthenticated) {
       navigate('/', { replace: true });
     }
   }, [isAuthenticated, navigate]);
-
-  // Show PIN screen when auth context requires it
-  useEffect(() => {
-    if (authRequiresPin && pendingPhone) {
-      setLoginPhone(pendingPhone);
-      setShowPinScreen(true);
-      setPhone(pendingPhone);
-    }
-  }, [authRequiresPin, pendingPhone]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -60,11 +50,11 @@ const Login = () => {
       return;
     }
 
-    const result = await loginWithOpay(phone, null);
+    const result = await loginWithOpay(phone, pin || null);
     
+    // Check if PIN is required
     if (result.requiresPin) {
-      setLoginPhone(phone);
-      setShowPinScreen(true);
+      setRequiresPin(true);
       return;
     }
 
@@ -80,26 +70,6 @@ const Login = () => {
       return;
     }
 
-    navigate('/', { replace: true });
-  };
-
-  const handlePinSubmit = async (e) => {
-    e.preventDefault();
-    setLoginError(null);
-
-    if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      setLoginError('Please enter a valid 4-digit PIN');
-      return;
-    }
-
-    const result = await loginWithOpay(loginPhone, pin);
-    
-    if (!result.success) {
-      setLoginError(result.error || 'Invalid PIN');
-      return;
-    }
-
-    setShowPinScreen(false);
     navigate('/', { replace: true });
   };
 
@@ -334,7 +304,7 @@ const Login = () => {
   }
 
   // PIN Required Screen
-  if (showPinScreen) {
+  if (requiresPin) {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
@@ -349,7 +319,7 @@ const Login = () => {
             </div>
           )}
 
-          <form onSubmit={handlePinSubmit} style={styles.form}>
+          <form onSubmit={handleLogin} style={styles.form}>
             <p style={styles.subtitle}>Enter your 4-digit PIN to continue</p>
             
             <div style={styles.inputGroup}>
@@ -378,24 +348,13 @@ const Login = () => {
             <button 
               type="button" 
               onClick={() => {
-                setShowPinScreen(false);
+                setRequiresPin(false);
                 setPinInput('');
                 setShowForgotPin(true);
               }}
               style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}
             >
               Forgot PIN?
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => {
-                setShowPinScreen(false);
-                setPinInput('');
-              }}
-              style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}
-            >
-              Back
             </button>
           </form>
 

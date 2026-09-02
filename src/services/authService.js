@@ -47,7 +47,7 @@ export const loginWithOpay = async (phone, pin = null) => {
       name: `User ${phone.slice(-4)}`,
     };
     
-    if (pin !== null && pin !== undefined) {
+    if (pin !== null && pin !== undefined && pin !== '') {
       body.pin = pin;
     }
     
@@ -68,6 +68,15 @@ export const loginWithOpay = async (phone, pin = null) => {
         pinEnabled: data.user?.pinEnabled || false,
       };
     } else {
+      // If PIN required, return special response
+      if (data.message === 'PIN required') {
+        return { 
+          success: true, 
+          requiresPin: true,
+          user: null,
+          error: 'PIN required'
+        };
+      }
       return { success: false, error: data.message || 'Login failed' };
     }
   } catch (error) {
@@ -100,6 +109,22 @@ export const setPin = async (userId, pin) => {
   } catch (error) {
     console.error('Set PIN error:', error);
     return { success: false, error: error.message };
+  }
+};
+
+export const resetPin = async (phone, newPin) => {
+  try {
+    const response = await fetch(`${API_URL}/reset_pin.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phone, pin: newPin })
+    });
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Reset PIN error:', error);
+    return { success: false, message: error.message };
   }
 };
 
@@ -206,6 +231,7 @@ export const checkOpayStatus = async () => {
 export default {
   loginWithOpay,
   setPin,
+  resetPin,
   getCachedUser,
   isLoggedIn,
   logout,

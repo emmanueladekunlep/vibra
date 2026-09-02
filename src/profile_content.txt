@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import * as profileService from '../../services/profileService';
 import * as chatService from '../../services/chatService';
 
@@ -82,14 +82,9 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const Profile = ({ userId: propUserId, onEdit }) => {
+const Profile = ({ userId, onEdit }) => {
   const { user } = useAuth();
-  const { userId: paramUserId } = useParams();
   const navigate = useNavigate();
-  
-  // Use prop userId, then param, then current user
-  const targetUserId = propUserId || paramUserId || user?.id;
-  
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -97,19 +92,14 @@ const Profile = ({ userId: propUserId, onEdit }) => {
   const [reporting, setReporting] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
 
-  const isOwner = user?.id === targetUserId || user?.userId === targetUserId;
+  const isOwner = user?.id === userId || user?.userId === userId;
 
   useEffect(() => {
     const loadProfile = async () => {
-      if (!targetUserId) {
-        setIsLoading(false);
-        return;
-      }
-      
       setIsLoading(true);
       setError(null);
       try {
-        const userIdStr = String(targetUserId);
+        const userIdStr = String(userId);
         const data = await profileService.getProfile(userIdStr);
         setProfile(data);
         
@@ -124,14 +114,16 @@ const Profile = ({ userId: propUserId, onEdit }) => {
       }
     };
 
-    loadProfile();
-  }, [targetUserId]);
+    if (userId) {
+      loadProfile();
+    }
+  }, [userId]);
 
   const handleBlock = async () => {
     if (!confirm(`Block ${profile?.name}? They will not be able to message you or view your profile.`)) return;
     
     try {
-      await profileService.blockUser(targetUserId);
+      await profileService.blockUser(userId);
       setBlocked(true);
       alert(`${profile?.name} has been blocked.`);
     } catch (err) {
@@ -144,7 +136,7 @@ const Profile = ({ userId: propUserId, onEdit }) => {
     if (!confirm(`Unblock ${profile?.name}?`)) return;
     
     try {
-      await profileService.unblockUser(targetUserId);
+      await profileService.unblockUser(userId);
       setBlocked(false);
       alert(`${profile?.name} has been unblocked.`);
     } catch (err) {
@@ -168,7 +160,7 @@ const Profile = ({ userId: propUserId, onEdit }) => {
     
     setReporting(true);
     try {
-      await profileService.reportUser(targetUserId, reason);
+      await profileService.reportUser(userId, reason);
       alert(`Thank you for reporting ${profile?.name}. Our team will review this.`);
     } catch (err) {
       setError('Failed to report user');
@@ -231,9 +223,6 @@ const Profile = ({ userId: propUserId, onEdit }) => {
       <div style={styles.container}>
         <div style={styles.errorCard}>
           <p style={styles.errorText}>{error || 'Profile not found'}</p>
-          <button onClick={() => navigate('/')} style={styles.backButton}>
-            Go Home
-          </button>
         </div>
       </div>
     );
@@ -330,7 +319,7 @@ const Profile = ({ userId: propUserId, onEdit }) => {
           </div>
         )}
 
-        {isOwner && onEdit && (
+        {isOwner && (
           <button 
             onClick={onEdit} 
             style={styles.editButton}
@@ -580,18 +569,6 @@ const styles = {
   errorText: {
     color: '#c62828',
     fontSize: '16px',
-  },
-  backButton: {
-    padding: '10px 24px',
-    backgroundColor: '#6C3CE1',
-    color: 'white',
-    border: 'none',
-    borderRadius: '10px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    marginTop: '12px',
   },
   credit: {
     textAlign: 'center',
