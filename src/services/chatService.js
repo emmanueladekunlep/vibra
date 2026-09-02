@@ -7,7 +7,8 @@
  */
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
-const WS_URL = 'wss://api.vibra.ng/ws';
+// WebSocket disabled for now - use polling fallback
+const WS_URL = null;
 
 // Storage keys (only for cache)
 const CONVERSATIONS_KEY = 'vibra_conversations_cache';
@@ -22,6 +23,11 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 // ========== WEBSOCKET ==========
 
 export const connectWebSocket = (userId) => {
+  console.log('WebSocket disabled - using polling fallback');
+  return;
+  
+  // WebSocket code commented out - WS server not available
+  /*
   if (ws && ws.readyState === WebSocket.OPEN) return;
   if (isConnecting) return;
 
@@ -65,6 +71,7 @@ export const connectWebSocket = (userId) => {
     console.error('WebSocket connection failed:', error);
     isConnecting = false;
   }
+  */
 };
 
 export const disconnectWebSocket = () => {
@@ -83,6 +90,9 @@ export const subscribeToMessages = (callback) => {
 };
 
 export const sendTyping = (conversationId, senderId) => {
+  // WebSocket disabled - typing indicator not supported
+  console.log('Typing indicator disabled (WebSocket not available)');
+  /*
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       type: 'typing',
@@ -90,9 +100,12 @@ export const sendTyping = (conversationId, senderId) => {
       senderId: String(senderId)
     }));
   }
+  */
 };
 
 export const sendReadReceipt = (conversationId, userId) => {
+  // WebSocket disabled
+  /*
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       type: 'read',
@@ -100,6 +113,7 @@ export const sendReadReceipt = (conversationId, userId) => {
       userId: String(userId)
     }));
   }
+  */
 };
 
 // ========== API CALLS ==========
@@ -114,26 +128,7 @@ export const sendMessage = async (conversationId, senderId, text) => {
     throw new Error('Message contains prohibited content');
   }
 
-  // Send via WebSocket if connected
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({
-      type: 'message',
-      conversationId,
-      senderId: String(senderId),
-      text: text.trim()
-    }));
-    
-    return {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      conversationId,
-      senderId: String(senderId),
-      text: text.trim(),
-      timestamp: new Date().toISOString(),
-      read: false
-    };
-  }
-
-  // Fallback: save to API
+  // Always use API for sending messages (WebSocket disabled)
   try {
     const response = await fetch(`${API_URL}/send_message.php`, {
       method: 'POST',
