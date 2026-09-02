@@ -6,7 +6,7 @@
  */
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
-const WS_URL = 'wss://api.vibra.ng:8080/chat';
+const WS_URL = 'wss://api.vibra.ng/ws';
 
 // Storage keys
 const CONVERSATIONS_KEY = 'vibra_conversations';
@@ -48,7 +48,6 @@ export const connectWebSocket = (userId) => {
       isConnecting = false;
       reconnectAttempts = 0;
       
-      // Authenticate
       ws.send(JSON.stringify({
         type: 'auth',
         userId: String(userId)
@@ -128,7 +127,6 @@ export const sendMessage = async (conversationId, senderId, text) => {
     throw new Error('Message contains prohibited content');
   }
 
-  // Send via WebSocket if connected
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       type: 'message',
@@ -137,7 +135,6 @@ export const sendMessage = async (conversationId, senderId, text) => {
       text: text.trim()
     }));
     
-    // Return optimistic message
     return {
       id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       conversationId,
@@ -307,7 +304,6 @@ export const markAsRead = async (conversationId, userId) => {
   saveMessages();
   saveConversations();
 
-  // Send read receipt via WebSocket
   sendReadReceipt(conversationId, userId);
 
   return { success: true, messagesRead: updatedCount };
