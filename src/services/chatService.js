@@ -1,36 +1,23 @@
 /**
- * VIBRA - Chat Service with WebSocket
+ * VIBRA - Chat Service with WebSocket + Database
  * Module: Chat
  * 
  * Handles all chat operations with real-time WebSocket support.
+ * Messages are stored in database, not localStorage.
  */
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 const WS_URL = 'wss://api.vibra.ng/ws';
 
-// Storage keys
-const CONVERSATIONS_KEY = 'vibra_conversations';
-const MESSAGES_KEY = 'vibra_messages';
+// Storage keys (only for cache)
+const CONVERSATIONS_KEY = 'vibra_conversations_cache';
+const MESSAGES_KEY = 'vibra_messages_cache';
 
 let ws = null;
 let wsCallbacks = [];
 let isConnecting = false;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
-
-// Mock conversations database
-let MOCK_CONVERSATIONS = {};
-let MOCK_MESSAGES = {};
-
-try {
-  const savedConv = localStorage.getItem(CONVERSATIONS_KEY);
-  if (savedConv) MOCK_CONVERSATIONS = JSON.parse(savedConv);
-} catch {}
-
-try {
-  const savedMsg = localStorage.getItem(MESSAGES_KEY);
-  if (savedMsg) MOCK_MESSAGES = JSON.parse(savedMsg);
-} catch {}
 
 // ========== WEBSOCKET ==========
 
@@ -115,7 +102,7 @@ export const sendReadReceipt = (conversationId, userId) => {
   }
 };
 
-// ========== API CALLS (Fallback) ==========
+// ========== API CALLS ==========
 
 export const sendMessage = async (conversationId, senderId, text) => {
   if (!text || text.trim().length === 0) {
@@ -127,6 +114,7 @@ export const sendMessage = async (conversationId, senderId, text) => {
     throw new Error('Message contains prohibited content');
   }
 
+  // Send via WebSocket if connected
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       type: 'message',
@@ -145,215 +133,153 @@ export const sendMessage = async (conversationId, senderId, text) => {
     };
   }
 
-  // Fallback: save to localStorage
-  const message = {
-    id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-    conversationId,
-    senderId: String(senderId),
-    text: text.trim(),
-    timestamp: new Date().toISOString(),
-    read: false,
-  };
-
-  if (!MOCK_MESSAGES[conversationId]) {
-    MOCK_MESSAGES[conversationId] = [];
-  }
-  MOCK_MESSAGES[conversationId].push(message);
-
-  const conv = MOCK_CONVERSATIONS[conversationId];
-  if (conv) {
-    conv.lastMessage = message;
-    conv.lastMessageTime = message.timestamp;
-    conv.updatedAt = message.timestamp;
+  // Fallback: save to API
+  try {
+    const response = await fetch(`${API_URL}/send_message.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversation_id: conversationId,
+        sender_id: senderId,
+        text: text.trim()
+      })
+    });
     
-    const otherUserId = conv.participants.find(id => id !== String(senderId));
-    if (otherUserId) {
-      conv.unreadCount[otherUserId] = (conv.unreadCount[otherUserId] || 0) + 1;
+    const data = await response.json();
+    if (data.success) {
+      return data.message;
+    } else {
+      throw new Error(data.message || 'Failed to send message');
     }
-    
-    MOCK_CONVERSATIONS[conversationId] = conv;
+  } catch (error) {
+    console.error('Send message error:', error);
+    throw new Error('Failed to send message');
   }
-
-  saveMessages();
-  saveConversations();
-
-  return message;
 };
 
 export const getConversations = async (userId) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  const conversations = [];
-  const userIdStr = String(userId);
-  
-  for (const convId in MOCK_CONVERSATIONS) {
-    const conv = MOCK_CONVERSATIONS[convId];
-    if (conv.participants.includes(userIdStr)) {
-      const otherUserId = conv.participants.find(id => id !== userIdStr);
-      
-      let otherUser = { id: otherUserId, name: 'User', level: 'Bronze', isVerified: false, photos: [] };
-      try {
-        const response = await fetch(`${API_URL}/get_user.php?user_id=${otherUserId}`);
-        const data = await response.json();
-        if (data.success && data.user) {
-          otherUser = {
-            id: data.user.id,
-            userId: data.user.userId,
-            name: data.user.name,
-            level: data.user.level,
-            isVerified: data.user.isVerified,
-            photos: data.user.photos || [],
-          };
-        }
-      } catch (err) {
-        console.warn('Failed to fetch user:', err);
-      }
-      
-      const messages = MOCK_MESSAGES[convId] || [];
-      const unread = conv.unreadCount?.[userIdStr] || 0;
-
-      conversations.push({
-        ...conv,
-        otherUser,
-        unreadCount: unread,
-        lastMessage: messages.length > 0 ? messages[messages.length - 1] : null,
-      });
+  try {
+    const response = await fetch(`${API_URL}/get_conversations.php?user_id=${userId}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.conversations;
+    } else {
+      return [];
     }
+  } catch (error) {
+    console.error('Get conversations error:', error);
+    return [];
   }
-
-  conversations.sort((a, b) => {
-    const timeA = a.lastMessage?.timestamp || a.createdAt;
-    const timeB = b.lastMessage?.timestamp || b.createdAt;
-    return new Date(timeB) - new Date(timeA);
-  });
-
-  return conversations;
 };
 
 export const getMessages = async (conversationId, limit = 50, startAfter = null) => {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-
-  let messages = MOCK_MESSAGES[conversationId] || [];
-
-  messages = [...messages].sort((a, b) => 
-    new Date(a.timestamp) - new Date(b.timestamp)
-  );
-
-  if (startAfter) {
-    const index = messages.findIndex(m => m.id === startAfter);
-    if (index !== -1) {
-      messages = messages.slice(index + 1);
+  try {
+    let url = `${API_URL}/get_messages.php?conversation_id=${conversationId}&limit=${limit}`;
+    if (startAfter) {
+      url += `&start_after=${startAfter}`;
     }
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.messages;
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error('Get messages error:', error);
+    return [];
   }
-
-  if (messages.length > limit) {
-    messages = messages.slice(-limit);
-  }
-
-  return messages;
 };
 
 export const getOrCreateConversation = async (userId1, userId2) => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  const convId = getConversationId(userId1, userId2);
-  
-  if (MOCK_CONVERSATIONS[convId]) {
-    return MOCK_CONVERSATIONS[convId];
+  try {
+    const response = await fetch(`${API_URL}/get_conversation.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id1: userId1,
+        user_id2: userId2
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.conversation;
+    } else {
+      throw new Error(data.message || 'Failed to create conversation');
+    }
+  } catch (error) {
+    console.error('Get conversation error:', error);
+    throw error;
   }
-
-  const conversation = {
-    id: convId,
-    participants: [String(userId1), String(userId2)],
-    lastMessage: null,
-    lastMessageTime: null,
-    unreadCount: { [String(userId1)]: 0, [String(userId2)]: 0 },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  MOCK_CONVERSATIONS[convId] = conversation;
-  MOCK_MESSAGES[convId] = [];
-  saveConversations();
-  saveMessages();
-
-  return conversation;
 };
 
 export const markAsRead = async (conversationId, userId) => {
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
-  const conv = MOCK_CONVERSATIONS[conversationId];
-  if (!conv) {
-    throw new Error('Conversation not found');
-  }
-
-  const messages = MOCK_MESSAGES[conversationId] || [];
-  let updatedCount = 0;
-  
-  messages.forEach(msg => {
-    if (msg.senderId !== String(userId) && !msg.read) {
-      msg.read = true;
-      updatedCount++;
+  try {
+    const response = await fetch(`${API_URL}/mark_read.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversation_id: conversationId,
+        user_id: userId
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      sendReadReceipt(conversationId, userId);
+      return { success: true, messagesRead: data.messagesRead || 0 };
+    } else {
+      return { success: false };
     }
-  });
-
-  conv.unreadCount[String(userId)] = 0;
-  MOCK_CONVERSATIONS[conversationId] = conv;
-
-  saveMessages();
-  saveConversations();
-
-  sendReadReceipt(conversationId, userId);
-
-  return { success: true, messagesRead: updatedCount };
+  } catch (error) {
+    console.error('Mark read error:', error);
+    return { success: false };
+  }
 };
 
 export const getUnreadCount = async (userId) => {
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
-  let total = 0;
-  const userIdStr = String(userId);
-  for (const convId in MOCK_CONVERSATIONS) {
-    const conv = MOCK_CONVERSATIONS[convId];
-    if (conv.participants.includes(userIdStr)) {
-      total += conv.unreadCount?.[userIdStr] || 0;
+  try {
+    const response = await fetch(`${API_URL}/get_unread.php?user_id=${userId}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.count || 0;
+    } else {
+      return 0;
     }
+  } catch (error) {
+    console.error('Get unread error:', error);
+    return 0;
   }
-  return total;
 };
 
 export const deleteConversation = async (conversationId) => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  delete MOCK_CONVERSATIONS[conversationId];
-  delete MOCK_MESSAGES[conversationId];
-  
-  saveConversations();
-  saveMessages();
-
-  return { success: true };
+  try {
+    const response = await fetch(`${API_URL}/delete_conversation.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversation_id: conversationId
+      })
+    });
+    
+    const data = await response.json();
+    return { success: data.success };
+  } catch (error) {
+    console.error('Delete conversation error:', error);
+    return { success: false };
+  }
 };
 
 const getConversationId = (userId1, userId2) => {
   const sorted = [String(userId1), String(userId2)].sort();
   return `conv_${sorted[0]}_${sorted[1]}`;
-};
-
-const saveConversations = () => {
-  try {
-    localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(MOCK_CONVERSATIONS));
-  } catch (error) {
-    console.warn('Failed to save conversations:', error);
-  }
-};
-
-const saveMessages = () => {
-  try {
-    localStorage.setItem(MESSAGES_KEY, JSON.stringify(MOCK_MESSAGES));
-  } catch (error) {
-    console.warn('Failed to save messages:', error);
-  }
 };
 
 export const getUserInfo = (userId) => {
