@@ -9,7 +9,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as adminService from '../../services/adminService';
-import * as levelService from '../../services/levelService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 
@@ -63,12 +62,10 @@ const UserManagement = () => {
     setError(null);
 
     try {
-      // Search by userId, phone, or name
       const response = await fetch(`${API_URL}/admin_users.php?search=${encodeURIComponent(searchQuery.trim())}`);
       const data = await response.json();
       
       if (data.success && data.users && data.users.length > 0) {
-        // Find exact match by userId or phone first
         const exactMatch = data.users.find(u => 
           u.userId === searchQuery.trim().toUpperCase() ||
           u.phone === searchQuery.trim()
@@ -145,11 +142,18 @@ const UserManagement = () => {
     }
     
     try {
-      await adminService.updateUser(userId, { points: numPoints });
-      setSuccess(`Added ${numPoints} points to user`);
-      await loadUsers();
-      setSearchResult(null);
-      setSearchQuery('');
+      // Get current user first
+      const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+      const data = await response.json();
+      if (data.success) {
+        const currentPoints = data.user.points || 0;
+        const newPoints = currentPoints + numPoints;
+        await adminService.updateUser(userId, { points: newPoints });
+        setSuccess(`Added ${numPoints} points to user (now ${newPoints})`);
+        await loadUsers();
+        setSearchResult(null);
+        setSearchQuery('');
+      }
     } catch (err) {
       setError(err.message || 'Failed to add points');
     }
@@ -166,14 +170,13 @@ const UserManagement = () => {
     }
     
     try {
-      // Get current user first, then deduct
       const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
       const data = await response.json();
       if (data.success) {
         const currentPoints = data.user.points || 0;
         const newPoints = Math.max(0, currentPoints - numPoints);
         await adminService.updateUser(userId, { points: newPoints });
-        setSuccess(`Deducted ${numPoints} points from user`);
+        setSuccess(`Deducted ${numPoints} points from user (now ${newPoints})`);
         await loadUsers();
         setSearchResult(null);
         setSearchQuery('');
@@ -188,15 +191,22 @@ const UserManagement = () => {
     
     try {
       const points = getVIPPoints(level);
-      await adminService.updateUser(userId, { 
-        level: level,
-        points: points,
-        isVIP: true
-      });
-      setSuccess(`User is now VIP ${level}! Added ${points} points.`);
-      await loadUsers();
-      setSearchResult(null);
-      setSearchQuery('');
+      // Get current user
+      const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+      const data = await response.json();
+      if (data.success) {
+        const currentPoints = data.user.points || 0;
+        const newPoints = currentPoints + points;
+        await adminService.updateUser(userId, { 
+          level: level,
+          points: newPoints,
+          isVIP: true
+        });
+        setSuccess(`User is now VIP ${level}! Added ${points} points.`);
+        await loadUsers();
+        setSearchResult(null);
+        setSearchQuery('');
+      }
     } catch (err) {
       setError(err.message || 'Failed to make user VIP');
     }
@@ -289,7 +299,6 @@ const UserManagement = () => {
         <span style={styles.userCount}>{users.length} users</span>
       </div>
 
-      {/* Search by User ID, Phone, or Name */}
       <div style={styles.searchContainer}>
         <input
           type="text"
@@ -314,7 +323,6 @@ const UserManagement = () => {
         </button>
       </div>
 
-      {/* Search Result */}
       {searchResult && (
         <div style={styles.searchResultCard}>
           <div style={styles.searchResultHeader}>
@@ -350,7 +358,6 @@ const UserManagement = () => {
               - Points
             </button>
             
-            {/* Make VIP Button */}
             <select
               onChange={(e) => {
                 if (e.target.value) {
@@ -508,7 +515,6 @@ const UserManagement = () => {
                   - Points
                 </button>
                 
-                {/* Make VIP Button for each user */}
                 <select
                   onChange={(e) => {
                     if (e.target.value) {
