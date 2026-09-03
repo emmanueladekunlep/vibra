@@ -15,38 +15,55 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
   const [typing, setTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const isFirstLoad = useRef(true);
+  const prevMessagesLength = useRef(0);
 
-  const loadMessages = useCallback(async () => {
+  const loadMessages = useCallback(async (silent = false) => {
     if (!conversationId) return;
     
     try {
       const data = await chatService.getMessages(conversationId);
-      // Ensure messages have senderId as string for comparison
       const formatted = data.map(msg => ({
         ...msg,
         senderId: String(msg.senderId || msg.sender_id || '')
       }));
-      setMessages(formatted);
+      
+      // Only update if messages changed
+      if (formatted.length !== messages.length || 
+          JSON.stringify(formatted) !== JSON.stringify(messages)) {
+        setMessages(formatted);
+        
+        // Only scroll to bottom on new messages
+        if (formatted.length > prevMessagesLength.current) {
+          scrollToBottom();
+        }
+        prevMessagesLength.current = formatted.length;
+      }
       
       await chatService.markAsRead(conversationId, user.id);
     } catch (err) {
       console.error('Failed to load messages:', err);
     } finally {
-      setIsLoading(false);
+      if (isFirstLoad.current) {
+        setIsInitialLoading(false);
+        isFirstLoad.current = false;
+      }
     }
-  }, [conversationId, user.id]);
+  }, [conversationId, user.id, messages]);
 
   useEffect(() => {
     if (conversationId) {
-      setIsLoading(true);
-      loadMessages();
+      isFirstLoad.current = true;
+      prevMessagesLength.current = 0;
+      setIsInitialLoading(true);
+      loadMessages(true);
     }
   }, [conversationId, loadMessages]);
 
@@ -83,8 +100,9 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
 
     const unsubscribe = chatService.subscribeToMessages(handleWebSocketMessage);
 
+    // Silent polling - no loading indicator
     const interval = setInterval(() => {
-      loadMessages();
+      loadMessages(true);
     }, 3000);
 
     return () => {
@@ -123,9 +141,11 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       
       if (formattedMsg) {
         setMessages(prev => [...prev, formattedMsg]);
+        prevMessagesLength.current = prevMessagesLength.current + 1;
       }
       
-      await loadMessages();
+      // Silent refresh after send
+      setTimeout(() => loadMessages(true), 500);
       
       inputRef.current?.focus();
     } catch (err) {
@@ -222,7 +242,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       </div>
 
       <div style={styles.messagesContainer}>
-        {isLoading ? (
+        {isInitialLoading ? (
           <div style={styles.loadingState}>Loading messages...</div>
         ) : messages.length === 0 ? (
           <div style={styles.emptyMessages}>
@@ -232,7 +252,6 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
         ) : (
           <>
             {messages.map((msg) => {
-              // Ensure both IDs are strings for comparison
               const msgSenderId = String(msg.senderId || msg.sender_id || '');
               const currentUserId = String(user.id);
               const isOwn = msgSenderId === currentUserId;
@@ -294,7 +313,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
           onChange={handleTyping}
           placeholder="Type a message..."
           style={styles.input}
-          disabled={isSending || isLoading}
+          disabled={isSending || isInitialLoading}
           maxLength={1000}
         />
         <button
@@ -303,7 +322,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
             ...styles.sendButton,
             ...(isSending || !newMessage.trim() ? styles.sendButtonDisabled : {}),
           }}
-          disabled={isSending || !newMessage.trim() || isLoading}
+          disabled={isSending || !newMessage.trim() || isInitialLoading}
         >
           Send
         </button>
@@ -419,13 +438,11 @@ const styles = {
     borderRadius: '16px',
     wordWrap: 'break-word',
   },
-  // Your messages - Purple (brand color)
   messageOwn: {
     backgroundColor: '#6C3CE1',
     color: 'white',
     borderBottomRightRadius: '4px',
   },
-  // Their messages - Light gray
   messageOther: {
     backgroundColor: '#f0f0f0',
     color: '#1a1a1a',

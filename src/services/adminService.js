@@ -2,519 +2,295 @@
  * VIBRA - Admin Service
  * Module: Admin Panel
  * 
- * Handles all admin operations:
- * - User management (suspend, verify, change level)
- * - Platform analytics
- * - VIP code generation
- * - System settings
- * - Content moderation
+ * Handles all admin operations via API.
  */
 
-// Storage keys
-const ADMIN_SETTINGS_KEY = 'vibra_admin_settings';
-const SYSTEM_LOGS_KEY = 'vibra_system_logs';
-
-// Mock data
-let MOCK_USERS = {};
-let MOCK_ADMIN_SETTINGS = {};
-let MOCK_SYSTEM_LOGS = [];
-
-// Load from localStorage
-try {
-  const saved = localStorage.getItem(ADMIN_SETTINGS_KEY);
-  if (saved) MOCK_ADMIN_SETTINGS = JSON.parse(saved);
-} catch {}
-
-try {
-  const saved = localStorage.getItem(SYSTEM_LOGS_KEY);
-  if (saved) MOCK_SYSTEM_LOGS = JSON.parse(saved);
-} catch {}
-
-// Mock user data (should be replaced with real user service)
-const MOCK_USER_DB = {
-  'user_1': {
-    id: 'user_1',
-    name: 'Peace Emmanuel',
-    email: 'peace@vibra.ng',
-    phone: '08012345678',
-    location: 'Yaba, Lagos',
-    level: 'Diamond',
-    points: 150000,
-    isVerified: true,
-    isVIP: false,
-    vipPointsLocked: false,
-    status: 'active',
-    createdAt: '2026-01-01',
-    lastLogin: '2026-08-22',
-    isFounder: true,
-    hasWithdrawn: true,
-  },
-  'user_2': {
-    id: 'user_2',
-    name: 'Test User',
-    email: 'test@vibra.ng',
-    phone: '08087654321',
-    location: 'Surulere, Lagos',
-    level: 'Gold',
-    points: 30000,
-    isVerified: true,
-    isVIP: false,
-    vipPointsLocked: false,
-    status: 'active',
-    createdAt: '2026-01-15',
-    lastLogin: '2026-08-21',
-    isFounder: false,
-    hasWithdrawn: false,
-  },
-  'user_3': {
-    id: 'user_3',
-    name: 'Chioma Okafor',
-    email: 'chioma@vibra.ng',
-    phone: '08011223344',
-    location: 'Ikeja, Lagos',
-    level: 'Platinum',
-    points: 60000,
-    isVerified: true,
-    isVIP: true,
-    vipPointsLocked: true,
-    status: 'active',
-    createdAt: '2026-02-01',
-    lastLogin: '2026-08-22',
-    isFounder: false,
-    hasWithdrawn: true,
-  },
-  'user_4': {
-    id: 'user_4',
-    name: 'Tunde Bakare',
-    phone: '08099887766',
-    location: 'Abuja',
-    level: 'Silver',
-    points: 15000,
-    isVerified: false,
-    isVIP: false,
-    vipPointsLocked: false,
-    status: 'active',
-    createdAt: '2026-03-01',
-    lastLogin: '2026-08-20',
-    isFounder: false,
-    hasWithdrawn: false,
-  },
-  'user_5': {
-    id: 'user_5',
-    name: 'Amina Suleiman',
-    phone: '08122334455',
-    location: 'Kano',
-    level: 'Gold',
-    points: 28000,
-    isVerified: true,
-    isVIP: false,
-    vipPointsLocked: false,
-    status: 'active',
-    createdAt: '2026-03-15',
-    lastLogin: '2026-08-22',
-    isFounder: false,
-    hasWithdrawn: true,
-  },
-  'user_6': {
-    id: 'user_6',
-    name: 'Chidi Nwosu',
-    phone: '08055667788',
-    location: 'Enugu',
-    level: 'Bronze',
-    points: 5000,
-    isVerified: false,
-    isVIP: false,
-    vipPointsLocked: false,
-    status: 'active',
-    createdAt: '2026-04-01',
-    lastLogin: '2026-08-19',
-    isFounder: false,
-    hasWithdrawn: false,
-  },
-  'user_7': {
-    id: 'user_7',
-    name: 'Folake Adeyemi',
-    phone: '08133445566',
-    location: 'Ibadan',
-    level: 'Silver',
-    points: 12000,
-    isVerified: true,
-    isVIP: false,
-    vipPointsLocked: false,
-    status: 'active',
-    createdAt: '2026-04-15',
-    lastLogin: '2026-08-21',
-    isFounder: false,
-    hasWithdrawn: false,
-  },
-  'user_8': {
-    id: 'user_8',
-    name: 'Emeka Obi',
-    phone: '08066778899',
-    location: 'Port Harcourt',
-    level: 'Bronze',
-    points: 2000,
-    isVerified: false,
-    isVIP: false,
-    vipPointsLocked: false,
-    status: 'active',
-    createdAt: '2026-05-01',
-    lastLogin: '2026-08-18',
-    isFounder: false,
-    hasWithdrawn: false,
-  },
-};
-
-// Initialize mock users
-for (const id in MOCK_USER_DB) {
-  MOCK_USERS[id] = MOCK_USER_DB[id];
-}
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 
 /**
  * Check if user is admin/founder
- * @param {string} userId - User ID or user object
+ * @param {string} userId - User ID
  * @returns {Promise<boolean>} True if admin
  */
 export const isAdmin = async (userId) => {
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  if (!userId) return false;
   
-  // Check if userId is a user object
-  if (typeof userId === 'object' && userId !== null) {
-    return userId.isFounder === true;
-  }
-  
-  // Check if userId is a string/number (ID)
-  // First check mock users
-  const user = MOCK_USERS[userId];
-  if (user && user.isFounder === true) {
-    return true;
-  }
-  
-  // Check if userId matches the founder in mock DB
-  for (const key in MOCK_USERS) {
-    if (MOCK_USERS[key].isFounder === true && 
-        (MOCK_USERS[key].id === userId || MOCK_USERS[key].userId === userId)) {
+  try {
+    // Check real user from localStorage first
+    const cachedUser = JSON.parse(localStorage.getItem('vibra_user') || '{}');
+    if (cachedUser && cachedUser.isFounder === true) {
       return true;
     }
+    
+    // Fetch user from API
+    const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+    const data = await response.json();
+    
+    if (data.success && data.user) {
+      return data.user.isFounder === true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Admin check error:', error);
+    return false;
   }
-  
-  return false;
 };
 
 /**
  * Get all users (admin only)
- * @param {Object} filters - Optional filters
- * @returns {Promise<Array>} List of users
  */
 export const getAllUsers = async (filters = {}) => {
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  
-  let users = Object.values(MOCK_USERS);
-  
-  // Apply filters
-  if (filters.level) {
-    users = users.filter(u => u.level === filters.level);
+  try {
+    let url = `${API_URL}/admin_users.php`;
+    const params = new URLSearchParams();
+    if (filters.level) params.append('level', filters.level);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.isVerified !== undefined && filters.isVerified !== '') {
+      params.append('isVerified', filters.isVerified);
+    }
+    if (filters.search) params.append('search', filters.search);
+    
+    const query = params.toString();
+    if (query) url += '?' + query;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.users || [];
+    }
+    return [];
+  } catch (error) {
+    console.error('Get all users error:', error);
+    return [];
   }
-  if (filters.status) {
-    users = users.filter(u => u.status === filters.status);
-  }
-  if (filters.isVerified !== undefined) {
-    users = users.filter(u => u.isVerified === filters.isVerified);
-  }
-  if (filters.isFounder !== undefined) {
-    users = users.filter(u => u.isFounder === filters.isFounder);
-  }
-  if (filters.location) {
-    users = users.filter(u => 
-      u.location?.toLowerCase().includes(filters.location.toLowerCase())
-    );
-  }
-  if (filters.search) {
-    const search = filters.search.toLowerCase();
-    users = users.filter(u => 
-      u.name?.toLowerCase().includes(search) ||
-      u.email?.toLowerCase().includes(search) ||
-      u.phone?.includes(search) ||
-      u.location?.toLowerCase().includes(search)
-    );
-  }
-  
-  return users;
 };
 
 /**
- * Get user by ID (admin)
- * @param {string} userId - User ID
- * @returns {Promise<Object>} User data
+ * Get user by ID
  */
 export const getUser = async (userId) => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  
-  const user = MOCK_USERS[userId];
-  if (!user) {
+  try {
+    const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+    const data = await response.json();
+    if (data.success) {
+      return data.user;
+    }
     throw new Error('User not found');
+  } catch (error) {
+    console.error('Get user error:', error);
+    throw error;
   }
-  
-  return user;
 };
 
 /**
  * Update user (admin only)
- * @param {string} userId - User ID
- * @param {Object} updates - Updates to apply
- * @returns {Promise<Object>} Updated user
  */
 export const updateUser = async (userId, updates) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  
-  const user = MOCK_USERS[userId];
-  if (!user) {
-    throw new Error('User not found');
-  }
-  
-  if (updates.isFounder !== undefined) {
-    throw new Error('Cannot change founder status');
-  }
-  
-  if (updates.level) {
-    const validLevels = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
-    if (!validLevels.includes(updates.level)) {
-      throw new Error('Invalid level');
+  try {
+    const response = await fetch(`${API_URL}/admin_update.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, ...updates })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      return data.user;
     }
+    throw new Error(data.message || 'Failed to update user');
+  } catch (error) {
+    console.error('Update user error:', error);
+    throw error;
   }
-  
-  if (updates.status) {
-    const validStatus = ['active', 'suspended', 'deactivated'];
-    if (!validStatus.includes(updates.status)) {
-      throw new Error('Invalid status');
-    }
-  }
-  
-  MOCK_USERS[userId] = { ...user, ...updates, updatedAt: new Date().toISOString() };
-  await logAction('UPDATE_USER', `Updated user ${userId}`, userId);
-  
-  return MOCK_USERS[userId];
 };
 
 /**
  * Suspend a user
- * @param {string} userId - User ID
- * @param {string} reason - Reason for suspension
- * @returns {Promise<Object>} Result
  */
 export const suspendUser = async (userId, reason = '') => {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  
-  const user = MOCK_USERS[userId];
-  if (!user) {
-    throw new Error('User not found');
-  }
-  
-  if (user.isFounder) {
-    throw new Error('Cannot suspend founder');
-  }
-  
-  MOCK_USERS[userId].status = 'suspended';
-  MOCK_USERS[userId].suspensionReason = reason;
-  MOCK_USERS[userId].suspendedAt = new Date().toISOString();
-  
-  await logAction('SUSPEND_USER', `Suspended user ${userId}: ${reason}`, userId);
-  
-  return { success: true, userId, reason };
+  return updateUser(userId, { status: 'suspended' });
 };
 
 /**
  * Reactivate a user
- * @param {string} userId - User ID
- * @returns {Promise<Object>} Result
  */
 export const reactivateUser = async (userId) => {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  
-  const user = MOCK_USERS[userId];
-  if (!user) {
-    throw new Error('User not found');
-  }
-  
-  MOCK_USERS[userId].status = 'active';
-  MOCK_USERS[userId].suspensionReason = null;
-  MOCK_USERS[userId].reactivatedAt = new Date().toISOString();
-  
-  await logAction('REACTIVATE_USER', `Reactivated user ${userId}`, userId);
-  
-  return { success: true, userId };
+  return updateUser(userId, { status: 'active' });
 };
 
 /**
  * Get platform analytics
- * @param {Object} dateRange - Optional date range
- * @returns {Promise<Object>} Analytics data
  */
-export const getAnalytics = async (dateRange = null) => {
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  
-  const users = Object.values(MOCK_USERS);
-  const totalUsers = users.length;
-  const activeUsers = users.filter(u => u.status === 'active').length;
-  const suspendedUsers = users.filter(u => u.status === 'suspended').length;
-  const verifiedUsers = users.filter(u => u.isVerified).length;
-  const founderUsers = users.filter(u => u.isFounder).length;
-  const vipUsers = users.filter(u => u.isVIP).length;
-  
-  const levelDistribution = {};
-  for (const level of ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond']) {
-    levelDistribution[level] = users.filter(u => u.level === level).length;
+export const getAnalytics = async () => {
+  try {
+    // Get users from API
+    const users = await getAllUsers();
+    const totalUsers = users.length;
+    const activeUsers = users.filter(u => u.status === 'active').length;
+    const suspendedUsers = users.filter(u => u.status === 'suspended').length;
+    const verifiedUsers = users.filter(u => u.isVerified).length;
+    const founderUsers = users.filter(u => u.isFounder).length;
+    
+    const levelDistribution = {};
+    for (const level of ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond']) {
+      levelDistribution[level] = users.filter(u => u.level === level).length;
+    }
+    
+    const totalPoints = users.reduce((sum, u) => sum + (u.points || 0), 0);
+    const estimatedRevenue = totalPoints / 2;
+    
+    return {
+      totalUsers,
+      activeUsers,
+      suspendedUsers,
+      verifiedUsers,
+      founderUsers,
+      vipUsers: users.filter(u => u.level === 'Diamond' || u.level === 'Platinum').length,
+      levelDistribution,
+      totalPoints,
+      estimatedRevenue,
+      totalGifts: 0,
+      totalEvents: 0,
+      totalReferrals: 0,
+      totalRedemptions: 0,
+      conversionRate: totalUsers > 0 ? (verifiedUsers / totalUsers * 100).toFixed(1) : '0',
+      reportDate: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error('Get analytics error:', error);
+    return {
+      totalUsers: 0,
+      activeUsers: 0,
+      suspendedUsers: 0,
+      verifiedUsers: 0,
+      founderUsers: 0,
+      vipUsers: 0,
+      levelDistribution: { Bronze: 0, Silver: 0, Gold: 0, Platinum: 0, Diamond: 0 },
+      totalPoints: 0,
+      estimatedRevenue: 0,
+      totalGifts: 0,
+      totalEvents: 0,
+      totalReferrals: 0,
+      totalRedemptions: 0,
+      conversionRate: '0',
+      reportDate: new Date().toISOString(),
+    };
   }
-  
-  const totalPoints = users.reduce((sum, u) => sum + (u.points || 0), 0);
-  const estimatedRevenue = totalPoints / 2;
-  
-  return {
-    totalUsers,
-    activeUsers,
-    suspendedUsers,
-    verifiedUsers,
-    founderUsers,
-    vipUsers,
-    levelDistribution,
-    totalPoints,
-    estimatedRevenue,
-    totalGifts: 45,
-    totalEvents: 12,
-    totalReferrals: 89,
-    totalRedemptions: 234,
-    conversionRate: (verifiedUsers / totalUsers * 100).toFixed(1),
-    reportDate: new Date().toISOString(),
-  };
 };
 
 /**
  * Get system logs
- * @param {number} limit - Number of logs to return
- * @returns {Promise<Array>} System logs
  */
 export const getSystemLogs = async (limit = 50) => {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  
-  const logs = MOCK_SYSTEM_LOGS.slice(0, limit);
-  return logs;
+  try {
+    // Try to get logs from API
+    const response = await fetch(`${API_URL}/get_logs.php?limit=${limit}`);
+    const data = await response.json();
+    if (data.success) {
+      return data.logs || [];
+    }
+    return [];
+  } catch (error) {
+    console.error('Get logs error:', error);
+    return [];
+  }
 };
 
 /**
  * Log an action
- * @param {string} action - Action name
- * @param {string} details - Action details
- * @param {string} userId - User ID performing action
- * @returns {Promise<void>}
  */
 export const logAction = async (action, details, userId = 'system') => {
-  const log = {
-    id: `log_${Date.now()}`,
-    action,
-    details,
-    userId,
-    timestamp: new Date().toISOString(),
-  };
-  
-  MOCK_SYSTEM_LOGS.unshift(log);
-  
-  if (MOCK_SYSTEM_LOGS.length > 1000) {
-    MOCK_SYSTEM_LOGS = MOCK_SYSTEM_LOGS.slice(0, 1000);
-  }
-  
   try {
-    localStorage.setItem(SYSTEM_LOGS_KEY, JSON.stringify(MOCK_SYSTEM_LOGS));
+    await fetch(`${API_URL}/log_action.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, details, user_id: userId })
+    });
   } catch (error) {
-    console.warn('Failed to save system logs:', error);
+    console.error('Log action error:', error);
   }
 };
 
 /**
  * Generate VIP code (admin only)
- * @param {string} level - VIP level
- * @param {string} recipientPhone - Optional recipient phone
- * @param {string} generatedBy - Admin user ID
- * @returns {Promise<Object>} VIP code data
  */
 export const generateVIPCode = async (level, recipientPhone = null, generatedBy = null) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  
-  const validLevels = ['Silver', 'Gold', 'Platinum', 'Diamond'];
-  if (!validLevels.includes(level)) {
-    throw new Error('Invalid VIP level');
+  try {
+    const response = await fetch(`${API_URL}/generate_vip_code.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level, recipient_phone: recipientPhone, created_by: generatedBy })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      return data.code;
+    }
+    throw new Error(data.message || 'Failed to generate VIP code');
+  } catch (error) {
+    console.error('Generate VIP code error:', error);
+    // Fallback: generate locally
+    const prefix = level.toUpperCase().slice(0, 3);
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code = `VIBRA-VIP-${prefix}-${random}`;
+    return {
+      code,
+      level,
+      points: { Silver: 10000, Gold: 25000, Platinum: 50000, Diamond: 100000 }[level] || 0,
+      used: false,
+      createdAt: new Date().toISOString(),
+    };
   }
-  
-  const prefix = level.toUpperCase().slice(0, 3);
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const code = `VIBRA-VIP-${prefix}-${random}`;
-  
-  const pointsMap = {
-    Silver: 10000,
-    Gold: 25000,
-    Platinum: 50000,
-    Diamond: 100000,
-  };
-  
-  const vipData = {
-    code,
-    level,
-    points: pointsMap[level],
-    recipientPhone: recipientPhone || null,
-    used: false,
-    usedBy: null,
-    usedAt: null,
-    createdAt: new Date().toISOString(),
-    createdBy: generatedBy,
-    isVIP: true,
-    canCashOut: false,
-  };
-  
-  await logAction('GENERATE_VIP_CODE', `Generated ${level} VIP code: ${code}`, generatedBy || 'admin');
-  
-  return vipData;
 };
 
 /**
  * Get platform settings
- * @returns {Promise<Object>} Platform settings
  */
 export const getPlatformSettings = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  
-  const defaults = {
-    maintenanceMode: false,
-    registrationEnabled: true,
-    giftCommission: 0.20,
-    cashGiftFee: 0.05,
-    pointsPerNaira: 2,
-    referralBonus: 500,
-    eventCommission: 0.20,
-    maxLoginAttempts: 5,
-    requireVerification: true,
-  };
-  
-  return { ...defaults, ...MOCK_ADMIN_SETTINGS };
+  try {
+    const response = await fetch(`${API_URL}/get_settings.php`);
+    const data = await response.json();
+    if (data.success) {
+      return data.settings;
+    }
+    return getDefaultSettings();
+  } catch (error) {
+    return getDefaultSettings();
+  }
 };
+
+const getDefaultSettings = () => ({
+  maintenanceMode: false,
+  registrationEnabled: true,
+  giftCommission: 0.20,
+  cashGiftFee: 0.05,
+  pointsPerNaira: 2,
+  referralBonus: 500,
+  eventCommission: 0.20,
+  maxLoginAttempts: 5,
+  requireVerification: true,
+});
 
 /**
  * Update platform settings
- * @param {Object} settings - Settings to update
- * @returns {Promise<Object>} Updated settings
  */
 export const updatePlatformSettings = async (settings) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  
-  MOCK_ADMIN_SETTINGS = { ...MOCK_ADMIN_SETTINGS, ...settings };
-  
   try {
-    localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(MOCK_ADMIN_SETTINGS));
+    const response = await fetch(`${API_URL}/update_settings.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    const data = await response.json();
+    if (data.success) {
+      return data.settings;
+    }
+    throw new Error(data.message || 'Failed to update settings');
   } catch (error) {
-    console.warn('Failed to save admin settings:', error);
+    console.error('Update settings error:', error);
+    throw error;
   }
-  
-  await logAction('UPDATE_SETTINGS', 'Updated platform settings', 'admin');
-  
-  return MOCK_ADMIN_SETTINGS;
 };
 
 export default {
