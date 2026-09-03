@@ -9,6 +9,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as adminService from '../../services/adminService';
+import UserManagement from './UserManagement';
+import VIPCodeGenerator from './VIPCodeGenerator';
 
 const AdminPanel = ({ onClose }) => {
   const { user } = useAuth();
@@ -193,13 +195,13 @@ const AdminPanel = ({ onClose }) => {
 
         {activeTab === 'users' && (
           <div style={styles.tabContent}>
-            <p style={styles.tabPlaceholder}>User management component loaded below</p>
+            <UserManagement />
           </div>
         )}
 
         {activeTab === 'vip' && (
           <div style={styles.tabContent}>
-            <p style={styles.tabPlaceholder}>VIP code generator loaded below</p>
+            <VIPCodeGenerator />
           </div>
         )}
 
@@ -273,6 +275,7 @@ const styles = {
     gap: '4px',
     borderBottom: '2px solid #e8e8e8',
     marginBottom: '20px',
+    flexWrap: 'wrap',
   },
   tab: {
     padding: '10px 20px',
@@ -348,12 +351,6 @@ const styles = {
   },
   tabContent: {
     minHeight: '200px',
-  },
-  tabPlaceholder: {
-    textAlign: 'center',
-    color: '#888',
-    padding: '40px 0',
-    fontStyle: 'italic',
   },
   logsContainer: {
     minHeight: '200px',

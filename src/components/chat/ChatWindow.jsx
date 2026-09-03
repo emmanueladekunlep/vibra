@@ -23,7 +23,28 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const isFirstLoad = useRef(true);
+  const isUserScrolling = useRef(false);
   const prevMessagesLength = useRef(0);
+  const scrollTimeout = useRef(null);
+
+  // Merge messages without causing re-render flicker
+  const mergeMessages = useCallback((newMessages) => {
+    // Only update if there are actual changes
+    if (newMessages.length === messages.length) {
+      // Check if content changed
+      const hasChanged = newMessages.some((msg, i) => {
+        const existing = messages[i];
+        return !existing || 
+               msg.text !== existing.text || 
+               msg.senderId !== existing.senderId ||
+               msg.read !== existing.read;
+      });
+      if (!hasChanged) return false;
+    }
+
+    setMessages(newMessages);
+    return true;
+  }, [messages]);
 
   const loadMessages = useCallback(async (silent = false) => {
     if (!conversationId) return;
@@ -35,13 +56,11 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
         senderId: String(msg.senderId || msg.sender_id || '')
       }));
       
-      // Only update if messages changed
-      if (formatted.length !== messages.length || 
-          JSON.stringify(formatted) !== JSON.stringify(messages)) {
-        setMessages(formatted);
-        
-        // Only scroll to bottom on new messages
-        if (formatted.length > prevMessagesLength.current) {
+      const changed = mergeMessages(formatted);
+      
+      if (changed) {
+        // Only scroll to bottom if user didn't manually scroll up
+        if (formatted.length > prevMessagesLength.current && !isUserScrolling.current) {
           scrollToBottom();
         }
         prevMessagesLength.current = formatted.length;
@@ -56,7 +75,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
         isFirstLoad.current = false;
       }
     }
-  }, [conversationId, user.id, messages]);
+  }, [conversationId, user.id, mergeMessages]);
 
   useEffect(() => {
     if (conversationId) {
@@ -67,7 +86,27 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
     }
   }, [conversationId, loadMessages]);
 
-  // WebSocket subscription for real-time messages
+  // Handle scroll detection for user scrolling up
+  useEffect(() => {
+    const container = document.getElementById('chat-messages-container');
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // If user scrolled up more than 50px from bottom, mark as scrolling
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      isUserScrolling.current = distanceFromBottom > 50;
+      
+      // Reset scroll state if user scrolls back to bottom
+      if (distanceFromBottom < 10) {
+        isUserScrolling.current = false;
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
   useEffect(() => {
     if (!conversationId) return;
 
@@ -79,7 +118,11 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
         };
         setMessages(prev => [...prev, newMsg]);
         chatService.markAsRead(conversationId, user.id);
-        scrollToBottom();
+        // Only scroll if user didn't manually scroll up
+        if (!isUserScrolling.current) {
+          setTimeout(scrollToBottom, 50);
+        }
+        prevMessagesLength.current = prevMessagesLength.current + 1;
       }
       
       if (data.type === 'typing' && data.conversationId === conversationId) {
@@ -100,7 +143,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
 
     const unsubscribe = chatService.subscribeToMessages(handleWebSocketMessage);
 
-    // Silent polling - no loading indicator
+    // Silent polling - no visual refresh
     const interval = setInterval(() => {
       loadMessages(true);
     }, 3000);
@@ -109,17 +152,15 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       unsubscribe();
       clearInterval(interval);
       if (typingTimeout) clearTimeout(typingTimeout);
+      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     };
   }, [conversationId, user.id, typingTimeout, loadMessages]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const scrollToBottom = () => {
-    setTimeout(() => {
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    }, 50);
   };
 
   const handleSend = async (e) => {
@@ -142,9 +183,9 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       if (formattedMsg) {
         setMessages(prev => [...prev, formattedMsg]);
         prevMessagesLength.current = prevMessagesLength.current + 1;
+        setTimeout(scrollToBottom, 50);
       }
       
-      // Silent refresh after send
       setTimeout(() => loadMessages(true), 500);
       
       inputRef.current?.focus();
@@ -241,7 +282,10 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
         </div>
       </div>
 
-      <div style={styles.messagesContainer}>
+      <div 
+        id="chat-messages-container"
+        style={styles.messagesContainer}
+      >
         {isInitialLoading ? (
           <div style={styles.loadingState}>Loading messages...</div>
         ) : messages.length === 0 ? (
@@ -352,15 +396,16 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '16px 20px',
+    padding: '12px 16px',
     borderBottom: '1px solid #f0f0f0',
     backgroundColor: 'white',
     flexShrink: 0,
+    minHeight: '56px',
   },
   headerLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '10px',
     flex: 1,
     minWidth: 0,
   },
@@ -371,13 +416,14 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
-    padding: '4px 8px',
+    padding: '6px 8px',
     fontFamily: 'inherit',
+    flexShrink: 0,
   },
   userInfo: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '10px',
     flex: 1,
     minWidth: 0,
   },
@@ -406,26 +452,30 @@ const styles = {
     fontWeight: '600',
   },
   headerName: {
-    fontSize: '16px',
+    fontSize: '15px',
     fontWeight: '600',
     color: '#1a1a1a',
     display: 'block',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '150px',
   },
   verifiedText: {
     color: '#00B894',
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: '500',
     marginLeft: '4px',
   },
   headerLevel: {
-    fontSize: '12px',
+    fontSize: '11px',
     color: '#999',
     display: 'block',
   },
   messagesContainer: {
     flex: 1,
     overflowY: 'auto',
-    padding: '16px 20px',
+    padding: '12px 16px',
     backgroundColor: '#fafafa',
   },
   messageRow: {
@@ -434,7 +484,7 @@ const styles = {
   },
   messageBubble: {
     maxWidth: '75%',
-    padding: '10px 16px',
+    padding: '10px 14px',
     borderRadius: '16px',
     wordWrap: 'break-word',
   },
@@ -521,11 +571,12 @@ const styles = {
   },
   inputContainer: {
     display: 'flex',
-    padding: '12px 16px',
+    padding: '10px 14px',
     borderTop: '1px solid #f0f0f0',
     backgroundColor: 'white',
-    gap: '10px',
+    gap: '8px',
     flexShrink: 0,
+    alignItems: 'center',
   },
   input: {
     flex: 1,
@@ -536,9 +587,10 @@ const styles = {
     outline: 'none',
     transition: 'border-color 0.2s',
     fontFamily: 'inherit',
+    minWidth: '60px',
   },
   sendButton: {
-    padding: '10px 20px',
+    padding: '10px 18px',
     backgroundColor: '#6C3CE1',
     color: 'white',
     border: 'none',
@@ -549,6 +601,8 @@ const styles = {
     transition: 'background-color 0.2s',
     fontFamily: 'inherit',
     whiteSpace: 'nowrap',
+    flexShrink: 0,
+    minWidth: '60px',
   },
   sendButtonDisabled: {
     backgroundColor: '#ccc',
