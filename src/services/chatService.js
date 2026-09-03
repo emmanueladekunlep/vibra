@@ -20,58 +20,14 @@ let isConnecting = false;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
+// Cache for user names
+let userCache = {};
+
 // ========== WEBSOCKET ==========
 
 export const connectWebSocket = (userId) => {
   console.log('WebSocket disabled - using polling fallback');
   return;
-  
-  // WebSocket code commented out - WS server not available
-  /*
-  if (ws && ws.readyState === WebSocket.OPEN) return;
-  if (isConnecting) return;
-
-  isConnecting = true;
-
-  try {
-    ws = new WebSocket(WS_URL);
-    
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      isConnecting = false;
-      reconnectAttempts = 0;
-      
-      ws.send(JSON.stringify({
-        type: 'auth',
-        userId: String(userId)
-      }));
-    };
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      wsCallbacks.forEach(callback => callback(data));
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      isConnecting = false;
-      reconnectAttempts++;
-      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-        setTimeout(() => {
-          console.log('Reconnecting...');
-          connectWebSocket(userId);
-        }, 3000 * reconnectAttempts);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-  } catch (error) {
-    console.error('WebSocket connection failed:', error);
-    isConnecting = false;
-  }
-  */
 };
 
 export const disconnectWebSocket = () => {
@@ -90,30 +46,97 @@ export const subscribeToMessages = (callback) => {
 };
 
 export const sendTyping = (conversationId, senderId) => {
-  // WebSocket disabled - typing indicator not supported
   console.log('Typing indicator disabled (WebSocket not available)');
-  /*
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({
-      type: 'typing',
-      conversationId,
-      senderId: String(senderId)
-    }));
-  }
-  */
 };
 
 export const sendReadReceipt = (conversationId, userId) => {
   // WebSocket disabled
-  /*
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({
-      type: 'read',
-      conversationId,
-      userId: String(userId)
-    }));
+};
+
+// ========== USER INFO FETCH ==========
+
+/**
+ * Fetch user info from API
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} User info with name
+ */
+export const fetchUserInfo = async (userId) => {
+  // Check cache first
+  if (userCache[userId]) {
+    return userCache[userId];
   }
-  */
+
+  try {
+    const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+    const data = await response.json();
+    
+    if (data.success && data.user) {
+      const userInfo = {
+        id: data.user.id,
+        userId: data.user.userId,
+        name: data.user.name || data.user.registration_name || 'User',
+        level: data.user.level || 'Bronze',
+        isVerified: data.user.isVerified || false,
+        photos: data.user.photos || [],
+        phone: data.user.phone || '',
+      };
+      userCache[userId] = userInfo;
+      return userInfo;
+    }
+  } catch (error) {
+    console.error('Fetch user info error:', error);
+  }
+
+  // Fallback: use userId and last 4 digits
+  const fallback = {
+    id: userId,
+    userId: userId,
+    name: 'User ' + String(userId).slice(-4),
+    level: 'Bronze',
+    isVerified: false,
+    photos: [],
+    phone: '',
+  };
+  userCache[userId] = fallback;
+  return fallback;
+};
+
+/**
+ * Get multiple users info
+ * @param {Array} userIds - List of user IDs
+ * @returns {Promise<Object>} Map of user ID to user info
+ */
+export const fetchMultipleUsers = async (userIds) => {
+  const results = {};
+  const uncached = [];
+
+  for (const id of userIds) {
+    if (userCache[id]) {
+      results[id] = userCache[id];
+    } else {
+      uncached.push(id);
+    }
+  }
+
+  // Fetch uncached users
+  for (const id of uncached) {
+    try {
+      const info = await fetchUserInfo(id);
+      results[id] = info;
+    } catch (error) {
+      results[id] = {
+        id: id,
+        userId: id,
+        name: 'User ' + String(id).slice(-4),
+        level: 'Bronze',
+        isVerified: false,
+        photos: [],
+        phone: '',
+      };
+    }
+  }
+
+  return results;
 };
 
 // ========== API CALLS ==========
@@ -128,7 +151,6 @@ export const sendMessage = async (conversationId, senderId, text) => {
     throw new Error('Message contains prohibited content');
   }
 
-  // Always use API for sending messages (WebSocket disabled)
   try {
     const response = await fetch(`${API_URL}/send_message.php`, {
       method: 'POST',
@@ -158,7 +180,31 @@ export const getConversations = async (userId) => {
     const data = await response.json();
     
     if (data.success) {
-      return data.conversations;
+      const conversations = data.conversations || [];
+      
+      // Fetch user info for all other users
+      const otherUserIds = conversations
+        .map(conv => conv.otherUser?.id)
+        .filter(id => id && id !== userId);
+      
+      if (otherUserIds.length > 0) {
+        const userMap = await fetchMultipleUsers(otherUserIds);
+        
+        // Update conversations with real user info
+        for (const conv of conversations) {
+          const otherId = conv.otherUser?.id;
+          if (otherId && userMap[otherId]) {
+            conv.otherUser = {
+              ...conv.otherUser,
+              ...userMap[otherId],
+              // Keep the photos array from userMap
+              photos: userMap[otherId].photos || [],
+            };
+          }
+        }
+      }
+      
+      return conversations;
     } else {
       return [];
     }
@@ -179,7 +225,7 @@ export const getMessages = async (conversationId, limit = 50, startAfter = null)
     const data = await response.json();
     
     if (data.success) {
-      return data.messages;
+      return data.messages || [];
     } else {
       return [];
     }
@@ -203,7 +249,16 @@ export const getOrCreateConversation = async (userId1, userId2) => {
     const data = await response.json();
     
     if (data.success) {
-      return data.conversation;
+      const conversation = data.conversation;
+      
+      // Fetch other user info
+      const otherId = conversation.participants?.find(id => id != userId1);
+      if (otherId) {
+        const userInfo = await fetchUserInfo(otherId);
+        conversation.otherUser = userInfo;
+      }
+      
+      return conversation;
     } else {
       throw new Error(data.message || 'Failed to create conversation');
     }
@@ -272,22 +327,16 @@ export const deleteConversation = async (conversationId) => {
   }
 };
 
-const getConversationId = (userId1, userId2) => {
-  const sorted = [String(userId1), String(userId2)].sort();
-  return `conv_${sorted[0]}_${sorted[1]}`;
-};
-
-export const getUserInfo = (userId) => {
-  return { 
-    id: userId, 
-    name: 'User', 
-    level: 'Bronze',
-    isVerified: false,
-    photos: []
-  };
+export const getUserInfo = async (userId) => {
+  return await fetchUserInfo(userId);
 };
 
 export const canChat = () => true;
+
+// Clear user cache (useful after profile updates)
+export const clearUserCache = () => {
+  userCache = {};
+};
 
 export default {
   getOrCreateConversation,
@@ -304,4 +353,7 @@ export default {
   subscribeToMessages,
   sendTyping,
   sendReadReceipt,
+  fetchUserInfo,
+  fetchMultipleUsers,
+  clearUserCache,
 };
