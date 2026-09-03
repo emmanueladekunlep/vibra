@@ -118,7 +118,6 @@ const Login = () => {
       return;
     }
 
-    // Set PIN via API
     const result = await setPin(loginPhone, newPin);
     
     if (!result.success) {
@@ -126,7 +125,6 @@ const Login = () => {
       return;
     }
 
-    // Now login with the new PIN
     const loginResult = await loginWithOpay(loginPhone, newPin);
     if (loginResult.success) {
       setShowSetPin(false);
@@ -417,10 +415,6 @@ const Login = () => {
             src="/logo.png" 
             alt="VIBRA Logo" 
             style={styles.logo}
-            onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.parentElement.innerHTML = '<h1 style={styles.logoText}>VIBRA</h1>';
-            }}
           />
           <p style={styles.tagline}>Nigerian • Verified • Real Dates</p>
         </div>
