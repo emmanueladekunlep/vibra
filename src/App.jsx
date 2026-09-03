@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import * as eventService from './services/eventService';
 import { connectWebSocket, disconnectWebSocket } from './services/chatService';
@@ -447,18 +447,25 @@ const ProfilePage = () => {
           setIsAdmin(true);
           return;
         }
-        const admin = await import('./services/adminService');
-        const status = await admin.isAdmin(user?.id);
-        setIsAdmin(status);
+        if (user && user.id) {
+          const admin = await import('./services/adminService');
+          const status = await admin.isAdmin(user.id);
+          setIsAdmin(status);
+        }
       } catch (err) {
         console.error('Admin check failed:', err);
         setIsAdmin(false);
       }
     };
-    if (user) {
+    if (user && user.id) {
       checkAdmin();
     }
   }, [user]);
+
+  // Handle case where user is not loaded yet
+  if (!user || !user.id) {
+    return <div style={styles.loading}>Loading profile...</div>;
+  }
 
   if (showMyGifts) {
     return <MyGifts onClose={() => setShowMyGifts(false)} />;
@@ -478,7 +485,7 @@ const ProfilePage = () => {
 
   if (showPoints) {
     return (
-      <PointsHistory userId={user?.id} />
+      <PointsHistory userId={user.id} />
     );
   }
 
@@ -491,7 +498,7 @@ const ProfilePage = () => {
   if (isEditing) {
     return (
       <EditProfile 
-        userId={user?.id} 
+        userId={user.id} 
         onSave={() => setIsEditing(false)} 
         onCancel={() => setIsEditing(false)} 
       />
@@ -501,7 +508,7 @@ const ProfilePage = () => {
   return (
     <div style={styles.profileContainer}>
       <Profile 
-        userId={user?.id} 
+        userId={user.id} 
         onEdit={() => setIsEditing(true)} 
       />
       
