@@ -18,22 +18,22 @@ const LoadingSpinner = () => (
 
 const Login = () => {
   const navigate = useNavigate();
-  const { loginWithOpay, setPin, isLoading, error, isAuthenticated, requiresPin: authRequiresPin, pendingPhone } = useAuth();
+  const { loginWithOpay, setPin, completePinSetup, isLoading, error, isAuthenticated, requiresPin: authRequiresPin, pendingPhone, pendingUserData } = useAuth();
   
   const [phone, setPhone] = useState('');
   const [pin, setPinInput] = useState('');
   const [loginError, setLoginError] = useState(null);
   const [showPinScreen, setShowPinScreen] = useState(false);
-  const [isNewUser, setIsNewUser] = useState(false);
+  const [showSetPin, setShowSetPin] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
-  const [showSetPin, setShowSetPin] = useState(false);
   const [showForgotPin, setShowForgotPin] = useState(false);
   const [resetPhone, setResetPhone] = useState('');
   const [resetPin, setResetPin] = useState('');
   const [resetConfirmPin, setResetConfirmPin] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [loginPhone, setLoginPhone] = useState('');
+  const [needsPinSetup, setNeedsPinSetup] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -54,6 +54,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError(null);
+    setNeedsPinSetup(false);
 
     if (!phone || phone.length < 10) {
       setLoginError('Please enter a valid phone number');
@@ -68,15 +69,15 @@ const Login = () => {
       return;
     }
 
-    if (!result.success) {
-      setLoginError(result.error || 'Login failed');
+    if (result.needsPinSetup) {
+      setLoginPhone(phone);
+      setNeedsPinSetup(true);
+      setShowSetPin(true);
       return;
     }
 
-    // Check if user needs to set PIN (first time)
-    if (result.user && !result.user.pinEnabled) {
-      setIsNewUser(true);
-      setShowSetPin(true);
+    if (!result.success) {
+      setLoginError(result.error || 'Login failed');
       return;
     }
 
@@ -117,19 +118,21 @@ const Login = () => {
       return;
     }
 
-    const result = await setPin(phone, newPin);
+    // Set PIN via API
+    const result = await setPin(loginPhone, newPin);
     
     if (!result.success) {
       setLoginError(result.error || 'Failed to set PIN');
       return;
     }
 
-    // Login again with PIN
-    const loginResult = await loginWithOpay(phone, newPin);
+    // Now login with the new PIN
+    const loginResult = await loginWithOpay(loginPhone, newPin);
     if (loginResult.success) {
+      setShowSetPin(false);
       navigate('/', { replace: true });
     } else {
-      setLoginError(loginResult.error || 'Login failed');
+      setLoginError(loginResult.error || 'Login failed after PIN setup');
     }
   };
 

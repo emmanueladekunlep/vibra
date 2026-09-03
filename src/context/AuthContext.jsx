@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [requiresPin, setRequiresPin] = useState(false);
   const [pendingPhone, setPendingPhone] = useState(null);
+  const [pendingUserData, setPendingUserData] = useState(null);
 
   // Load cached user on mount
   useEffect(() => {
@@ -54,6 +55,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     setIsLoading(true);
     setRequiresPin(false);
+    setPendingUserData(null);
     
     try {
       const result = await authService.loginWithOpay(phone, pin);
@@ -61,27 +63,44 @@ export const AuthProvider = ({ children }) => {
       if (result.success) {
         const userData = result.user;
         if (userData) {
-          // Check if PIN is required but not provided
+          // Check if PIN is enabled and user needs to enter PIN
           if (userData.pinEnabled && !pin) {
             setPendingPhone(phone);
+            setPendingUserData(userData);
             setRequiresPin(true);
             setIsLoading(false);
             return { 
               success: true, 
               requiresPin: true,
               user: userData,
+              needsPinSetup: false,
             };
           }
           
-          // Full authentication
+          // Check if user needs to set up PIN (first time - pinEnabled is false)
+          if (!userData.pinEnabled) {
+            setPendingPhone(phone);
+            setPendingUserData(userData);
+            setIsLoading(false);
+            return {
+              success: true,
+              requiresPin: false,
+              needsPinSetup: true,
+              user: userData,
+            };
+          }
+          
+          // Full authentication (PIN was provided and verified)
           if (userData.hasWithdrawn === undefined) userData.hasWithdrawn = false;
           setUser(userData);
           setIsAuthenticated(true);
           setPendingPhone(null);
+          setPendingUserData(null);
           return { 
             success: true, 
             user: userData,
             requiresPin: false,
+            needsPinSetup: false,
           };
         } else {
           return { success: false, error: 'No user data' };
@@ -112,6 +131,21 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
+   * Complete PIN setup and authenticate user
+   */
+  const completePinSetup = useCallback(async (userData) => {
+    if (userData) {
+      setUser(userData);
+      setIsAuthenticated(true);
+      setPendingPhone(null);
+      setPendingUserData(null);
+      setRequiresPin(false);
+      return { success: true, user: userData };
+    }
+    return { success: false, error: 'No user data' };
+  }, []);
+
+  /**
    * Logout user
    */
   const logout = useCallback(() => {
@@ -121,6 +155,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     setRequiresPin(false);
     setPendingPhone(null);
+    setPendingUserData(null);
   }, []);
 
   /**
@@ -160,8 +195,10 @@ export const AuthProvider = ({ children }) => {
     error,
     requiresPin,
     pendingPhone,
+    pendingUserData,
     loginWithOpay,
     setPin,
+    completePinSetup,
     logout,
     updateUser,
     checkOpayStatus,
