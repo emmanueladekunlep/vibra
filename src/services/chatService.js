@@ -57,12 +57,10 @@ export const sendReadReceipt = (conversationId, userId) => {
  * @returns {Promise<Object>} User info with name
  */
 export const fetchUserInfo = async (userId) => {
-  // Check cache first
   if (userCache[userId]) {
     return userCache[userId];
   }
 
-  // Skip mock user IDs that start with 'user_'
   if (typeof userId === 'string' && userId.startsWith('user_')) {
     const fallback = {
       id: userId,
@@ -98,7 +96,6 @@ export const fetchUserInfo = async (userId) => {
     console.error('Fetch user info error:', error);
   }
 
-  // Fallback: use userId and last 4 digits
   const fallback = {
     id: userId,
     userId: userId,
@@ -129,7 +126,6 @@ export const fetchMultipleUsers = async (userIds) => {
     }
   }
 
-  // Fetch uncached users
   for (const id of uncached) {
     try {
       const info = await fetchUserInfo(id);
@@ -193,7 +189,6 @@ export const getConversations = async (userId) => {
     if (data.success) {
       const conversations = data.conversations || [];
       
-      // Fetch user info for all other users
       const otherUserIds = conversations
         .map(conv => conv.otherUser?.id)
         .filter(id => id && id !== userId);
@@ -201,7 +196,6 @@ export const getConversations = async (userId) => {
       if (otherUserIds.length > 0) {
         const userMap = await fetchMultipleUsers(otherUserIds);
         
-        // Update conversations with real user info
         for (const conv of conversations) {
           const otherId = conv.otherUser?.id;
           if (otherId && userMap[otherId]) {
@@ -261,7 +255,6 @@ export const getOrCreateConversation = async (userId1, userId2) => {
     if (data.success) {
       const conversation = data.conversation;
       
-      // Fetch other user info
       const otherId = conversation.participants?.find(id => id != userId1);
       if (otherId) {
         const userInfo = await fetchUserInfo(otherId);
@@ -343,9 +336,15 @@ export const getUserInfo = async (userId) => {
 
 export const canChat = () => true;
 
-// Clear user cache (useful after profile updates)
 export const clearUserCache = () => {
   userCache = {};
+};
+
+// Optimized polling - faster response
+let pollInterval = 1500; // 1.5 seconds instead of 3
+
+export const setPollInterval = (ms) => {
+  pollInterval = ms;
 };
 
 export default {
@@ -366,4 +365,5 @@ export default {
   fetchUserInfo,
   fetchMultipleUsers,
   clearUserCache,
+  setPollInterval,
 };

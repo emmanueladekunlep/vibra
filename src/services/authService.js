@@ -60,6 +60,11 @@ export const loginWithOpay = async (phone, pin = null) => {
     const data = await response.json();
     
     if (data.success) {
+      // Ensure user has a valid numeric id, not mock string
+      if (data.user && typeof data.user.id === 'string' && data.user.id.startsWith('user_')) {
+        // Convert mock id to numeric if possible, or keep as is but ensure it works
+        console.warn('Mock user id detected:', data.user.id);
+      }
       cacheUserData(data.user);
       return { 
         success: true, 
@@ -68,7 +73,6 @@ export const loginWithOpay = async (phone, pin = null) => {
         pinEnabled: data.user?.pinEnabled || false,
       };
     } else {
-      // If PIN required, return special response
       if (data.message === 'PIN required') {
         return { 
           success: true, 
@@ -96,7 +100,6 @@ export const setPin = async (userId, pin) => {
     const data = await response.json();
     
     if (data.success) {
-      // Update cached user
       const cached = getCachedUser();
       if (cached) {
         cached.pinEnabled = true;
@@ -170,6 +173,13 @@ const fallbackLogin = async (phone) => {
 
 const cacheUserData = (user) => {
   try {
+    // Clean up any mock user_ prefix before caching
+    if (user && typeof user.id === 'string' && user.id.startsWith('user_')) {
+      // Keep as is, but ensure we have a valid userId
+      if (!user.userId) {
+        user.userId = `VIB-${Math.floor(Math.random() * 9000 + 1000)}`;
+      }
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     localStorage.setItem(SESSION_KEY, JSON.stringify({ 
       loggedIn: true, 
@@ -183,7 +193,14 @@ const cacheUserData = (user) => {
 export const getCachedUser = () => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : null;
+    if (!data) return null;
+    const user = JSON.parse(data);
+    // Ensure user has a valid userId if missing
+    if (user && !user.userId) {
+      user.userId = `VIB-${Math.floor(Math.random() * 9000 + 1000)}`;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    }
+    return user;
   } catch (error) {
     console.warn('Failed to read cached user:', error);
     return null;

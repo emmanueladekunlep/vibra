@@ -143,10 +143,10 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       clearInterval(pollIntervalRef.current);
     }
 
-    // Silent polling - no visual refresh, only when conversation is open
+    // Silent polling - faster response (1.5 seconds)
     pollIntervalRef.current = setInterval(() => {
       loadMessages(true);
-    }, 3000);
+    }, 1500);
 
     return () => {
       unsubscribe();
