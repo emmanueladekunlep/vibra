@@ -118,6 +118,39 @@ const SearchPage = () => {
     return filtered;
   };
 
+  // Normalize search string - remove extra spaces, handle variations
+  const normalizeSearch = (str) => {
+    return str.toLowerCase().trim().replace(/\s+/g, ' ');
+  };
+
+  // Check if string matches with flexible matching
+  const matchesSearch = (text, searchTerm) => {
+    if (!text) return false;
+    const normalizedText = normalizeSearch(text);
+    const normalizedSearch = normalizeSearch(searchTerm);
+    
+    // Exact match
+    if (normalizedText === normalizedSearch) return true;
+    
+    // Contains match
+    if (normalizedText.includes(normalizedSearch)) return true;
+    
+    // Word by word match (each word in search must appear in text)
+    const searchWords = normalizedSearch.split(' ');
+    const textWords = normalizedText.split(' ');
+    const allWordsMatch = searchWords.every(word => 
+      textWords.some(tw => tw.includes(word) || word.includes(tw))
+    );
+    if (allWordsMatch) return true;
+    
+    // Partial word match (e.g., "lag" matches "Lagos")
+    if (searchWords.length === 1 && searchWords[0].length >= 2) {
+      return textWords.some(tw => tw.includes(searchWords[0]));
+    }
+    
+    return false;
+  };
+
   const handleSearch = () => {
     if (!searchQuery.trim() && !showFilters) {
       setResults([]);
@@ -131,16 +164,17 @@ const SearchPage = () => {
     try {
       let filtered = allUsers;
 
-      // Apply text search
+      // Apply text search with flexible matching
       if (searchQuery.trim()) {
+        const query = searchQuery.trim();
         if (searchType === 'location') {
           filtered = filtered.filter(u => 
-            u.location && u.location.toLowerCase().includes(searchQuery.toLowerCase())
+            u.location && matchesSearch(u.location, query)
           );
         } else {
           filtered = filtered.filter(u => 
-            u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            u.phone?.includes(searchQuery)
+            (u.name && matchesSearch(u.name, query)) ||
+            (u.phone && u.phone.includes(query.replace(/\s/g, '')))
           );
         }
       }
@@ -153,6 +187,7 @@ const SearchPage = () => {
           'No users found matching your criteria',
           'Try removing some filters',
           'Try a different search',
+          'Check spelling - try "Lagos" instead of "lagos"',
         ]);
         setResults([]);
       } else {
