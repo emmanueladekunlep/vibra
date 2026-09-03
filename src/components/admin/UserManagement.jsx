@@ -89,7 +89,16 @@ const UserManagement = () => {
     }
   };
 
+  // Check if the target user is the founder (current user)
+  const isCurrentUser = (userId) => {
+    return String(userId) === String(user?.id);
+  };
+
   const handleSuspend = async (userId, reason) => {
+    if (isCurrentUser(userId)) {
+      setError('You cannot suspend your own account.');
+      return;
+    }
     if (!confirm('Suspend this user?')) return;
     
     try {
@@ -104,6 +113,10 @@ const UserManagement = () => {
   };
 
   const handleReactivate = async (userId) => {
+    if (isCurrentUser(userId)) {
+      setError('You cannot reactivate your own account.');
+      return;
+    }
     if (!confirm('Reactivate this user?')) return;
     
     try {
@@ -118,6 +131,10 @@ const UserManagement = () => {
   };
 
   const handleChangeLevel = async (userId, level) => {
+    if (isCurrentUser(userId)) {
+      setError('You cannot change your own level. Use your dashboard.');
+      return;
+    }
     if (!confirm(`Change level to ${level}?`)) return;
     
     try {
@@ -132,6 +149,11 @@ const UserManagement = () => {
   };
 
   const handleAddPoints = async (userId) => {
+    if (isCurrentUser(userId)) {
+      setError('You cannot add points to yourself. Use your dashboard.');
+      return;
+    }
+    
     const points = prompt('Enter points to add (positive number):');
     if (points === null) return;
     
@@ -142,7 +164,6 @@ const UserManagement = () => {
     }
     
     try {
-      // Get current user first
       const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
       const data = await response.json();
       if (data.success) {
@@ -160,6 +181,11 @@ const UserManagement = () => {
   };
 
   const handleDeductPoints = async (userId) => {
+    if (isCurrentUser(userId)) {
+      setError('You cannot deduct points from yourself. Use your dashboard.');
+      return;
+    }
+    
     const points = prompt('Enter points to deduct (positive number):');
     if (points === null) return;
     
@@ -187,11 +213,14 @@ const UserManagement = () => {
   };
 
   const handleMakeVIP = async (userId, level) => {
+    if (isCurrentUser(userId)) {
+      setError('You cannot change your own VIP status. Use your dashboard.');
+      return;
+    }
     if (!confirm(`Make this user VIP (${level})? This will set their level to ${level} and add ${getVIPPoints(level)} points.`)) return;
     
     try {
       const points = getVIPPoints(level);
-      // Get current user
       const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
       const data = await response.json();
       if (data.success) {
@@ -223,6 +252,10 @@ const UserManagement = () => {
   };
 
   const handleMarkVerified = async (userId) => {
+    if (isCurrentUser(userId)) {
+      setError('You cannot verify yourself. Use your dashboard or contact support.');
+      return;
+    }
     if (!confirm('Mark this user as verified?')) return;
     
     try {
@@ -237,6 +270,10 @@ const UserManagement = () => {
   };
 
   const handleUnmarkVerified = async (userId) => {
+    if (isCurrentUser(userId)) {
+      setError('You cannot unverify yourself. Use your dashboard or contact support.');
+      return;
+    }
     if (!confirm('Remove verified status from this user?')) return;
     
     try {
@@ -251,6 +288,10 @@ const UserManagement = () => {
   };
 
   const handleMarkWithdrawn = async (userId) => {
+    if (isCurrentUser(userId)) {
+      setError('You cannot mark yourself as withdrawn.');
+      return;
+    }
     if (!confirm('Mark this user as having withdrawn?')) return;
     
     try {
@@ -337,13 +378,15 @@ const UserManagement = () => {
             <span>Status: {searchResult.status}</span>
             <span>Verified: {searchResult.isVerified ? 'Yes' : 'No'}</span>
             <span>Withdrawn: {searchResult.hasWithdrawn ? 'Yes' : 'No'}</span>
+            {isCurrentUser(searchResult.id) && (
+              <span style={{ color: '#FFD700', fontWeight: '700' }}>👑 YOU</span>
+            )}
           </div>
           <div style={styles.searchResultActions}>
             <select
               value={searchResult.level}
               onChange={(e) => handleChangeLevel(searchResult.id, e.target.value)}
               style={styles.actionSelect}
-              disabled={searchResult.isFounder}
             >
               <option value="Bronze">Bronze</option>
               <option value="Silver">Silver</option>
@@ -366,7 +409,6 @@ const UserManagement = () => {
                 }
               }}
               style={styles.vipSelect}
-              disabled={searchResult.isFounder}
               defaultValue=""
             >
               <option value="">Make VIP</option>
@@ -397,7 +439,6 @@ const UserManagement = () => {
                   if (reason !== null) handleSuspend(searchResult.id, reason);
                 }}
                 style={styles.suspendButton}
-                disabled={searchResult.isFounder}
               >
                 Suspend
               </button>
@@ -470,102 +511,106 @@ const UserManagement = () => {
         {users.length === 0 ? (
           <p style={styles.emptyText}>No users found</p>
         ) : (
-          users.map((u) => (
-            <div key={u.id} style={styles.userItem}>
-              <div style={styles.userInfo}>
-                <span style={styles.userName}>
-                  <span style={styles.userIdTag}>{u.userId || 'N/A'}</span>
-                  {u.name}
-                  {u.isFounder && <span style={styles.founderBadge}>Founder</span>}
-                  {u.isVIP && <span style={styles.vipBadge}>VIP</span>}
-                  {u.isVerified && <span style={styles.verifiedBadge}>✓</span>}
-                </span>
-                <span style={styles.userDetails}>
-                  {u.email || u.phone} | Level: 
-                  <span style={{ color: getLevelColor(u.level), fontWeight: '600' }}>
-                    {' '}{u.level}
+          users.map((u) => {
+            const isSelf = isCurrentUser(u.id);
+            return (
+              <div key={u.id} style={styles.userItem}>
+                <div style={styles.userInfo}>
+                  <span style={styles.userName}>
+                    <span style={styles.userIdTag}>{u.userId || 'N/A'}</span>
+                    {u.name}
+                    {isSelf && <span style={styles.selfBadge}>👑 YOU</span>}
+                    {u.isFounder && <span style={styles.founderBadge}>Founder</span>}
+                    {u.isVIP && <span style={styles.vipBadge}>VIP</span>}
+                    {u.isVerified && <span style={styles.verifiedBadge}>✓</span>}
                   </span>
-                  {' '}| Status: 
-                  <span style={{ color: getStatusColor(u.status), fontWeight: '600' }}>
-                    {' '}{u.status}
+                  <span style={styles.userDetails}>
+                    {u.email || u.phone} | Level: 
+                    <span style={{ color: getLevelColor(u.level), fontWeight: '600' }}>
+                      {' '}{u.level}
+                    </span>
+                    {' '}| Status: 
+                    <span style={{ color: getStatusColor(u.status), fontWeight: '600' }}>
+                      {' '}{u.status}
+                    </span>
+                    {' '}| Points: {u.points}
                   </span>
-                  {' '}| Points: {u.points}
-                </span>
-                <span style={styles.userMeta}>
-                  Withdrawn: {u.hasWithdrawn ? '✅ Yes' : '❌ No'}
-                </span>
-              </div>
-              <div style={styles.userActions}>
-                <select
-                  value={u.level}
-                  onChange={(e) => handleChangeLevel(u.id, e.target.value)}
-                  style={styles.actionSelect}
-                  disabled={u.isFounder}
-                >
-                  <option value="Bronze">Bronze</option>
-                  <option value="Silver">Silver</option>
-                  <option value="Gold">Gold</option>
-                  <option value="Platinum">Platinum</option>
-                  <option value="Diamond">Diamond</option>
-                </select>
-                <button onClick={() => handleAddPoints(u.id)} style={styles.pointsButton} disabled={u.isFounder}>
-                  + Points
-                </button>
-                <button onClick={() => handleDeductPoints(u.id)} style={styles.deductButton} disabled={u.isFounder}>
-                  - Points
-                </button>
-                
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      handleMakeVIP(u.id, e.target.value);
-                      e.target.value = '';
-                    }
-                  }}
-                  style={styles.vipSelect}
-                  disabled={u.isFounder}
-                  defaultValue=""
-                >
-                  <option value="">VIP</option>
-                  <option value="Silver">Silver</option>
-                  <option value="Gold">Gold</option>
-                  <option value="Platinum">Platinum</option>
-                  <option value="Diamond">Diamond</option>
-                </select>
-
-                {u.isVerified ? (
-                  <button onClick={() => handleUnmarkVerified(u.id)} style={styles.unverifyButton} disabled={u.isFounder}>
-                    Unverify
-                  </button>
-                ) : (
-                  <button onClick={() => handleMarkVerified(u.id)} style={styles.verifyButton} disabled={u.isFounder}>
-                    Verify
-                  </button>
-                )}
-                {!u.hasWithdrawn && (
-                  <button onClick={() => handleMarkWithdrawn(u.id)} style={styles.withdrawButton} disabled={u.isFounder}>
-                    Mark Withdrawn
-                  </button>
-                )}
-                {u.status === 'active' ? (
-                  <button
-                    onClick={() => {
-                      const reason = prompt('Reason for suspension:');
-                      if (reason !== null) handleSuspend(u.id, reason);
-                    }}
-                    style={styles.suspendButton}
-                    disabled={u.isFounder}
+                  <span style={styles.userMeta}>
+                    Withdrawn: {u.hasWithdrawn ? '✅ Yes' : '❌ No'}
+                  </span>
+                </div>
+                <div style={styles.userActions}>
+                  <select
+                    value={u.level}
+                    onChange={(e) => handleChangeLevel(u.id, e.target.value)}
+                    style={styles.actionSelect}
+                    disabled={isSelf}
                   >
-                    Suspend
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                    <option value="Diamond">Diamond</option>
+                  </select>
+                  <button onClick={() => handleAddPoints(u.id)} style={styles.pointsButton} disabled={isSelf}>
+                    + Points
                   </button>
-                ) : (
-                  <button onClick={() => handleReactivate(u.id)} style={styles.reactivateButton} disabled={u.isFounder}>
-                    Reactivate
+                  <button onClick={() => handleDeductPoints(u.id)} style={styles.deductButton} disabled={isSelf}>
+                    - Points
                   </button>
-                )}
+                  
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleMakeVIP(u.id, e.target.value);
+                        e.target.value = '';
+                      }
+                    }}
+                    style={styles.vipSelect}
+                    disabled={isSelf}
+                    defaultValue=""
+                  >
+                    <option value="">VIP</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                    <option value="Diamond">Diamond</option>
+                  </select>
+
+                  {u.isVerified ? (
+                    <button onClick={() => handleUnmarkVerified(u.id)} style={styles.unverifyButton} disabled={isSelf}>
+                      Unverify
+                    </button>
+                  ) : (
+                    <button onClick={() => handleMarkVerified(u.id)} style={styles.verifyButton} disabled={isSelf}>
+                      Verify
+                    </button>
+                  )}
+                  {!u.hasWithdrawn && (
+                    <button onClick={() => handleMarkWithdrawn(u.id)} style={styles.withdrawButton} disabled={isSelf}>
+                      Mark Withdrawn
+                    </button>
+                  )}
+                  {u.status === 'active' ? (
+                    <button
+                      onClick={() => {
+                        const reason = prompt('Reason for suspension:');
+                        if (reason !== null) handleSuspend(u.id, reason);
+                      }}
+                      style={styles.suspendButton}
+                      disabled={isSelf}
+                    >
+                      Suspend
+                    </button>
+                  ) : (
+                    <button onClick={() => handleReactivate(u.id)} style={styles.reactivateButton} disabled={isSelf}>
+                      Reactivate
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -735,11 +780,19 @@ const styles = {
     borderRadius: '4px',
     fontFamily: 'monospace',
   },
-  founderBadge: {
+  selfBadge: {
     fontSize: '10px',
     padding: '2px 8px',
     backgroundColor: '#FFD700',
     color: '#1a1a1a',
+    borderRadius: '4px',
+    fontWeight: '700',
+  },
+  founderBadge: {
+    fontSize: '10px',
+    padding: '2px 8px',
+    backgroundColor: '#6C3CE1',
+    color: 'white',
     borderRadius: '4px',
     fontWeight: '700',
   },
