@@ -10,10 +10,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 // WebSocket disabled for now - use polling fallback
 const WS_URL = null;
 
-// Storage keys (only for cache)
-const CONVERSATIONS_KEY = 'vibra_conversations_cache';
-const MESSAGES_KEY = 'vibra_messages_cache';
-
 let ws = null;
 let wsCallbacks = [];
 let isConnecting = false;
@@ -64,6 +60,21 @@ export const fetchUserInfo = async (userId) => {
   // Check cache first
   if (userCache[userId]) {
     return userCache[userId];
+  }
+
+  // Skip mock user IDs that start with 'user_'
+  if (typeof userId === 'string' && userId.startsWith('user_')) {
+    const fallback = {
+      id: userId,
+      userId: userId,
+      name: 'User ' + String(userId).slice(-4),
+      level: 'Bronze',
+      isVerified: false,
+      photos: [],
+      phone: '',
+    };
+    userCache[userId] = fallback;
+    return fallback;
   }
 
   try {
@@ -197,7 +208,6 @@ export const getConversations = async (userId) => {
             conv.otherUser = {
               ...conv.otherUser,
               ...userMap[otherId],
-              // Keep the photos array from userMap
               photos: userMap[otherId].photos || [],
             };
           }

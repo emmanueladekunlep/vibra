@@ -26,12 +26,11 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
   const isUserScrolling = useRef(false);
   const prevMessagesLength = useRef(0);
   const scrollTimeout = useRef(null);
+  const pollIntervalRef = useRef(null);
 
   // Merge messages without causing re-render flicker
   const mergeMessages = useCallback((newMessages) => {
-    // Only update if there are actual changes
     if (newMessages.length === messages.length) {
-      // Check if content changed
       const hasChanged = newMessages.some((msg, i) => {
         const existing = messages[i];
         return !existing || 
@@ -58,11 +57,10 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       
       const changed = mergeMessages(formatted);
       
+      if (changed && formatted.length > prevMessagesLength.current && !isUserScrolling.current) {
+        scrollToBottom();
+      }
       if (changed) {
-        // Only scroll to bottom if user didn't manually scroll up
-        if (formatted.length > prevMessagesLength.current && !isUserScrolling.current) {
-          scrollToBottom();
-        }
         prevMessagesLength.current = formatted.length;
       }
       
@@ -93,11 +91,9 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      // If user scrolled up more than 50px from bottom, mark as scrolling
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
       isUserScrolling.current = distanceFromBottom > 50;
       
-      // Reset scroll state if user scrolls back to bottom
       if (distanceFromBottom < 10) {
         isUserScrolling.current = false;
       }
@@ -118,7 +114,6 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
         };
         setMessages(prev => [...prev, newMsg]);
         chatService.markAsRead(conversationId, user.id);
-        // Only scroll if user didn't manually scroll up
         if (!isUserScrolling.current) {
           setTimeout(scrollToBottom, 50);
         }
@@ -143,14 +138,22 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
 
     const unsubscribe = chatService.subscribeToMessages(handleWebSocketMessage);
 
-    // Silent polling - no visual refresh
-    const interval = setInterval(() => {
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+
+    // Silent polling - no visual refresh, only when conversation is open
+    pollIntervalRef.current = setInterval(() => {
       loadMessages(true);
     }, 3000);
 
     return () => {
       unsubscribe();
-      clearInterval(interval);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
       if (typingTimeout) clearTimeout(typingTimeout);
       if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     };
@@ -210,7 +213,6 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
     
     try {
       const date = new Date(timestamp);
-      // Check if date is valid
       if (isNaN(date.getTime())) {
         return '';
       }
@@ -219,19 +221,16 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       
-      // Same day - show time only
       if (msgDate.getTime() === today.getTime()) {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       }
       
-      // Yesterday
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       if (msgDate.getTime() === yesterday.getTime()) {
         return `Yesterday ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       }
       
-      // Older - show date and time
       return date.toLocaleDateString([], { 
         month: 'short', 
         day: 'numeric',
