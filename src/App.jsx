@@ -79,6 +79,32 @@ const AppLayout = ({ children }) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstall, setShowInstall] = useState(false);
+
+  // Listen for install prompt
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstall(true);
+    });
+
+    window.addEventListener('appinstalled', () => {
+      setShowInstall(false);
+    });
+  }, []);
+
+  const handleInstall = () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      installPrompt.userChoice.then((result) => {
+        if (result.outcome === 'accepted') {
+          setShowInstall(false);
+        }
+      });
+    }
+  };
 
   // Connect WebSocket when user is authenticated
   useEffect(() => {
@@ -99,7 +125,6 @@ const AppLayout = ({ children }) => {
 
   const loadNotifications = async () => {
     try {
-      // Get events where user is invited
       const events = await eventService.getEvents(user.id, { type: 'private' });
       const invites = events.filter(e => 
         e.invitedUsers?.includes(user.id) && e.hostId !== user.id
@@ -144,6 +169,15 @@ const AppLayout = ({ children }) => {
       <div style={styles.headerBar}>
         <span style={styles.headerTitle}>VIBRA</span>
         <div style={styles.headerActions}>
+          {/* Install Button */}
+          {showInstall && (
+            <button
+              onClick={handleInstall}
+              style={styles.installButton}
+            >
+              📱 Install
+            </button>
+          )}
           <div style={styles.notificationContainer}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -231,7 +265,6 @@ const HomePage = () => {
         <p style={styles.welcomeSubtitle}>Connect, Vibe, Love.</p>
       </div>
 
-      {/* Quick Stats */}
       <div style={styles.quickStats}>
         <div style={styles.statCard}>
           <span style={styles.statValue}>{user?.level || 'Bronze'}</span>
@@ -251,7 +284,6 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Events Feed */}
       <div style={styles.feedSection}>
         <EventList 
           onSelectEvent={(id) => setSelectedEvent(id)} 
@@ -462,7 +494,6 @@ const ProfilePage = () => {
     }
   }, [user]);
 
-  // Handle case where user is not loaded yet
   if (!user || !user.id) {
     return <div style={styles.loading}>Loading profile...</div>;
   }
@@ -676,6 +707,17 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+  },
+  installButton: {
+    background: '#00B894',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '6px 14px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
   },
   notificationContainer: {
     position: 'relative',
