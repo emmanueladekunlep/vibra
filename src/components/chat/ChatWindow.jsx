@@ -207,28 +207,41 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
-    const date = new Date(timestamp);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     
-    if (msgDate.getTime() === today.getTime()) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    try {
+      const date = new Date(timestamp);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      
+      // Same day - show time only
+      if (msgDate.getTime() === today.getTime()) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      
+      // Yesterday
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (msgDate.getTime() === yesterday.getTime()) {
+        return `Yesterday ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      
+      // Older - show date and time
+      return date.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return '';
     }
-    
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (msgDate.getTime() === yesterday.getTime()) {
-      return `Yesterday ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    }
-    
-    return date.toLocaleDateString([], { 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   if (!conversationId || !otherUser) {

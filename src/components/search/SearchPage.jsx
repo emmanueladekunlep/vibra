@@ -3,6 +3,7 @@
  * Module: Search
  * 
  * Search for users by location, name, phone, or matching criteria.
+ * Phone numbers are hidden until user shares them.
  * Fully mobile responsive.
  */
 
@@ -173,8 +174,7 @@ const SearchPage = () => {
           );
         } else {
           filtered = filtered.filter(u => 
-            (u.name && matchesSearch(u.name, query)) ||
-            (u.phone && u.phone.includes(query.replace(/\s/g, '')))
+            (u.name && matchesSearch(u.name, query))
           );
         }
       }
@@ -234,11 +234,19 @@ const SearchPage = () => {
     setSuggestions([]);
   };
 
+  // Format phone number to hide most digits
+  const formatHiddenPhone = (phone) => {
+    if (!phone) return 'Number hidden';
+    // Show only last 4 digits
+    const last4 = phone.slice(-4);
+    return `••••••${last4}`;
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <h3 style={styles.title}>Search People</h3>
-        <p style={styles.subtitle}>Find people by location, name, phone, or preferences</p>
+        <p style={styles.subtitle}>Find people by location, name, or preferences</p>
 
         <div style={styles.toggleContainer}>
           <button
@@ -257,7 +265,7 @@ const SearchPage = () => {
             }}
             onClick={() => setSearchType('name')}
           >
-            Name / Phone
+            Name
           </button>
           <button
             style={{
@@ -279,7 +287,7 @@ const SearchPage = () => {
             placeholder={
               searchType === 'location' 
                 ? 'Lagos, Yaba, Abuja...' 
-                : 'Name or phone number'
+                : 'Name'
             }
             style={styles.searchInput}
           />
@@ -393,7 +401,7 @@ const SearchPage = () => {
                   {u.datingPace && (
                     <span style={styles.resultTag}>⏱️ {u.datingPace}</span>
                   )}
-                  <span style={styles.resultPhone}>{u.phone}</span>
+                  <span style={styles.resultPhone}>{formatHiddenPhone(u.phone)}</span>
                 </div>
                 <button
                   onClick={() => handleChat(u.id)}
@@ -412,7 +420,7 @@ const SearchPage = () => {
         ) : (
           <div style={styles.emptyState}>
             <p style={styles.emptyText}>Start searching</p>
-            <p style={styles.emptySubtext}>Enter a location, name, or phone</p>
+            <p style={styles.emptySubtext}>Enter a location or name</p>
           </div>
         )}
       </div>
@@ -630,6 +638,8 @@ const styles = {
     display: 'block',
     fontSize: '11px',
     color: '#999',
+    fontFamily: 'monospace',
+    letterSpacing: '1px',
   },
   chatButton: {
     padding: '8px 16px',
