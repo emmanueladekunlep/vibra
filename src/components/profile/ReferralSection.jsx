@@ -160,8 +160,9 @@ const ReferralSection = () => {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
+        {/* Header with back button - simplified */}
         <div style={styles.header}>
-          <button onClick={handleGoBack} style={styles.backButton}>
+          <button onClick={() => navigate('/profile')} style={styles.backButton}>
             ← Back
           </button>
           <h3 style={styles.title}>Refer and Earn</h3>

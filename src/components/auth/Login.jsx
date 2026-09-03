@@ -179,6 +179,21 @@ const Login = () => {
     }
   };
 
+  // Shared logo component
+  const Logo = () => (
+    <div style={styles.logoContainer}>
+      <img 
+        src="/logo.png" 
+        alt="VIBRA Logo" 
+        style={styles.logo}
+        onError={(e) => {
+          e.target.style.display = 'none';
+        }}
+      />
+      <p style={styles.tagline}>Nigerian • Verified • Real Dates</p>
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div style={styles.container}>
@@ -192,10 +207,8 @@ const Login = () => {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={styles.logoContainer}>
-            <h1 style={styles.logoText}>VIBRA</h1>
-            <p style={styles.tagline}>Set Your 4-Digit PIN</p>
-          </div>
+          <Logo />
+          <p style={styles.setupTitle}>Set Your 4-Digit PIN</p>
 
           {(error || loginError) && (
             <div style={styles.errorContainer}>
@@ -255,10 +268,8 @@ const Login = () => {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={styles.logoContainer}>
-            <h1 style={styles.logoText}>VIBRA</h1>
-            <p style={styles.tagline}>Reset Your PIN</p>
-          </div>
+          <Logo />
+          <p style={styles.setupTitle}>Reset Your PIN</p>
 
           {(error || loginError) && (
             <div style={styles.errorContainer}>
@@ -339,10 +350,8 @@ const Login = () => {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={styles.logoContainer}>
-            <h1 style={styles.logoText}>VIBRA</h1>
-            <p style={styles.tagline}>Enter Your PIN</p>
-          </div>
+          <Logo />
+          <p style={styles.setupTitle}>Enter Your PIN</p>
 
           {(error || loginError) && (
             <div style={styles.errorContainer}>
@@ -410,14 +419,7 @@ const Login = () => {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <div style={styles.logoContainer}>
-          <img 
-            src="/logo.png" 
-            alt="VIBRA Logo" 
-            style={styles.logo}
-          />
-          <p style={styles.tagline}>Nigerian • Verified • Real Dates</p>
-        </div>
+        <Logo />
 
         {(error || loginError) && (
           <div style={styles.errorContainer}>
@@ -483,13 +485,20 @@ const styles = {
   },
   logoContainer: {
     textAlign: 'center',
-    marginBottom: '32px',
+    marginBottom: '8px',
   },
   logo: {
     width: '80px',
     height: '80px',
     objectFit: 'contain',
     margin: '0 auto',
+  },
+  setupTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    textAlign: 'center',
+    color: '#1a1a1a',
+    margin: '0 0 20px 0',
   },
   logoText: {
     fontSize: '42px',
@@ -504,6 +513,7 @@ const styles = {
     fontSize: '14px',
     marginTop: '4px',
     letterSpacing: '1px',
+    marginBottom: '16px',
   },
   title: {
     fontSize: '24px',
