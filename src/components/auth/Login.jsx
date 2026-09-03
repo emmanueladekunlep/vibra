@@ -35,6 +35,16 @@ const Login = () => {
   const [loginPhone, setLoginPhone] = useState('');
   const [needsPinSetup, setNeedsPinSetup] = useState(false);
 
+  // Security questions state
+  const [securityQuestions, setSecurityQuestions] = useState([]);
+  const [selectedQuestion1, setSelectedQuestion1] = useState('');
+  const [selectedQuestion2, setSelectedQuestion2] = useState('');
+  const [answer1, setAnswer1] = useState('');
+  const [answer2, setAnswer2] = useState('');
+  const [showSecurityQuestions, setShowSecurityQuestions] = useState(false);
+  const [securityError, setSecurityError] = useState(null);
+  const [isVerifyingSecurity, setIsVerifyingSecurity] = useState(false);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -134,49 +144,111 @@ const Login = () => {
     }
   };
 
-  const handleForgotPin = async (e) => {
+  // Handle Forgot PIN - Step 1: Enter phone, get security questions
+  const handleForgotPinStep1 = async (e) => {
     e.preventDefault();
     setLoginError(null);
+    setSecurityError(null);
 
     if (!resetPhone || resetPhone.length < 10) {
       setLoginError('Please enter a valid phone number');
       return;
     }
 
+    setIsResetting(true);
+    try {
+      const response = await fetch('https://api.vibra.ng/api/get_security_questions.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: resetPhone })
+      });
+      const data = await response.json();
+      
+      if (data.success && data.questions && data.questions.length > 0) {
+        setSecurityQuestions(data.questions);
+        setSelectedQuestion1(data.questions[0]?.question || '');
+        setSelectedQuestion2(data.questions[1]?.question || '');
+        setShowSecurityQuestions(true);
+        setLoginError(null);
+      } else {
+        setLoginError(data.message || 'No security questions found for this user');
+      }
+    } catch (err) {
+      setLoginError('Failed to load security questions. Please try again.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  // Handle Forgot PIN - Step 2: Verify answers and reset PIN
+  const handleForgotPinStep2 = async (e) => {
+    e.preventDefault();
+    setSecurityError(null);
+
     if (!resetPin || resetPin.length !== 4 || !/^\d{4}$/.test(resetPin)) {
-      setLoginError('PIN must be 4 digits');
+      setSecurityError('PIN must be 4 digits');
       return;
     }
 
     if (resetPin !== resetConfirmPin) {
-      setLoginError('PINs do not match');
+      setSecurityError('PINs do not match');
       return;
     }
 
-    setIsResetting(true);
+    if (!selectedQuestion1 || !answer1.trim()) {
+      setSecurityError('Please answer question 1');
+      return;
+    }
+    if (!selectedQuestion2 || !answer2.trim()) {
+      setSecurityError('Please answer question 2');
+      return;
+    }
+
+    setIsVerifyingSecurity(true);
     try {
       const response = await fetch('https://api.vibra.ng/api/reset_pin.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: resetPhone, pin: resetPin })
+        body: JSON.stringify({
+          phone: resetPhone,
+          pin: resetPin,
+          answers: [
+            { question: selectedQuestion1, answer: answer1.trim() },
+            { question: selectedQuestion2, answer: answer2.trim() }
+          ]
+        })
       });
       const data = await response.json();
       
       if (data.success) {
         setLoginError(null);
+        setSecurityError(null);
         setShowForgotPin(false);
+        setShowSecurityQuestions(false);
         setResetPhone('');
         setResetPin('');
         setResetConfirmPin('');
+        setAnswer1('');
+        setAnswer2('');
         alert('PIN reset successfully! Please login with your new PIN.');
       } else {
-        setLoginError(data.message || 'Failed to reset PIN');
+        setSecurityError(data.message || 'Failed to verify answers. Please try again.');
       }
     } catch (err) {
-      setLoginError('Failed to reset PIN. Please try again.');
+      setSecurityError('Failed to reset PIN. Please try again.');
     } finally {
-      setIsResetting(false);
+      setIsVerifyingSecurity(false);
     }
+  };
+
+  // Go back from security questions to phone entry
+  const handleBackToPhone = () => {
+    setShowSecurityQuestions(false);
+    setSecurityError(null);
+    setResetPin('');
+    setResetConfirmPin('');
+    setAnswer1('');
+    setAnswer2('');
   };
 
   // Shared logo component
@@ -263,8 +335,8 @@ const Login = () => {
     );
   }
 
-  // Forgot PIN Screen
-  if (showForgotPin) {
+  // Forgot PIN - Step 1: Phone entry
+  if (showForgotPin && !showSecurityQuestions) {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
@@ -277,8 +349,8 @@ const Login = () => {
             </div>
           )}
 
-          <form onSubmit={handleForgotPin} style={styles.form}>
-            <p style={styles.subtitle}>Enter your phone number and set a new PIN</p>
+          <form onSubmit={handleForgotPinStep1} style={styles.form}>
+            <p style={styles.subtitle}>Enter your phone number to verify your identity</p>
             
             <div style={styles.inputGroup}>
               <label style={styles.label}>Phone Number</label>
@@ -292,6 +364,96 @@ const Login = () => {
               />
             </div>
 
+            <button 
+              type="submit" 
+              style={styles.button}
+              disabled={isResetting}
+            >
+              {isResetting ? 'Checking...' : 'Continue'}
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => setShowForgotPin(false)}
+              style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}
+            >
+              Back to Login
+            </button>
+          </form>
+
+          <p style={styles.credit}>Powered by LabelReach</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Forgot PIN - Step 2: Security Questions
+  if (showSecurityQuestions) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <Logo />
+          <p style={styles.setupTitle}>Verify Your Identity</p>
+
+          {(securityError) && (
+            <div style={styles.errorContainer}>
+              <p style={styles.errorText}>{securityError}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleForgotPinStep2} style={styles.form}>
+            <p style={styles.subtitle}>Answer these security questions to reset your PIN</p>
+
+            {/* Question 1 */}
+            {securityQuestions.length > 0 && (
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Question 1</label>
+                <select
+                  value={selectedQuestion1}
+                  onChange={(e) => setSelectedQuestion1(e.target.value)}
+                  style={styles.select}
+                  disabled={isVerifyingSecurity}
+                >
+                  {securityQuestions.map((q, index) => (
+                    <option key={index} value={q.question}>{q.question}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={answer1}
+                  onChange={(e) => setAnswer1(e.target.value)}
+                  placeholder="Your answer"
+                  style={{...styles.input, letterSpacing: '2px', textAlign: 'left', padding: '12px 16px'}}
+                  disabled={isVerifyingSecurity}
+                />
+              </div>
+            )}
+
+            {/* Question 2 */}
+            {securityQuestions.length > 1 && (
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Question 2</label>
+                <select
+                  value={selectedQuestion2}
+                  onChange={(e) => setSelectedQuestion2(e.target.value)}
+                  style={styles.select}
+                  disabled={isVerifyingSecurity}
+                >
+                  {securityQuestions.map((q, index) => (
+                    <option key={index} value={q.question}>{q.question}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={answer2}
+                  onChange={(e) => setAnswer2(e.target.value)}
+                  placeholder="Your answer"
+                  style={{...styles.input, letterSpacing: '2px', textAlign: 'left', padding: '12px 16px'}}
+                  disabled={isVerifyingSecurity}
+                />
+              </div>
+            )}
+
             <div style={styles.inputGroup}>
               <label style={styles.label}>New PIN</label>
               <input
@@ -303,7 +465,7 @@ const Login = () => {
                 maxLength="4"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                disabled={isResetting}
+                disabled={isVerifyingSecurity}
               />
             </div>
 
@@ -318,24 +480,25 @@ const Login = () => {
                 maxLength="4"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                disabled={isResetting}
+                disabled={isVerifyingSecurity}
               />
             </div>
 
             <button 
               type="submit" 
               style={styles.button}
-              disabled={isResetting || resetPin.length !== 4 || resetConfirmPin.length !== 4}
+              disabled={isVerifyingSecurity || resetPin.length !== 4 || resetConfirmPin.length !== 4 || !answer1.trim() || !answer2.trim()}
             >
-              {isResetting ? 'Resetting...' : 'Reset PIN'}
+              {isVerifyingSecurity ? 'Verifying...' : 'Reset PIN'}
             </button>
 
             <button 
               type="button" 
-              onClick={() => setShowForgotPin(false)}
+              onClick={handleBackToPhone}
               style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}
+              disabled={isVerifyingSecurity}
             >
-              Back to Login
+              Back
             </button>
           </form>
 
@@ -552,6 +715,17 @@ const styles = {
     fontFamily: 'inherit',
     textAlign: 'center',
     letterSpacing: '8px',
+  },
+  select: {
+    width: '100%',
+    padding: '14px 16px',
+    fontSize: '16px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '12px',
+    outline: 'none',
+    backgroundColor: 'white',
+    fontFamily: 'inherit',
+    marginBottom: '8px',
   },
   button: {
     width: '100%',
