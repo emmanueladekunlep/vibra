@@ -10,7 +10,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as adminService from '../../services/adminService';
 import * as levelService from '../../services/levelService';
-import * as authService from '../../services/authService';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 
 const UserManagement = () => {
   const { user } = useAuth();
@@ -24,9 +25,9 @@ const UserManagement = () => {
     isVerified: '',
     search: '',
   });
-  const [searchUserId, setSearchUserId] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState(null);
-  const [actionState, setActionState] = useState({});
+  const [searching, setSearching] = useState(false);
 
   const loadUsers = async () => {
     setIsLoading(true);
@@ -52,25 +53,42 @@ const UserManagement = () => {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSearchByUserId = () => {
-    if (!searchUserId.trim()) {
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
       setSearchResult(null);
       return;
     }
-    
-    const result = authService.getUserByUserId(searchUserId.trim().toUpperCase());
-    if (result) {
-      setSearchResult(result);
-      setError(null);
-    } else {
-      setSearchResult(null);
-      setError(`User ID ${searchUserId} not found`);
+
+    setSearching(true);
+    setError(null);
+
+    try {
+      // Search by userId, phone, or name
+      const response = await fetch(`${API_URL}/admin_users.php?search=${encodeURIComponent(searchQuery.trim())}`);
+      const data = await response.json();
+      
+      if (data.success && data.users && data.users.length > 0) {
+        // Find exact match by userId or phone first
+        const exactMatch = data.users.find(u => 
+          u.userId === searchQuery.trim().toUpperCase() ||
+          u.phone === searchQuery.trim()
+        );
+        setSearchResult(exactMatch || data.users[0]);
+      } else {
+        setSearchResult(null);
+        setError('User not found');
+      }
+    } catch (err) {
+      setError('Failed to search user');
+      console.error(err);
+    } finally {
+      setSearching(false);
     }
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
-      handleSearchByUserId();
+      handleSearch();
     }
   };
 
@@ -82,7 +100,7 @@ const UserManagement = () => {
       setSuccess('User suspended');
       await loadUsers();
       setSearchResult(null);
-      setSearchUserId('');
+      setSearchQuery('');
     } catch (err) {
       setError(err.message || 'Failed to suspend user');
     }
@@ -96,7 +114,7 @@ const UserManagement = () => {
       setSuccess('User reactivated');
       await loadUsers();
       setSearchResult(null);
-      setSearchUserId('');
+      setSearchQuery('');
     } catch (err) {
       setError(err.message || 'Failed to reactivate user');
     }
@@ -110,7 +128,7 @@ const UserManagement = () => {
       setSuccess(`Level updated to ${level}`);
       await loadUsers();
       setSearchResult(null);
-      setSearchUserId('');
+      setSearchQuery('');
     } catch (err) {
       setError(err.message || 'Failed to update level');
     }
@@ -127,11 +145,11 @@ const UserManagement = () => {
     }
     
     try {
-      await levelService.addPoints(userId, numPoints, 'admin_manual', 'Admin manually added points');
+      await adminService.updateUser(userId, { points: numPoints });
       setSuccess(`Added ${numPoints} points to user`);
       await loadUsers();
       setSearchResult(null);
-      setSearchUserId('');
+      setSearchQuery('');
     } catch (err) {
       setError(err.message || 'Failed to add points');
     }
@@ -148,14 +166,50 @@ const UserManagement = () => {
     }
     
     try {
-      await levelService.deductPoints(userId, numPoints, 'admin_manual', 'Admin manually deducted points');
-      setSuccess(`Deducted ${numPoints} points from user`);
-      await loadUsers();
-      setSearchResult(null);
-      setSearchUserId('');
+      // Get current user first, then deduct
+      const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+      const data = await response.json();
+      if (data.success) {
+        const currentPoints = data.user.points || 0;
+        const newPoints = Math.max(0, currentPoints - numPoints);
+        await adminService.updateUser(userId, { points: newPoints });
+        setSuccess(`Deducted ${numPoints} points from user`);
+        await loadUsers();
+        setSearchResult(null);
+        setSearchQuery('');
+      }
     } catch (err) {
       setError(err.message || 'Failed to deduct points');
     }
+  };
+
+  const handleMakeVIP = async (userId, level) => {
+    if (!confirm(`Make this user VIP (${level})? This will set their level to ${level} and add ${getVIPPoints(level)} points.`)) return;
+    
+    try {
+      const points = getVIPPoints(level);
+      await adminService.updateUser(userId, { 
+        level: level,
+        points: points,
+        isVIP: true
+      });
+      setSuccess(`User is now VIP ${level}! Added ${points} points.`);
+      await loadUsers();
+      setSearchResult(null);
+      setSearchQuery('');
+    } catch (err) {
+      setError(err.message || 'Failed to make user VIP');
+    }
+  };
+
+  const getVIPPoints = (level) => {
+    const map = {
+      Silver: 10000,
+      Gold: 25000,
+      Platinum: 50000,
+      Diamond: 100000,
+    };
+    return map[level] || 0;
   };
 
   const handleMarkVerified = async (userId) => {
@@ -166,7 +220,7 @@ const UserManagement = () => {
       setSuccess('User marked as verified');
       await loadUsers();
       setSearchResult(null);
-      setSearchUserId('');
+      setSearchQuery('');
     } catch (err) {
       setError(err.message || 'Failed to mark user as verified');
     }
@@ -180,7 +234,7 @@ const UserManagement = () => {
       setSuccess('User unverified');
       await loadUsers();
       setSearchResult(null);
-      setSearchUserId('');
+      setSearchQuery('');
     } catch (err) {
       setError(err.message || 'Failed to remove verified status');
     }
@@ -194,7 +248,7 @@ const UserManagement = () => {
       setSuccess('User marked as has withdrawn');
       await loadUsers();
       setSearchResult(null);
-      setSearchUserId('');
+      setSearchQuery('');
     } catch (err) {
       setError(err.message || 'Failed to mark user as withdrawn');
     }
@@ -235,27 +289,26 @@ const UserManagement = () => {
         <span style={styles.userCount}>{users.length} users</span>
       </div>
 
-      {/* User ID Search */}
-      <div style={styles.userIdSearch}>
-        <span style={styles.userIdSearchLabel}>Search by User ID:</span>
+      {/* Search by User ID, Phone, or Name */}
+      <div style={styles.searchContainer}>
         <input
           type="text"
-          value={searchUserId}
-          onChange={(e) => setSearchUserId(e.target.value.toUpperCase())}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="VIB-1001"
-          style={styles.userIdInput}
+          placeholder="Search by User ID (VIB-1001), Phone (080...), or Name..."
+          style={styles.searchInput}
         />
-        <button onClick={handleSearchByUserId} style={styles.userIdSearchButton}>
-          Search
+        <button onClick={handleSearch} style={styles.searchButton} disabled={searching}>
+          {searching ? 'Searching...' : 'Search'}
         </button>
         <button 
           onClick={() => {
-            setSearchUserId('');
+            setSearchQuery('');
             setSearchResult(null);
             setError(null);
           }} 
-          style={styles.userIdClearButton}
+          style={styles.clearButton}
         >
           Clear
         </button>
@@ -296,6 +349,26 @@ const UserManagement = () => {
             <button onClick={() => handleDeductPoints(searchResult.id)} style={styles.deductButton}>
               - Points
             </button>
+            
+            {/* Make VIP Button */}
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleMakeVIP(searchResult.id, e.target.value);
+                  e.target.value = '';
+                }
+              }}
+              style={styles.vipSelect}
+              disabled={searchResult.isFounder}
+              defaultValue=""
+            >
+              <option value="">Make VIP</option>
+              <option value="Silver">VIP Silver</option>
+              <option value="Gold">VIP Gold</option>
+              <option value="Platinum">VIP Platinum</option>
+              <option value="Diamond">VIP Diamond</option>
+            </select>
+
             {searchResult.isVerified ? (
               <button onClick={() => handleUnmarkVerified(searchResult.id)} style={styles.unverifyButton}>
                 Unverify
@@ -336,8 +409,8 @@ const UserManagement = () => {
           name="search"
           value={filters.search}
           onChange={handleFilterChange}
-          placeholder="Search by name, phone, or location..."
-          style={styles.searchInput}
+          placeholder="Filter by name, phone, or location..."
+          style={styles.filterInput}
         />
         <select
           name="level"
@@ -428,43 +501,43 @@ const UserManagement = () => {
                   <option value="Platinum">Platinum</option>
                   <option value="Diamond">Diamond</option>
                 </select>
-                <button
-                  onClick={() => handleAddPoints(u.id)}
-                  style={styles.pointsButton}
-                  disabled={u.isFounder}
-                >
+                <button onClick={() => handleAddPoints(u.id)} style={styles.pointsButton} disabled={u.isFounder}>
                   + Points
                 </button>
-                <button
-                  onClick={() => handleDeductPoints(u.id)}
-                  style={styles.deductButton}
-                  disabled={u.isFounder}
-                >
+                <button onClick={() => handleDeductPoints(u.id)} style={styles.deductButton} disabled={u.isFounder}>
                   - Points
                 </button>
+                
+                {/* Make VIP Button for each user */}
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleMakeVIP(u.id, e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                  style={styles.vipSelect}
+                  disabled={u.isFounder}
+                  defaultValue=""
+                >
+                  <option value="">VIP</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Platinum">Platinum</option>
+                  <option value="Diamond">Diamond</option>
+                </select>
+
                 {u.isVerified ? (
-                  <button
-                    onClick={() => handleUnmarkVerified(u.id)}
-                    style={styles.unverifyButton}
-                    disabled={u.isFounder}
-                  >
+                  <button onClick={() => handleUnmarkVerified(u.id)} style={styles.unverifyButton} disabled={u.isFounder}>
                     Unverify
                   </button>
                 ) : (
-                  <button
-                    onClick={() => handleMarkVerified(u.id)}
-                    style={styles.verifyButton}
-                    disabled={u.isFounder}
-                  >
+                  <button onClick={() => handleMarkVerified(u.id)} style={styles.verifyButton} disabled={u.isFounder}>
                     Verify
                   </button>
                 )}
                 {!u.hasWithdrawn && (
-                  <button
-                    onClick={() => handleMarkWithdrawn(u.id)}
-                    style={styles.withdrawButton}
-                    disabled={u.isFounder}
-                  >
+                  <button onClick={() => handleMarkWithdrawn(u.id)} style={styles.withdrawButton} disabled={u.isFounder}>
                     Mark Withdrawn
                   </button>
                 )}
@@ -480,11 +553,7 @@ const UserManagement = () => {
                     Suspend
                   </button>
                 ) : (
-                  <button
-                    onClick={() => handleReactivate(u.id)}
-                    style={styles.reactivateButton}
-                    disabled={u.isFounder}
-                  >
+                  <button onClick={() => handleReactivate(u.id)} style={styles.reactivateButton} disabled={u.isFounder}>
                     Reactivate
                   </button>
                 )}
@@ -523,51 +592,40 @@ const styles = {
     fontSize: '13px',
     color: '#888',
   },
-  userIdSearch: {
+  searchContainer: {
     display: 'flex',
     gap: '8px',
     marginBottom: '12px',
-    alignItems: 'center',
     flexWrap: 'wrap',
-    backgroundColor: '#f5f5f5',
-    padding: '10px 14px',
-    borderRadius: '10px',
   },
-  userIdSearchLabel: {
-    fontSize: '13px',
-    fontWeight: '500',
-    color: '#555',
-  },
-  userIdInput: {
+  searchInput: {
     flex: 1,
-    minWidth: '120px',
-    padding: '8px 12px',
+    minWidth: '200px',
+    padding: '10px 14px',
     fontSize: '14px',
-    fontFamily: 'monospace',
     border: '2px solid #e0e0e0',
-    borderRadius: '8px',
+    borderRadius: '10px',
     outline: 'none',
-    fontWeight: '600',
-    letterSpacing: '1px',
+    fontFamily: 'inherit',
   },
-  userIdSearchButton: {
-    padding: '8px 16px',
+  searchButton: {
+    padding: '10px 20px',
     backgroundColor: '#6C3CE1',
     color: 'white',
     border: 'none',
-    borderRadius: '8px',
-    fontSize: '13px',
-    fontWeight: '500',
+    borderRadius: '10px',
+    fontSize: '14px',
+    fontWeight: '600',
     cursor: 'pointer',
     fontFamily: 'inherit',
   },
-  userIdClearButton: {
-    padding: '8px 16px',
+  clearButton: {
+    padding: '10px 20px',
     backgroundColor: '#e0e0e0',
     color: '#555',
     border: 'none',
-    borderRadius: '8px',
-    fontSize: '13px',
+    borderRadius: '10px',
+    fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
     fontFamily: 'inherit',
@@ -615,7 +673,7 @@ const styles = {
     marginBottom: '12px',
     flexWrap: 'wrap',
   },
-  searchInput: {
+  filterInput: {
     flex: 1,
     minWidth: '150px',
     padding: '8px 12px',
@@ -715,6 +773,16 @@ const styles = {
     borderRadius: '6px',
     backgroundColor: 'white',
     fontFamily: 'inherit',
+  },
+  vipSelect: {
+    padding: '6px 10px',
+    fontSize: '12px',
+    border: '2px solid #FFD700',
+    borderRadius: '6px',
+    backgroundColor: '#fff8e1',
+    fontFamily: 'inherit',
+    color: '#1a1a1a',
+    fontWeight: '600',
   },
   pointsButton: {
     padding: '6px 12px',

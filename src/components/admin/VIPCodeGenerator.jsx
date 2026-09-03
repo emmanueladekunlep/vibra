@@ -72,6 +72,13 @@ const VIPCodeGenerator = () => {
         <span style={styles.subtitle}>Generate one-time VIP codes for friends and partners</span>
       </div>
 
+      {/* Also show Make VIP option */}
+      <div style={styles.noteBox}>
+        <p style={styles.noteText}>
+          💡 You can also make a user VIP directly from the <strong>User Management</strong> tab by clicking the "VIP" dropdown next to any user.
+        </p>
+      </div>
+
       <div style={styles.form}>
         <div style={styles.formRow}>
           <div style={styles.formGroup}>
@@ -196,6 +203,19 @@ const styles = {
     fontSize: '13px',
     color: '#888',
     margin: 0,
+  },
+  noteBox: {
+    backgroundColor: '#fff8e1',
+    padding: '10px 14px',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    border: '1px solid #ffd54f',
+  },
+  noteText: {
+    fontSize: '13px',
+    color: '#555',
+    margin: 0,
+    lineHeight: '1.5',
   },
   form: {
     backgroundColor: '#f8f8f8',
