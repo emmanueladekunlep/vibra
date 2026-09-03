@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-const Settings = () => {
+const Settings = ({ onClose }) => {
   const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +19,14 @@ const Settings = () => {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      navigate('/profile');
+    }
+  };
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
@@ -49,7 +57,6 @@ const Settings = () => {
 
     setIsLoading(true);
     try {
-      // First verify current PIN via login
       const verifyRes = await fetch('https://api.vibra.ng/api/login.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -63,7 +70,6 @@ const Settings = () => {
         return;
       }
 
-      // Update PIN
       const updateRes = await fetch('https://api.vibra.ng/api/reset_pin.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,7 +83,6 @@ const Settings = () => {
         setNewPin('');
         setConfirmPin('');
         setShowPinChange(false);
-        // Update local user
         updateUser({ pinEnabled: true });
       } else {
         setError(updateData.message || 'Failed to change PIN');
@@ -120,11 +125,8 @@ const Settings = () => {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.header}>
-          <button onClick={() => navigate('/profile')} style={styles.backButton}>
-            ← Back
-          </button>
           <h2 style={styles.title}>Settings</h2>
-          <div style={styles.headerSpacer}></div>
+          <button onClick={handleClose} style={styles.closeButton}>✕</button>
         </div>
 
         {error && (
@@ -289,30 +291,24 @@ const styles = {
   },
   header: {
     display: 'flex',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: '20px',
   },
-  backButton: {
+  closeButton: {
     background: 'none',
     border: 'none',
-    color: '#6C3CE1',
-    fontSize: '14px',
-    fontWeight: '500',
+    fontSize: '20px',
+    color: '#666',
     cursor: 'pointer',
     padding: '4px 8px',
     fontFamily: 'inherit',
-  },
-  headerSpacer: {
-    width: '50px',
   },
   title: {
     fontSize: '22px',
     fontWeight: '700',
     color: '#1a1a1a',
     margin: 0,
-    flex: 1,
-    textAlign: 'center',
   },
   section: {
     marginBottom: '24px',

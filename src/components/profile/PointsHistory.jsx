@@ -8,10 +8,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import * as levelService from '../../services/levelService';
 
-const PointsHistory = ({ userId }) => {
+const PointsHistory = ({ userId, onClose }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -36,6 +38,14 @@ const PointsHistory = ({ userId }) => {
       loadHistory();
     }
   }, [userId, isOwner]);
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      navigate(-1);
+    }
+  };
 
   const getSourceLabel = (source) => {
     const labels = {
@@ -77,7 +87,9 @@ const PointsHistory = ({ userId }) => {
   };
 
   const formatDate = (timestamp) => {
+    if (!timestamp) return '';
     const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return '';
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -126,7 +138,10 @@ const PointsHistory = ({ userId }) => {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h3 style={styles.title}>Points History</h3>
+        <div style={styles.header}>
+          <h3 style={styles.title}>Points History</h3>
+          <button onClick={handleClose} style={styles.closeButton}>✕</button>
+        </div>
 
         <div style={styles.summary}>
           <div style={styles.summaryItem}>
@@ -180,11 +195,12 @@ const PointsHistory = ({ userId }) => {
         {filteredHistory.length === 0 ? (
           <div style={styles.emptyState}>
             <p style={styles.emptyText}>No points transactions yet</p>
+            <p style={styles.emptySubtext}>Start earning points by referring friends or using the platform</p>
           </div>
         ) : (
           <div style={styles.list}>
             {filteredHistory.map((entry, index) => (
-              <div key={index} style={styles.historyItem}>
+              <div key={entry.id || index} style={styles.historyItem}>
                 <div style={styles.historyLeft}>
                   <div 
                     style={{
@@ -202,7 +218,7 @@ const PointsHistory = ({ userId }) => {
                       </span>
                     )}
                     <span style={styles.historyTime}>
-                      {formatDate(entry.timestamp)}
+                      {formatDate(entry.created_at || entry.timestamp)}
                     </span>
                   </div>
                 </div>
@@ -242,11 +258,26 @@ const styles = {
     width: '100%',
     boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
   },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
+  },
   title: {
     fontSize: '20px',
     fontWeight: '700',
     color: '#1a1a1a',
-    margin: '0 0 16px 0',
+    margin: 0,
+  },
+  closeButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '20px',
+    color: '#666',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    fontFamily: 'inherit',
   },
   summary: {
     display: 'grid',
@@ -351,13 +382,18 @@ const styles = {
     color: '#e74c3c',
   },
   emptyState: {
-    padding: '40px 20px',
+    padding: '30px 20px',
     textAlign: 'center',
   },
   emptyText: {
     fontSize: '16px',
-    color: '#999',
+    color: '#666',
     margin: 0,
+  },
+  emptySubtext: {
+    fontSize: '13px',
+    color: '#999',
+    marginTop: '4px',
   },
   loading: {
     textAlign: 'center',

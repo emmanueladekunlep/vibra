@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import * as referralService from '../../services/referralService';
 
-const ReferralSection = () => {
+const ReferralSection = ({ onClose }) => {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const [referralData, setReferralData] = useState(null);
@@ -45,6 +45,14 @@ const ReferralSection = () => {
 
     loadReferral();
   }, [user]);
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      navigate('/profile');
+    }
+  };
 
   const handleCopy = () => {
     if (!referralData?.code) return;
@@ -137,10 +145,6 @@ const ReferralSection = () => {
     }
   };
 
-  const handleGoBack = () => {
-    navigate('/profile');
-  };
-
   if (isLoading) {
     return (
       <div style={styles.container}>
@@ -160,19 +164,14 @@ const ReferralSection = () => {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        {/* Header with back button - simplified */}
         <div style={styles.header}>
-          <button onClick={() => navigate('/profile')} style={styles.backButton}>
-            ← Back
-          </button>
           <h3 style={styles.title}>Refer and Earn</h3>
-          <div style={styles.headerSpacer}></div>
+          <button onClick={handleClose} style={styles.closeButton}>✕</button>
         </div>
         <p style={styles.subtitle}>
           Share your code. Earn {referralService.POINTS.STANDARD_REFERRER} points per referral!
         </p>
 
-        {/* Your Referral Code */}
         <div style={styles.codeContainer}>
           <span style={styles.codeLabel}>Your Referral Code</span>
           <div style={styles.codeBox}>
@@ -187,7 +186,6 @@ const ReferralSection = () => {
           Share with Friends
         </button>
 
-        {/* Redeem Someone Else's Code */}
         <div style={styles.redeemContainer}>
           <h4 style={styles.redeemTitle}>Redeem a Referral Code</h4>
           <p style={styles.redeemSubtitle}>
@@ -225,7 +223,6 @@ const ReferralSection = () => {
           </form>
         </div>
 
-        {/* Stats */}
         <div style={styles.statsGrid}>
           <div style={styles.statItem}>
             <span style={styles.statNumber}>{referralData.totalReferrals || 0}</span>
@@ -282,30 +279,24 @@ const styles = {
   },
   header: {
     display: 'flex',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: '4px',
   },
-  backButton: {
+  closeButton: {
     background: 'none',
     border: 'none',
-    color: '#6C3CE1',
-    fontSize: '14px',
-    fontWeight: '500',
+    fontSize: '20px',
+    color: '#666',
     cursor: 'pointer',
     padding: '4px 8px',
     fontFamily: 'inherit',
-  },
-  headerSpacer: {
-    width: '60px',
   },
   title: {
     fontSize: '20px',
     fontWeight: '700',
     margin: 0,
     color: '#1a1a1a',
-    textAlign: 'center',
-    flex: 1,
   },
   subtitle: {
     fontSize: '14px',

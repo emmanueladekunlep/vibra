@@ -1,21 +1,11 @@
 /**
  * VIBRA - Level Service
  * Module: Levels & Points Engine
- * Author: Emmanuel Adekunle Peace
- * Website: www.emmanueladekunlepeace.com
  * 
- * Handles all level and points operations:
- * - Calculate level from points
- * - Get level requirements and perks
- * - Track points history
- * - Check level upgrades
- * - VIP level locking
- * 
- * All API calls are mocked. Replace with real endpoints when available.
+ * Handles all level and points operations via API.
  */
 
-// Storage keys
-const POINTS_HISTORY_KEY = 'vibra_points_history';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 
 // Level configuration
 export const LEVELS = {
@@ -25,15 +15,7 @@ export const LEVELS = {
     emoji: '🥉',
     color: '#CD7F32',
     pointsRequired: 0,
-    perks: {
-      photos: 3,
-      boostsPerWeek: 0,
-      priorityInbox: false,
-      freePremium: false,
-      featuredProfile: false,
-      vipEvents: false,
-      maxPhotos: 3,
-    },
+    perks: { photos: 3, boostsPerWeek: 0, priorityInbox: false, freePremium: false, featuredProfile: false, vipEvents: false, maxPhotos: 3 },
   },
   SILVER: {
     id: 'Silver',
@@ -41,15 +23,7 @@ export const LEVELS = {
     emoji: '🥈',
     color: '#C0C0C0',
     pointsRequired: 10000,
-    perks: {
-      photos: 5,
-      boostsPerWeek: 1,
-      priorityInbox: false,
-      freePremium: false,
-      featuredProfile: false,
-      vipEvents: false,
-      maxPhotos: 5,
-    },
+    perks: { photos: 5, boostsPerWeek: 1, priorityInbox: false, freePremium: false, featuredProfile: false, vipEvents: false, maxPhotos: 5 },
   },
   GOLD: {
     id: 'Gold',
@@ -57,15 +31,7 @@ export const LEVELS = {
     emoji: '🥇',
     color: '#FFD700',
     pointsRequired: 25000,
-    perks: {
-      photos: 10,
-      boostsPerWeek: 3,
-      priorityInbox: true,
-      freePremium: false,
-      featuredProfile: false,
-      vipEvents: false,
-      maxPhotos: 10,
-    },
+    perks: { photos: 10, boostsPerWeek: 3, priorityInbox: true, freePremium: false, featuredProfile: false, vipEvents: false, maxPhotos: 10 },
   },
   PLATINUM: {
     id: 'Platinum',
@@ -73,15 +39,7 @@ export const LEVELS = {
     emoji: '💎',
     color: '#E5E4E2',
     pointsRequired: 50000,
-    perks: {
-      photos: -1, // unlimited
-      boostsPerWeek: 5,
-      priorityInbox: true,
-      freePremium: true,
-      featuredProfile: true,
-      vipEvents: false,
-      maxPhotos: -1,
-    },
+    perks: { photos: -1, boostsPerWeek: 5, priorityInbox: true, freePremium: true, featuredProfile: true, vipEvents: false, maxPhotos: -1 },
   },
   DIAMOND: {
     id: 'Diamond',
@@ -89,19 +47,10 @@ export const LEVELS = {
     emoji: '💎',
     color: '#B9F2FF',
     pointsRequired: 100000,
-    perks: {
-      photos: -1, // unlimited
-      boostsPerWeek: 10,
-      priorityInbox: true,
-      freePremium: true,
-      featuredProfile: true,
-      vipEvents: true,
-      maxPhotos: -1,
-    },
+    perks: { photos: -1, boostsPerWeek: 10, priorityInbox: true, freePremium: true, featuredProfile: true, vipEvents: true, maxPhotos: -1 },
   },
 };
 
-// Point earning sources
 export const POINT_SOURCES = {
   REFERRAL_GIVEN: 'referral_given',
   REFERRAL_RECEIVED: 'referral_received',
@@ -115,25 +64,6 @@ export const POINT_SOURCES = {
   BOOST_USED: 'boost_used',
 };
 
-// Point values for actions
-export const POINT_VALUES = {
-  [POINT_SOURCES.REFERRAL_GIVEN]: 500,
-  [POINT_SOURCES.REFERRAL_RECEIVED]: 200,
-  [POINT_SOURCES.DAILY_LOGIN]: 50,
-  [POINT_SOURCES.GIFT_SENT]: 1, // per naira sent
-  [POINT_SOURCES.LEVEL_PURCHASE]: 0, // handled separately
-  [POINT_SOURCES.VIP_BONUS]: 0, // handled separately
-  [POINT_SOURCES.EVENT_HOST]: 1000,
-  [POINT_SOURCES.EVENT_ATTEND]: 500,
-  [POINT_SOURCES.DATE_COMPLETED]: 300,
-  [POINT_SOURCES.BOOST_USED]: -100,
-};
-
-/**
- * Get level from points
- * @param {number} points - Total points
- * @returns {Object} Level object
- */
 export const getLevelFromPoints = (points) => {
   if (points >= LEVELS.DIAMOND.pointsRequired) return LEVELS.DIAMOND;
   if (points >= LEVELS.PLATINUM.pointsRequired) return LEVELS.PLATINUM;
@@ -142,11 +72,6 @@ export const getLevelFromPoints = (points) => {
   return LEVELS.BRONZE;
 };
 
-/**
- * Get next level from current points
- * @param {number} points - Current points
- * @returns {Object|null} Next level or null if at max
- */
 export const getNextLevel = (points) => {
   const levels = Object.values(LEVELS);
   for (let i = 0; i < levels.length; i++) {
@@ -157,25 +82,12 @@ export const getNextLevel = (points) => {
   return null;
 };
 
-/**
- * Get progress to next level (0-100)
- * @param {number} points - Current points
- * @returns {Object} Progress info
- */
 export const getLevelProgress = (points) => {
   const current = getLevelFromPoints(points);
   const next = getNextLevel(points);
 
   if (!next) {
-    return {
-      currentLevel: current,
-      nextLevel: null,
-      progress: 100,
-      pointsNeeded: 0,
-      pointsInLevel: 0,
-      pointsToNext: 0,
-      isMaxLevel: true,
-    };
+    return { currentLevel: current, nextLevel: null, progress: 100, pointsNeeded: 0, pointsInLevel: 0, pointsToNext: 0, isMaxLevel: true };
   }
 
   const pointsInLevel = points - current.pointsRequired;
@@ -194,216 +106,68 @@ export const getLevelProgress = (points) => {
 };
 
 /**
- * Check if user can level up
- * @param {number} points - Current points
- * @param {string} currentLevel - Current level ID
- * @returns {boolean} True if can level up
- */
-export const canLevelUp = (points, currentLevel) => {
-  const newLevel = getLevelFromPoints(points);
-  return newLevel.id !== currentLevel;
-};
-
-/**
- * Add points and record history
- * @param {string} userId - User ID
- * @param {number} points - Points to add
- * @param {string} source - Point source (from POINT_SOURCES)
- * @param {string} description - Optional description
- * @returns {Promise<Object>} Updated user data
- */
-export const addPoints = async (userId, points, source, description = '') => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  // Get current user
-  const user = await getUser(userId);
-  const newPoints = (user.points || 0) + points;
-
-  // Check if VIP (locked points)
-  if (user.isVIP && user.vipPointsLocked) {
-    throw new Error('VIP users cannot earn points');
-  }
-
-  // Update user
-  const updated = await updateUser(userId, { points: newPoints });
-
-  // Record history
-  await addPointsHistory(userId, {
-    points,
-    source,
-    description,
-    newTotal: newPoints,
-    timestamp: new Date().toISOString(),
-  });
-
-  // Check level upgrade
-  const newLevel = getLevelFromPoints(newPoints);
-  if (newLevel.id !== user.level) {
-    await updateUser(userId, { level: newLevel.id });
-    updated.level = newLevel.id;
-  }
-
-  return updated;
-};
-
-/**
- * Deduct points (for boosts, etc.)
- * @param {string} userId - User ID
- * @param {number} points - Points to deduct
- * @param {string} source - Point source
- * @param {string} description - Optional description
- * @returns {Promise<Object>} Updated user data
- */
-export const deductPoints = async (userId, points, source, description = '') => {
-  if (points <= 0) throw new Error('Points to deduct must be positive');
-
-  const user = await getUser(userId);
-  if (user.points < points) {
-    throw new Error('Insufficient points');
-  }
-
-  return await addPoints(userId, -points, source, description);
-};
-
-/**
- * Add points history entry
- * @param {string} userId - User ID
- * @param {Object} entry - History entry
- */
-export const addPointsHistory = async (userId, entry) => {
-  const history = await getPointsHistory(userId);
-  history.unshift(entry);
-  savePointsHistory(userId, history);
-};
-
-/**
- * Get points history for a user
- * @param {string} userId - User ID
- * @returns {Promise<Array>} Points history
+ * Get points history from API (database)
  */
 export const getPointsHistory = async (userId) => {
   try {
-    const data = localStorage.getItem(`${POINTS_HISTORY_KEY}_${userId}`);
-    return data ? JSON.parse(data) : [];
-  } catch {
+    const response = await fetch(`${API_URL}/get_points_history.php?user_id=${userId}`);
+    const data = await response.json();
+    if (data.success) {
+      return data.history || [];
+    }
+    return [];
+  } catch (error) {
+    console.error('Get points history error:', error);
     return [];
   }
 };
 
 /**
- * Save points history
+ * Add points via API
  */
-const savePointsHistory = (userId, history) => {
+export const addPoints = async (userId, points, source, description = '') => {
   try {
-    localStorage.setItem(`${POINTS_HISTORY_KEY}_${userId}`, JSON.stringify(history));
+    const response = await fetch(`${API_URL}/add_points.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        points: points,
+        source: source,
+        description: description
+      })
+    });
+    const data = await response.json();
+    if (data.success) {
+      return data.user;
+    }
+    throw new Error(data.message || 'Failed to add points');
   } catch (error) {
-    console.warn('Failed to save points history:', error);
+    console.error('Add points error:', error);
+    throw error;
   }
 };
 
-/**
- * Get user data (mock)
- */
-async function getUser(userId) {
-  return {
-    id: userId,
-    points: 1000,
-    level: 'Bronze',
-    isVIP: false,
-    vipPointsLocked: false,
-    name: 'User',
-  };
-}
-
-/**
- * Update user data (mock)
- */
-async function updateUser(userId, updates) {
-  return { id: userId, ...updates };
-}
-
-/**
- * Calculate points from naira amount
- * @param {number} naira - Amount in naira
- * @returns {number} Points (₦1 = 2 points)
- */
-export const nairaToPoints = (naira) => {
-  return naira * 2;
+export const deductPoints = async (userId, points, source, description = '') => {
+  return addPoints(userId, -points, source, description);
 };
 
-/**
- * Calculate naira from points
- * @param {number} points - Points
- * @returns {number} Naira (2 points = ₦1)
- */
-export const pointsToNaira = (points) => {
-  return Math.floor(points / 2);
-};
-
-/**
- * Get level perks for a level ID
- * @param {string} levelId - Level ID
- * @returns {Object} Perks object
- */
+export const nairaToPoints = (naira) => naira * 2;
+export const pointsToNaira = (points) => Math.floor(points / 2);
 export const getLevelPerks = (levelId) => {
   const level = Object.values(LEVELS).find(l => l.id === levelId);
   return level ? level.perks : LEVELS.BRONZE.perks;
 };
-
-/**
- * Get all levels sorted by requirement
- */
-export const getAllLevels = () => {
-  return Object.values(LEVELS).sort((a, b) => a.pointsRequired - b.pointsRequired);
-};
-
-/**
- * Check if user can access a feature based on level
- * @param {string} levelId - User's level ID
- * @param {string} feature - Feature name (e.g., 'photos', 'boostsPerWeek')
- * @param {number} currentValue - Current usage (for limits)
- * @returns {boolean} True if feature is accessible
- */
-export const canAccessFeature = (levelId, feature, currentValue = 0) => {
-  const perks = getLevelPerks(levelId);
-  const limit = perks[feature];
-  
-  if (limit === -1) return true; // unlimited
-  if (limit === undefined) return false; // feature not available
-  if (typeof limit === 'boolean') return limit;
-  if (typeof limit === 'number') return currentValue < limit;
-  
-  return false;
-};
-
-/**
- * Get max photos based on level
- * @param {string} levelId - Level ID
- * @returns {number} Max photos (-1 for unlimited)
- */
-export const getMaxPhotos = (levelId) => {
-  const perks = getLevelPerks(levelId);
-  return perks.maxPhotos || 3;
-};
-
-/**
- * Get boosts per week based on level
- * @param {string} levelId - Level ID
- * @returns {number} Boosts per week
- */
-export const getBoostsPerWeek = (levelId) => {
-  const perks = getLevelPerks(levelId);
-  return perks.boostsPerWeek || 0;
-};
+export const getAllLevels = () => Object.values(LEVELS).sort((a, b) => a.pointsRequired - b.pointsRequired);
+export const getMaxPhotos = (levelId) => getLevelPerks(levelId).maxPhotos || 3;
+export const getBoostsPerWeek = (levelId) => getLevelPerks(levelId).boostsPerWeek || 0;
 
 export default {
   LEVELS,
   POINT_SOURCES,
-  POINT_VALUES,
   getLevelFromPoints,
   getNextLevel,
   getLevelProgress,
-  canLevelUp,
   addPoints,
   deductPoints,
   getPointsHistory,
@@ -411,7 +175,6 @@ export default {
   pointsToNaira,
   getLevelPerks,
   getAllLevels,
-  canAccessFeature,
   getMaxPhotos,
   getBoostsPerWeek,
 };
