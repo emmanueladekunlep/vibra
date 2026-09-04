@@ -55,9 +55,6 @@ import Navigation from './components/common/Navigation';
 // Styles
 import './App.css';
 
-/**
- * Protected Route wrapper - redirects to login if not authenticated
- */
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   
@@ -72,9 +69,6 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-/**
- * Main App Layout with Navigation
- */
 const AppLayout = ({ children }) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
@@ -82,7 +76,6 @@ const AppLayout = ({ children }) => {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
 
-  // Listen for install prompt
   useEffect(() => {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -106,7 +99,6 @@ const AppLayout = ({ children }) => {
     }
   };
 
-  // Connect WebSocket when user is authenticated
   useEffect(() => {
     if (user) {
       connectWebSocket(user.id);
@@ -116,7 +108,6 @@ const AppLayout = ({ children }) => {
     }
   }, [user]);
 
-  // Load notifications
   useEffect(() => {
     if (user) {
       loadNotifications();
@@ -169,7 +160,6 @@ const AppLayout = ({ children }) => {
       <div style={styles.headerBar}>
         <span style={styles.headerTitle}>VIBRA</span>
         <div style={styles.headerActions}>
-          {/* Install Button */}
           {showInstall && (
             <button
               onClick={handleInstall}
@@ -233,7 +223,7 @@ const AppLayout = ({ children }) => {
 };
 
 /**
- * Home Page - Feed/Discovery
+ * Home Page - Colorful Badoo-style Feed
  */
 const HomePage = () => {
   const { user } = useAuth();
@@ -260,30 +250,75 @@ const HomePage = () => {
 
   return (
     <div style={styles.homeContainer}>
-      <div style={styles.welcomeSection}>
-        <h1 style={styles.welcomeTitle}>Welcome, {user?.name || 'User'}!</h1>
-        <p style={styles.welcomeSubtitle}>Connect, Vibe, Love.</p>
+      {/* Hero Section - Badoo style */}
+      <div style={styles.heroSection}>
+        <div style={styles.heroContent}>
+          <h1 style={styles.heroTitle}>Connect. Vibe. Love.</h1>
+          <p style={styles.heroSubtitle}>Find real connections in Nigeria</p>
+          <div style={styles.heroBadges}>
+            <span style={styles.heroBadge}>✅ Verified Users</span>
+            <span style={styles.heroBadge}>💰 Real Gifts</span>
+            <span style={styles.heroBadge}>📍 Nigeria</span>
+          </div>
+        </div>
       </div>
 
-      <div style={styles.quickStats}>
-        <div style={styles.statCard}>
+      {/* Profile Card - Badoo style */}
+      <div style={styles.profileCard}>
+        <div style={styles.profileCardHeader}>
+          <div style={styles.profileCardAvatar}>
+            {user?.photos && user.photos.length > 0 ? (
+              <img src={user.photos[0].url} alt={user.name} style={styles.profileCardImg} />
+            ) : (
+              <div style={styles.profileCardPlaceholder}>{user?.name?.[0] || 'U'}</div>
+            )}
+          </div>
+          <div style={styles.profileCardInfo}>
+            <h2 style={styles.profileCardName}>{user?.name || 'User'}</h2>
+            <p style={styles.profileCardLevel}>
+              <span style={{ color: getLevelColor(user?.level) }}>●</span> {user?.level || 'Bronze'}
+            </p>
+            <p style={styles.profileCardPoints}>⭐ {user?.points || 0} points</p>
+          </div>
+          <div style={styles.profileCardBadge}>
+            {user?.isVerified ? (
+              <span style={styles.verifiedBadgeLarge}>✓ Verified</span>
+            ) : (
+              <span style={styles.unverifiedBadge}>Get Verified</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Stats - Badoo style cards */}
+      <div style={styles.statsGrid}>
+        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #6C3CE1, #8B5CF6)'}}>
           <span style={styles.statValue}>{user?.level || 'Bronze'}</span>
           <span style={styles.statLabel}>Level</span>
         </div>
-        <div style={styles.statCard}>
+        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #00B894, #00D68F)'}}>
           <span style={styles.statValue}>{user?.points || 0}</span>
           <span style={styles.statLabel}>Points</span>
         </div>
-        <div style={styles.statCard}>
+        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #FF6B35, #FF8A65)'}}>
           <span style={styles.statValue}>
-            {user?.isVerified ? 'Verified' : user?.isIdentityLocked ? 'Locked' : 'Pending'}
+            {user?.isVerified ? '✓' : '⏳'}
           </span>
           <span style={styles.statLabel}>
-            {user?.isVerified ? 'Verified ✓' : user?.isIdentityLocked ? 'Identity Locked' : 'Pending Verification'}
+            {user?.isVerified ? 'Verified' : 'Pending'}
           </span>
         </div>
       </div>
 
+      {/* Section Title */}
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>🔥 Events Near You</h3>
+        <button onClick={() => setShowEventHost(true)} style={styles.hostEventButton}>
+          + Host
+        </button>
+      </div>
+
+      {/* Events Feed */}
       <div style={styles.feedSection}>
         <EventList 
           onSelectEvent={(id) => setSelectedEvent(id)} 
@@ -294,9 +329,17 @@ const HomePage = () => {
   );
 };
 
-/**
- * Chat Page
- */
+const getLevelColor = (level) => {
+  const colors = {
+    Bronze: '#CD7F32',
+    Silver: '#C0C0C0',
+    Gold: '#FFD700',
+    Platinum: '#E5E4E2',
+    Diamond: '#B9F2FF',
+  };
+  return colors[level] || '#CD7F32';
+};
+
 const ChatPage = () => {
   const { user } = useAuth();
   const [selectedChat, setSelectedChat] = React.useState(null);
@@ -318,9 +361,6 @@ const ChatPage = () => {
   );
 };
 
-/**
- * Chat Window Page - for direct chat via URL
- */
 const ChatWindowPage = () => {
   const { conversationId } = useParams();
   const { user } = useAuth();
@@ -363,9 +403,6 @@ const ChatWindowPage = () => {
   );
 };
 
-/**
- * Gifts Page
- */
 const GiftsPage = () => {
   const { user } = useAuth();
   const [showGiftStore, setShowGiftStore] = React.useState(true);
@@ -446,9 +483,6 @@ const GiftsPage = () => {
   );
 };
 
-/**
- * Profile Detail Page - for viewing other users
- */
 const ProfileDetailPage = () => {
   const { userId } = useParams();
   return (
@@ -458,9 +492,6 @@ const ProfileDetailPage = () => {
   );
 };
 
-/**
- * Profile Page
- */
 const ProfilePage = () => {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
@@ -587,9 +618,6 @@ const ProfilePage = () => {
   );
 };
 
-/**
- * Main App Component
- */
 const App = () => {
   return (
     <Router>
@@ -820,42 +848,160 @@ const styles = {
     margin: '0 auto',
     width: '100%',
   },
-  welcomeSection: {
+  heroSection: {
+    background: 'linear-gradient(135deg, #6C3CE1, #00B894)',
+    borderRadius: '20px',
+    padding: '30px 24px',
     marginBottom: '20px',
+    color: 'white',
+    textAlign: 'center',
   },
-  welcomeTitle: {
-    fontSize: '24px',
+  heroContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  heroTitle: {
+    fontSize: '28px',
     fontWeight: '700',
-    color: '#1a1a1a',
     margin: '0 0 4px 0',
   },
-  welcomeSubtitle: {
-    fontSize: '14px',
-    color: '#666',
-    margin: 0,
+  heroSubtitle: {
+    fontSize: '16px',
+    opacity: 0.9,
+    margin: '0 0 12px 0',
   },
-  quickStats: {
+  heroBadges: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+    justifyContent: 'center',
+  },
+  heroBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: '4px 14px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: '500',
+  },
+  profileCard: {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    padding: '16px',
+    marginBottom: '20px',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+  },
+  profileCardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '14px',
+  },
+  profileCardAvatar: {
+    width: '60px',
+    height: '60px',
+    borderRadius: '50%',
+    overflow: 'hidden',
+    flexShrink: 0,
+    border: '3px solid #6C3CE1',
+  },
+  profileCardImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+  profileCardPlaceholder: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '24px',
+    fontWeight: '700',
+    color: 'white',
+    backgroundColor: '#6C3CE1',
+  },
+  profileCardInfo: {
+    flex: 1,
+  },
+  profileCardName: {
+    fontSize: '18px',
+    fontWeight: '600',
+    margin: 0,
+    color: '#1a1a1a',
+  },
+  profileCardLevel: {
+    fontSize: '13px',
+    margin: '2px 0',
+    color: '#666',
+  },
+  profileCardPoints: {
+    fontSize: '13px',
+    margin: '0',
+    color: '#888',
+  },
+  profileCardBadge: {
+    flexShrink: 0,
+  },
+  verifiedBadgeLarge: {
+    backgroundColor: '#00B894',
+    color: 'white',
+    padding: '4px 12px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '600',
+  },
+  unverifiedBadge: {
+    backgroundColor: '#FF6B35',
+    color: 'white',
+    padding: '4px 12px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '600',
+  },
+  statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '10px',
     marginBottom: '20px',
   },
   statCard: {
-    backgroundColor: 'white',
     padding: '14px',
-    borderRadius: '12px',
+    borderRadius: '14px',
     textAlign: 'center',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    color: 'white',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
   },
   statValue: {
     display: 'block',
-    fontSize: '18px',
+    fontSize: '22px',
     fontWeight: '700',
-    color: '#1a1a1a',
   },
   statLabel: {
     fontSize: '12px',
-    color: '#888',
+    opacity: 0.9,
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px',
+  },
+  sectionTitle: {
+    fontSize: '18px',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    margin: 0,
+  },
+  hostEventButton: {
+    padding: '6px 16px',
+    backgroundColor: '#6C3CE1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '20px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
   },
   feedSection: {
     backgroundColor: 'white',

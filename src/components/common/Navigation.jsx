@@ -3,7 +3,7 @@
  * Module: App Integration
  * 
  * Bottom navigation bar for the main app.
- * Professional design - no emojis.
+ * Colorful design with brand colors.
  */
 
 import React from 'react';
@@ -16,11 +16,11 @@ const Navigation = () => {
   const { logout } = useAuth();
 
   const navItems = [
-    { path: '/', label: 'Home' },
-    { path: '/search', label: 'Search' },
-    { path: '/chat', label: 'Chat' },
-    { path: '/gifts', label: 'Gifts' },
-    { path: '/profile', label: 'Profile' },
+    { path: '/', label: '🏠 Home' },
+    { path: '/search', label: '🔍 Search' },
+    { path: '/chat', label: '💬 Chat' },
+    { path: '/gifts', label: '🎁 Gifts' },
+    { path: '/profile', label: '👤 Profile' },
   ];
 
   const handleLogout = () => {
@@ -47,14 +47,20 @@ const Navigation = () => {
               ...(isActive(item.path) ? styles.navButtonActive : {}),
             }}
           >
-            <span style={styles.navLabel}>{item.label}</span>
+            <span style={styles.navIcon}>{item.label.split(' ')[0]}</span>
+            <span style={{
+              ...styles.navLabel,
+              ...(isActive(item.path) ? styles.navLabelActive : {}),
+            }}>
+              {item.label.split(' ').slice(1).join(' ') || item.label}
+            </span>
           </button>
         ))}
         <button
           onClick={handleLogout}
           style={styles.logoutButton}
         >
-          <span style={styles.navLabel}>Logout</span>
+          <span style={styles.navLabel}>🚪</span>
         </button>
       </div>
     </div>
@@ -68,9 +74,9 @@ const styles = {
     left: 0,
     right: 0,
     backgroundColor: 'white',
-    borderTop: '1px solid #e8e8e8',
-    padding: '8px 0',
-    boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
+    borderTop: '2px solid #f0edff',
+    padding: '6px 0 12px 0',
+    boxShadow: '0 -4px 20px rgba(108, 60, 225, 0.08)',
     zIndex: 100,
   },
   navBar: {
@@ -79,33 +85,50 @@ const styles = {
     alignItems: 'center',
     maxWidth: '600px',
     margin: '0 auto',
-    padding: '0 8px',
+    padding: '0 4px',
   },
   navButton: {
     flex: 1,
     background: 'none',
     border: 'none',
-    padding: '8px 4px',
+    padding: '4px 2px',
     cursor: 'pointer',
-    borderRadius: '8px',
-    transition: 'all 0.2s',
+    borderRadius: '12px',
+    transition: 'all 0.3s ease',
     fontFamily: 'inherit',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '2px',
   },
   navButtonActive: {
     backgroundColor: '#f0edff',
+    transform: 'scale(1.05)',
+  },
+  navIcon: {
+    fontSize: '20px',
+    lineHeight: 1,
   },
   navLabel: {
-    fontSize: '13px',
+    fontSize: '10px',
     fontWeight: '500',
-    color: '#666',
+    color: '#999',
+    transition: 'color 0.3s ease',
+  },
+  navLabelActive: {
+    color: '#6C3CE1',
+    fontWeight: '700',
   },
   logoutButton: {
     background: 'none',
     border: 'none',
-    padding: '8px 4px',
+    padding: '4px 2px',
     cursor: 'pointer',
-    borderRadius: '8px',
+    borderRadius: '12px',
     fontFamily: 'inherit',
+    fontSize: '20px',
+    opacity: 0.6,
+    transition: 'opacity 0.3s ease',
   },
 };
 
