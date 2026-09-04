@@ -1,9 +1,3 @@
-jsx
-/**
- * VIBRA - Main App Component - FIXED with Pulsing Logo
- * Brand: Vib #721CBB purple, ra #10964D green, pulse always
- */
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -55,7 +49,6 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
   return (
     <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{ display: 'flex', alignItems: 'center', lineHeight: 1 }}>
-        {/* VIB - Purple #721CBB */}
         <span style={{
           color: '#721CBB',
           fontWeight: 900,
@@ -67,7 +60,6 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
           VIB
         </span>
 
-        {/* Always Pulsing Heartbeat Line */}
         <div style={{
           width: s.pulseW,
           height: s.pulseH,
@@ -78,7 +70,6 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
           alignItems: 'center'
         }}>
           <svg width="100%" height="100%" viewBox="0 0 80 20" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-            {/* Base faint line */}
             <path
               d="M0 10 L20 10 L24 2 L28 18 L32 10 L40 10 L48 10 L52 3 L56 17 L60 10 L80 10"
               stroke="rgba(114,28,187,0.18)"
@@ -87,7 +78,6 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            {/* White pulsing line - always moving */}
             <path
               d="M0 10 L20 10 L24 2 L28 18 L32 10 L40 10 L48 10 L52 3 L56 17 L60 10 L80 10"
               stroke="white"
@@ -104,7 +94,6 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
           </svg>
         </div>
 
-        {/* RA - Green #10964D */}
         <span style={{
           color: '#10964D',
           fontWeight: 900,
@@ -115,7 +104,6 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
           textShadow: '0 1px 0 rgba(16,150,77,0.15)'
         }}>
           RA
-          {/* Heart inside A */}
           <span style={{
             position: 'absolute',
             top: '18%',
@@ -318,7 +306,6 @@ const AppLayout = ({ children }) => {
 
   return (
     <div style={styles.layout}>
-      {/* HEADER WITH PULSING LOGO */}
       <div style={styles.headerBar}>
         <VibraLogoDark size="small" />
         <div style={styles.headerActions}>
@@ -384,14 +371,12 @@ const HomePage = () => {
 
   return (
     <div style={styles.homeContainer}>
-      {/* HERO WITH PULSING LOGO + TAGLINE */}
       <div style={styles.heroSection}>
         <div style={styles.heroContent}>
           <VibraLogo size="large" showTagline={true} pulse={true} />
         </div>
       </div>
 
-      {/* PROFILE CARD - As requested */}
       <div style={styles.profileCard}>
         <div style={styles.profileCardHeader}>
           <div style={styles.profileCardAvatar}>
@@ -417,7 +402,6 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* Stats from your screenshot */}
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
             <div style={styles.statIcon}><span style={{ color: '#721CBB' }}>◆</span></div>
@@ -437,7 +421,6 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* EVENTS NEAR YOU */}
       <div style={styles.sectionHeader}>
         <h3 style={styles.sectionTitle}>Events Near You</h3>
         <button style={styles.hostEventButton} onClick={() => navigate('/events/host')}>
@@ -791,4 +774,5 @@ const styles = {
     border: '1px solid #f5f0f8'
   },
 };
-export default App; 
+
+export default App;

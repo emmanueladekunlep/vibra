@@ -8,11 +8,18 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import * as chatService from '../../services/chatService';
+import * as profileService from '../../services/profileService';
 
-const ChatWindow = ({ conversationId, otherUser, onBack }) => {
+const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUser, onBack: propOnBack }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { chatId: paramChatId } = useParams();
+  
+  const conversationId = propConversationId || paramChatId;
+  const [otherUser, setOtherUser] = useState(propOtherUser || null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -27,6 +34,32 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
   const prevMessagesLength = useRef(0);
   const scrollTimeout = useRef(null);
   const pollIntervalRef = useRef(null);
+
+  // Load other user info if not provided
+  useEffect(() => {
+    if (conversationId && !propOtherUser) {
+      const loadOtherUser = async () => {
+        try {
+          // Get conversation details to find other user
+          const conv = await chatService.getOrCreateConversation(user.id, '');
+          // Use the conversationId to get participants
+          const response = await fetch(`https://api.vibra.ng/api/get_conversation.php?conversation_id=${conversationId}`);
+          const data = await response.json();
+          if (data.success && data.conversation) {
+            const participants = data.conversation.participants || [];
+            const otherId = participants.find(id => id != user.id);
+            if (otherId) {
+              const userInfo = await profileService.getProfile(otherId);
+              setOtherUser(userInfo);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load other user:', err);
+        }
+      };
+      loadOtherUser();
+    }
+  }, [conversationId, user.id, propOtherUser]);
 
   // Merge messages without causing re-render flicker
   const mergeMessages = useCallback((newMessages) => {
@@ -241,7 +274,16 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
     }
   };
 
-  if (!conversationId || !otherUser) {
+  const handleBack = () => {
+    if (propOnBack) {
+      propOnBack();
+    } else {
+      navigate('/chat');
+    }
+  };
+
+  // Show loading state if otherUser is not loaded yet
+  if (!conversationId) {
     return (
       <div style={styles.container}>
         <div style={styles.emptyState}>
@@ -251,21 +293,67 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
     );
   }
 
+  if (isInitialLoading) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <div style={styles.headerLeft}>
+            <button onClick={handleBack} style={styles.backButton}>
+              ← Back
+            </button>
+            <div style={styles.userInfo}>
+              <div style={styles.avatarPlaceholderSmall}>
+                ?
+              </div>
+              <div style={styles.userTextInfo}>
+                <span style={styles.headerName}>Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={styles.messagesContainer}>
+          <div style={styles.loadingState}>Loading messages...</div>
+        </div>
+        <form onSubmit={handleSend} style={styles.inputContainer}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={newMessage}
+            onChange={handleTyping}
+            placeholder="Type a message..."
+            style={styles.input}
+            disabled={true}
+            maxLength={1000}
+          />
+          <button
+            type="submit"
+            style={{
+              ...styles.sendButton,
+              ...styles.sendButtonDisabled,
+            }}
+            disabled={true}
+          >
+            Send
+          </button>
+        </form>
+        <p style={styles.credit}>Powered by LabelReach</p>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <div style={styles.headerLeft}>
-          {onBack && (
-            <button onClick={onBack} style={styles.backButton}>
-              Back
-            </button>
-          )}
-          <div style={styles.userInfo} onClick={() => onBack?.()}>
+          <button onClick={handleBack} style={styles.backButton}>
+            ← Back
+          </button>
+          <div style={styles.userInfo}>
             <div style={styles.avatarSmall}>
-              {otherUser.photos && otherUser.photos.length > 0 ? (
+              {otherUser?.photos && otherUser.photos.length > 0 ? (
                 <img 
-                  src={otherUser.photos[0]} 
-                  alt={otherUser.name}
+                  src={otherUser.photos[0].url || otherUser.photos[0]} 
+                  alt={otherUser?.name || 'User'}
                   style={styles.avatarImage}
                   onError={(e) => {
                     e.target.style.display = 'none';
@@ -273,19 +361,19 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
                 />
               ) : (
                 <div style={styles.avatarPlaceholderSmall}>
-                  {otherUser.name?.[0] || '?'}
+                  {otherUser?.name?.[0] || '?'}
                 </div>
               )}
             </div>
             <div style={styles.userTextInfo}>
               <span style={styles.headerName}>
-                {otherUser.name}
-                {otherUser.isVerified && (
+                {otherUser?.name || 'User'}
+                {otherUser?.isVerified && (
                   <span style={styles.verifiedText}> ✓</span>
                 )}
               </span>
               <span style={styles.headerLevel}>
-                Level: {otherUser.level || 'Bronze'} • {otherUser.location || 'No location'}
+                Level: {otherUser?.level || 'Bronze'} • {otherUser?.location || 'No location'}
               </span>
             </div>
           </div>
@@ -296,23 +384,21 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
         id="chat-messages-container"
         style={styles.messagesContainer}
       >
-        {isInitialLoading ? (
-          <div style={styles.loadingState}>Loading messages...</div>
-        ) : messages.length === 0 ? (
+        {messages.length === 0 ? (
           <div style={styles.emptyMessages}>
             <p style={styles.emptyMessagesText}>No messages yet</p>
             <p style={styles.emptyMessagesSub}>Say hello to start chatting</p>
           </div>
         ) : (
           <>
-            {messages.map((msg) => {
+            {messages.map((msg, index) => {
               const msgSenderId = String(msg.senderId || msg.sender_id || '');
               const currentUserId = String(user.id);
               const isOwn = msgSenderId === currentUserId;
               
               return (
                 <div
-                  key={msg.id || msg.timestamp + Math.random()}
+                  key={msg.id || index}
                   style={{
                     ...styles.messageRow,
                     justifyContent: isOwn ? 'flex-end' : 'flex-start',
@@ -327,7 +413,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
                     <p style={styles.messageText}>{msg.text}</p>
                     <div style={styles.messageFooter}>
                       <span style={styles.messageSender}>
-                        {isOwn ? 'You' : (otherUser.name || 'User')}
+                        {isOwn ? 'You' : (otherUser?.name || 'User')}
                       </span>
                       <span style={styles.messageTime}>
                         {formatTime(msg.timestamp)}
@@ -342,7 +428,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
             })}
             {typing && (
               <div style={styles.typingIndicator}>
-                <span>{otherUser.name} is typing...</span>
+                <span>{otherUser?.name || 'User'} is typing...</span>
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -424,7 +510,7 @@ const styles = {
     border: 'none',
     color: '#6C3CE1',
     fontSize: '14px',
-    fontWeight: '500',
+    fontWeight: '600',
     cursor: 'pointer',
     padding: '6px 8px',
     fontFamily: 'inherit',
@@ -436,7 +522,6 @@ const styles = {
     gap: '10px',
     flex: 1,
     minWidth: 0,
-    cursor: 'pointer',
   },
   userTextInfo: {
     display: 'flex',
