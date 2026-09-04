@@ -103,7 +103,7 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
           position: 'relative',
           textShadow: '0 1px 0 rgba(16,150,77,0.15)'
         }}>
-          RA
+          ₦RA
           <span style={{
             position: 'absolute',
             top: '18%',
