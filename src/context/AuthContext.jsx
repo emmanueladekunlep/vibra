@@ -33,6 +33,8 @@ export const AuthProvider = ({ children }) => {
         const loggedIn = authService.isLoggedIn();
         
         if (cached && loggedIn) {
+          // Ensure isFounder is properly set from cached data
+          if (cached.isFounder === undefined) cached.isFounder = false;
           setUser(cached);
           setIsAuthenticated(true);
         }
@@ -63,6 +65,9 @@ export const AuthProvider = ({ children }) => {
       if (result.success) {
         const userData = result.user;
         if (userData) {
+          // Ensure isFounder is set from database
+          if (userData.isFounder === undefined) userData.isFounder = false;
+          
           // Check if PIN is enabled and user needs to enter PIN
           if (userData.pinEnabled && !pin) {
             setPendingPhone(phone);
@@ -92,6 +97,7 @@ export const AuthProvider = ({ children }) => {
           
           // Full authentication (PIN was provided and verified)
           if (userData.hasWithdrawn === undefined) userData.hasWithdrawn = false;
+          if (userData.isFounder === undefined) userData.isFounder = false;
           setUser(userData);
           setIsAuthenticated(true);
           setPendingPhone(null);
@@ -135,6 +141,7 @@ export const AuthProvider = ({ children }) => {
    */
   const completePinSetup = useCallback(async (userData) => {
     if (userData) {
+      if (userData.isFounder === undefined) userData.isFounder = false;
       setUser(userData);
       setIsAuthenticated(true);
       setPendingPhone(null);
@@ -164,6 +171,7 @@ export const AuthProvider = ({ children }) => {
   const updateUser = useCallback((updates) => {
     const updated = authService.updateCachedUser(updates);
     if (updated) {
+      if (updated.isFounder === undefined) updated.isFounder = false;
       setUser(updated);
     }
     return updated;
@@ -183,6 +191,7 @@ export const AuthProvider = ({ children }) => {
     if (!user) return;
     const updated = authService.updateCachedUser({ hasWithdrawn: true });
     if (updated) {
+      if (updated.isFounder === undefined) updated.isFounder = false;
       setUser(updated);
     }
     return updated;

@@ -1,3 +1,4 @@
+jsx
 /**
  * VIBRA - Main App Component - FIXED with Pulsing Logo
  * Brand: Vib #721CBB purple, ra #10964D green, pulse always
@@ -379,6 +380,8 @@ const HomePage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const isFounder = user?.isFounder === true || user?.isFounder === 1;
+
   return (
     <div style={styles.homeContainer}>
       {/* HERO WITH PULSING LOGO + TAGLINE */}
@@ -392,21 +395,25 @@ const HomePage = () => {
       <div style={styles.profileCard}>
         <div style={styles.profileCardHeader}>
           <div style={styles.profileCardAvatar}>
-            {user?.avatar ? (
-              <img src={user.avatar} alt={user.name} style={styles.profileCardImg} />
+            {user?.photos && user.photos.length > 0 ? (
+              <img src={user.photos[0].url} alt={user.name} style={styles.profileCardImg} />
             ) : (
               <div style={styles.profileCardPlaceholder}>
-                {user?.name?.charAt(0) || 'P'}
+                {user?.name?.charAt(0) || 'U'}
               </div>
             )}
           </div>
           <div style={styles.profileCardInfo}>
-            <p style={styles.profileCardName}>{user?.name || 'Peace'}</p>
-            <p style={styles.profileCardLevel}>{user?.name || 'Peace'}</p>
-            <p style={styles.profileCardPoints}>● Diamond</p>
+            <p style={styles.profileCardName}>{user?.name || 'User'}</p>
+            <p style={styles.profileCardLevel}>{user?.level || 'Bronze'}</p>
+            <p style={styles.profileCardPoints}>● {user?.points || 0} points</p>
           </div>
           <div style={styles.profileCardBadge}>
-            <span style={styles.verifiedBadgeLarge}>Verified</span>
+            {user?.isVerified ? (
+              <span style={styles.verifiedBadgeLarge}>Verified</span>
+            ) : isFounder ? (
+              <span style={{...styles.verifiedBadgeLarge, backgroundColor: '#FFD700', color: '#1a1a1a'}}>👑</span>
+            ) : null}
           </div>
         </div>
 
@@ -414,17 +421,17 @@ const HomePage = () => {
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
             <div style={styles.statIcon}><span style={{ color: '#721CBB' }}>◆</span></div>
-            <span style={styles.statValue}>Diamond</span>
+            <span style={styles.statValue}>{user?.level || 'Bronze'}</span>
             <span style={styles.statLabel}>Level</span>
           </div>
           <div style={styles.statCard}>
             <div style={styles.statIcon}><span style={{ color: '#10964D' }}>◉</span></div>
-            <span style={styles.statValue}>51000</span>
+            <span style={styles.statValue}>{user?.points || 0}</span>
             <span style={styles.statLabel}>Points</span>
           </div>
           <div style={styles.statCard}>
             <div style={styles.statIcon}><span style={{ color: '#10964D' }}>✓</span></div>
-            <span style={styles.statValue}>Verified</span>
+            <span style={styles.statValue}>{user?.isVerified ? 'Verified' : 'Unverified'}</span>
             <span style={styles.statLabel}>Status</span>
           </div>
         </div>
@@ -784,5 +791,4 @@ const styles = {
     border: '1px solid #f5f0f8'
   },
 };
-
-export default App;
+export default App; 

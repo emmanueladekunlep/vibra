@@ -97,6 +97,7 @@ const Profile = ({ userId: propUserId, onEdit }) => {
   const [startingChat, setStartingChat] = useState(false);
 
   const isOwner = user?.id === targetUserId || user?.userId === targetUserId;
+  const isFounder = user?.isFounder === true || user?.isFounder === 1;
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -298,6 +299,11 @@ const Profile = ({ userId: propUserId, onEdit }) => {
               {profile.isVerified && (
                 <span style={styles.verifiedBadge}>Verified</span>
               )}
+              {isFounder && (
+                <span style={{...styles.verifiedBadge, backgroundColor: '#FFD700', color: '#1a1a1a'}}>
+                  👑 Founder
+                </span>
+              )}
             </div>
             <p style={styles.location}>{profile.location || 'Location not set'}</p>
             {zodiacSign && (
@@ -394,6 +400,15 @@ const Profile = ({ userId: propUserId, onEdit }) => {
             style={styles.editButton}
           >
             Edit Profile
+          </button>
+        )}
+
+        {isOwner && isFounder && (
+          <button 
+            onClick={() => navigate('/admin')} 
+            style={{...styles.editButton, backgroundColor: '#FFD700', color: '#1a1a1a'}}
+          >
+            👑 Admin Panel
           </button>
         )}
 

@@ -60,10 +60,12 @@ export const loginWithOpay = async (phone, pin = null) => {
     const data = await response.json();
     
     if (data.success) {
-      // Ensure user has a valid numeric id, not mock string
-      if (data.user && typeof data.user.id === 'string' && data.user.id.startsWith('user_')) {
-        // Convert mock id to numeric if possible, or keep as is but ensure it works
-        console.warn('Mock user id detected:', data.user.id);
+      // Ensure isFounder is preserved from database
+      if (data.user) {
+        data.user.isFounder = data.user.isFounder === 1 || data.user.isFounder === true;
+        data.user.isVerified = data.user.isVerified === 1 || data.user.isVerified === true;
+        data.user.pinEnabled = data.user.pinEnabled === 1 || data.user.pinEnabled === true;
+        data.user.hasWithdrawn = data.user.hasWithdrawn === 1 || data.user.hasWithdrawn === true;
       }
       cacheUserData(data.user);
       return { 
@@ -175,10 +177,16 @@ const cacheUserData = (user) => {
   try {
     // Clean up any mock user_ prefix before caching
     if (user && typeof user.id === 'string' && user.id.startsWith('user_')) {
-      // Keep as is, but ensure we have a valid userId
       if (!user.userId) {
         user.userId = `VIB-${Math.floor(Math.random() * 9000 + 1000)}`;
       }
+    }
+    // Ensure boolean fields are correct
+    if (user) {
+      user.isFounder = user.isFounder === 1 || user.isFounder === true;
+      user.isVerified = user.isVerified === 1 || user.isVerified === true;
+      user.pinEnabled = user.pinEnabled === 1 || user.pinEnabled === true;
+      user.hasWithdrawn = user.hasWithdrawn === 1 || user.hasWithdrawn === true;
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     localStorage.setItem(SESSION_KEY, JSON.stringify({ 
@@ -195,10 +203,15 @@ export const getCachedUser = () => {
     const data = localStorage.getItem(STORAGE_KEY);
     if (!data) return null;
     const user = JSON.parse(data);
-    // Ensure user has a valid userId if missing
-    if (user && !user.userId) {
-      user.userId = `VIB-${Math.floor(Math.random() * 9000 + 1000)}`;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    // Ensure boolean fields are correct
+    if (user) {
+      user.isFounder = user.isFounder === 1 || user.isFounder === true;
+      user.isVerified = user.isVerified === 1 || user.isVerified === true;
+      user.pinEnabled = user.pinEnabled === 1 || user.pinEnabled === true;
+      user.hasWithdrawn = user.hasWithdrawn === 1 || user.hasWithdrawn === true;
+      if (!user.userId) {
+        user.userId = `VIB-${Math.floor(Math.random() * 9000 + 1000)}`;
+      }
     }
     return user;
   } catch (error) {
@@ -232,6 +245,13 @@ export const updateCachedUser = (updates) => {
     const current = getCachedUser();
     if (!current) return null;
     const updated = { ...current, ...updates };
+    // Ensure boolean fields are correct
+    if (updated) {
+      updated.isFounder = updated.isFounder === 1 || updated.isFounder === true;
+      updated.isVerified = updated.isVerified === 1 || updated.isVerified === true;
+      updated.pinEnabled = updated.pinEnabled === 1 || updated.pinEnabled === true;
+      updated.hasWithdrawn = updated.hasWithdrawn === 1 || updated.hasWithdrawn === true;
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     return updated;
   } catch (error) {
