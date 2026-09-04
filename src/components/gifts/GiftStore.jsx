@@ -10,9 +10,96 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as giftService from '../../services/giftService';
 
-// Manual payout mode - admin processes withdrawals manually
-// No bank details shown to users
-const MANUAL_PAYOUT_MODE = true;
+// Professional SVG Icons
+const Icons = {
+  Food: () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#721CBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 8h16"/>
+      <path d="M12 8v11"/>
+      <path d="M8 8V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3"/>
+      <path d="M4 12h16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4z"/>
+    </svg>
+  ),
+  Drink: () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#721CBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 8h12"/>
+      <path d="M8 8v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V8"/>
+      <path d="M10 12h4"/>
+      <path d="M12 8V4"/>
+      <path d="M8 4h8"/>
+    </svg>
+  ),
+  Entertainment: () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#721CBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2"/>
+      <path d="M8 4v2"/>
+      <path d="M16 4v2"/>
+      <path d="M2 10h20"/>
+      <path d="M8 14h8"/>
+      <path d="M8 18h4"/>
+    </svg>
+  ),
+  Shopping: () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#721CBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+      <path d="M3 6h18"/>
+      <path d="M16 10a4 4 0 0 1-8 0"/>
+    </svg>
+  ),
+  Data: () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#721CBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4h16v16H4z"/>
+      <path d="M8 8h8"/>
+      <path d="M8 12h4"/>
+      <path d="M8 16h2"/>
+      <path d="M16 12v4"/>
+      <path d="M14 12h2"/>
+    </svg>
+  ),
+  Cash: () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10964D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 6v12"/>
+      <path d="M8 9a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-4a2 2 0 0 0-2 2 2 2 0 0 0 2 2h4a2 2 0 0 0 2-2"/>
+    </svg>
+  ),
+  Cinema: () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#721CBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2"/>
+      <path d="M6 8h.01"/>
+      <path d="M10 8h.01"/>
+      <path d="M14 8h.01"/>
+      <path d="M18 8h.01"/>
+      <path d="M2 12h20"/>
+      <path d="M8 16h8"/>
+    </svg>
+  ),
+  Default: () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#721CBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 12v10H4V12"/>
+      <path d="M2 7h20v5H2z"/>
+      <path d="M12 22V7"/>
+      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+    </svg>
+  ),
+};
+
+const getIcon = (giftId) => {
+  const iconMap = {
+    'food_3000': Icons.Food,
+    'food_5000': Icons.Food,
+    'drinks_2000': Icons.Drink,
+    'entertainment_4000': Icons.Entertainment,
+    'shopping_5000': Icons.Shopping,
+    'data_1000': Icons.Data,
+    'cash_2000': Icons.Cash,
+    'cash_5000': Icons.Cash,
+    'cash_10000': Icons.Cash,
+    'cinema_4000': Icons.Cinema,
+  };
+  return iconMap[giftId] || Icons.Default;
+};
 
 const GiftStore = ({ recipientId, onPurchase, onClose }) => {
   const { user } = useAuth();
@@ -52,7 +139,6 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
         message
       );
 
-      // Display redemption code if available
       let successMessage = '';
       if (result.redemptionCode) {
         successMessage = `Gift sent successfully!\n\nRedemption Code: ${result.redemptionCode}\n\nShare this code with the recipient.`;
@@ -63,7 +149,6 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
       }
 
       setSuccess(successMessage);
-
       setSelectedGift(null);
       setMessage('');
 
@@ -84,15 +169,17 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
   const getTypeLabel = (type) => {
     const labels = {
       all: 'All Gifts',
-      service: 'Service Gifts',
-      cash: 'Cash Gifts',
+      service: 'Service',
+      cash: 'Cash',
     };
     return labels[type] || type;
   };
 
   const getStatusColor = (type) => {
-    return type === 'cash' ? '#00B894' : '#6C3CE1';
+    return type === 'cash' ? '#10964D' : '#721CBB';
   };
+
+  const GiftIcon = selectedGift ? getIcon(selectedGift.id) : null;
 
   return (
     <div style={styles.container}>
@@ -101,7 +188,7 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
           <h2 style={styles.title}>Send a Gift</h2>
           {onClose && (
             <button onClick={onClose} style={styles.closeButton}>
-              Close
+              ✕
             </button>
           )}
         </div>
@@ -133,38 +220,46 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
         )}
 
         <div style={styles.giftGrid}>
-          {gifts.map((gift) => (
-            <div
-              key={gift.id}
-              style={{
-                ...styles.giftCard,
-                ...(selectedGift?.id === gift.id ? styles.giftCardSelected : {}),
-              }}
-              onClick={() => setSelectedGift(gift)}
-            >
-              <span style={styles.giftIcon}>{gift.icon}</span>
-              <h4 style={styles.giftName}>{gift.name}</h4>
-              <p style={styles.giftDescription}>{gift.description}</p>
-              <div style={styles.giftFooter}>
-                <span style={styles.giftPrice}>₦{gift.price.toLocaleString()}</span>
-                <span
-                  style={{
-                    ...styles.giftType,
-                    backgroundColor: getStatusColor(gift.type),
-                  }}
-                >
-                  {gift.type === 'cash' ? 'Cash' : 'Service'}
-                </span>
+          {gifts.map((gift) => {
+            const Icon = getIcon(gift.id);
+            return (
+              <div
+                key={gift.id}
+                style={{
+                  ...styles.giftCard,
+                  ...(selectedGift?.id === gift.id ? styles.giftCardSelected : {}),
+                }}
+                onClick={() => setSelectedGift(gift)}
+              >
+                <div style={styles.giftIconWrapper}>
+                  <Icon />
+                </div>
+                <h4 style={styles.giftName}>{gift.name}</h4>
+                <p style={styles.giftDescription}>{gift.description}</p>
+                <div style={styles.giftFooter}>
+                  <span style={styles.giftPrice}>₦{gift.price.toLocaleString()}</span>
+                  <span
+                    style={{
+                      ...styles.giftType,
+                      backgroundColor: getStatusColor(gift.type),
+                    }}
+                  >
+                    {gift.type === 'cash' ? 'Cash' : 'Service'}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {selectedGift && (
+        {selectedGift && GiftIcon && (
           <div style={styles.purchasePanel}>
-            <h4 style={styles.purchaseTitle}>
-              Send {selectedGift.name} (₦{selectedGift.price.toLocaleString()})
-            </h4>
+            <div style={styles.purchaseHeader}>
+              <GiftIcon />
+              <h4 style={styles.purchaseTitle}>
+                {selectedGift.name} (₦{selectedGift.price.toLocaleString()})
+              </h4>
+            </div>
             
             <div style={styles.purchaseInfo}>
               <p style={styles.purchaseInfoText}>
@@ -227,10 +322,10 @@ const styles = {
   card: {
     backgroundColor: 'white',
     borderRadius: '20px',
-    padding: '28px',
+    padding: '24px',
     maxWidth: '600px',
     width: '100%',
-    boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
   },
   header: {
     display: 'flex',
@@ -239,7 +334,7 @@ const styles = {
     marginBottom: '16px',
   },
   title: {
-    fontSize: '22px',
+    fontSize: '20px',
     fontWeight: '700',
     color: '#1a1a1a',
     margin: 0,
@@ -247,8 +342,8 @@ const styles = {
   closeButton: {
     background: 'none',
     border: 'none',
+    fontSize: '18px',
     color: '#666',
-    fontSize: '14px',
     cursor: 'pointer',
     padding: '4px 8px',
     fontFamily: 'inherit',
@@ -257,11 +352,12 @@ const styles = {
     display: 'flex',
     gap: '8px',
     marginBottom: '16px',
+    flexWrap: 'wrap',
   },
   filterButton: {
-    padding: '6px 16px',
+    padding: '8px 16px',
     borderRadius: '20px',
-    border: '2px solid #e0e0e0',
+    border: '2px solid #e8e8e8',
     backgroundColor: 'white',
     fontSize: '13px',
     fontWeight: '500',
@@ -271,9 +367,9 @@ const styles = {
     fontFamily: 'inherit',
   },
   filterActive: {
-    borderColor: '#6C3CE1',
-    backgroundColor: '#f0edff',
-    color: '#6C3CE1',
+    borderColor: '#721CBB',
+    backgroundColor: '#f0ebf8',
+    color: '#721CBB',
   },
   errorBox: {
     backgroundColor: '#ffebee',
@@ -302,29 +398,32 @@ const styles = {
   },
   giftGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
     gap: '12px',
     marginBottom: '16px',
   },
   giftCard: {
-    border: '2px solid #e8e8e8',
+    border: '2px solid #f0f0f0',
     borderRadius: '14px',
-    padding: '16px',
+    padding: '14px 12px',
     cursor: 'pointer',
     transition: 'all 0.2s',
     textAlign: 'center',
+    backgroundColor: '#fafafa',
   },
   giftCardSelected: {
-    borderColor: '#6C3CE1',
+    borderColor: '#721CBB',
     backgroundColor: '#f5f0ff',
   },
-  giftIcon: {
-    fontSize: '32px',
-    display: 'block',
+  giftIconWrapper: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: '8px',
+    height: '40px',
   },
   giftName: {
-    fontSize: '15px',
+    fontSize: '14px',
     fontWeight: '600',
     color: '#1a1a1a',
     margin: '0 0 4px 0',
@@ -341,7 +440,7 @@ const styles = {
     alignItems: 'center',
   },
   giftPrice: {
-    fontSize: '15px',
+    fontSize: '14px',
     fontWeight: '700',
     color: '#1a1a1a',
   },
@@ -356,13 +455,19 @@ const styles = {
   purchasePanel: {
     borderTop: '2px solid #f0f0f0',
     paddingTop: '16px',
-    marginTop: '8px',
+    marginTop: '4px',
+  },
+  purchaseHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '8px',
   },
   purchaseTitle: {
-    fontSize: '17px',
+    fontSize: '16px',
     fontWeight: '600',
     color: '#1a1a1a',
-    margin: '0 0 8px 0',
+    margin: 0,
   },
   purchaseInfo: {
     backgroundColor: '#f8f8f8',
@@ -389,7 +494,7 @@ const styles = {
     width: '100%',
     padding: '10px 14px',
     fontSize: '14px',
-    border: '2px solid #e0e0e0',
+    border: '2px solid #e8e8e8',
     borderRadius: '10px',
     outline: 'none',
     transition: 'border-color 0.2s',
@@ -406,7 +511,7 @@ const styles = {
     fontSize: '15px',
     fontWeight: '600',
     color: 'white',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',
@@ -414,7 +519,7 @@ const styles = {
     fontFamily: 'inherit',
   },
   cancelButton: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#e8e8e8',
     color: '#555',
   },
   pointsInfo: {

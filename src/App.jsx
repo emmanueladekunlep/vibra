@@ -222,7 +222,7 @@ const AppLayout = ({ children }) => {
 };
 
 /**
- * Home Page - Clean Design
+ * Home Page - Logo with Heartbeat
  */
 const HomePage = () => {
   const { user } = useAuth();
@@ -257,7 +257,7 @@ const HomePage = () => {
 
   return (
     <div style={styles.homeContainer}>
-      {/* Hero Section - Clean Logo with Pulse */}
+      {/* Hero Section - SVG Logo with Heartbeat */}
       <div style={styles.heroSection}>
         <div style={styles.heroContent}>
           <div style={styles.logoContainer}>
@@ -265,33 +265,94 @@ const HomePage = () => {
               ...styles.logoPulse,
               ...(pulse ? styles.logoPulseActive : {}),
             }}>
-              <span style={styles.logoText}>VIBRA</span>
+              <svg width="200" height="60" viewBox="0 0 200 60" fill="none">
+                {/* VIB - Purple */}
+                <text x="0" y="42" fontSize="40" fontWeight="800" fontFamily="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" fill="#721CBB">VIB</text>
+                {/* R - Green */}
+                <text x="88" y="42" fontSize="40" fontWeight="800" fontFamily="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" fill="#10964D">R</text>
+                {/* A - Heart shape with pulse line */}
+                <g transform="translate(126, 8)">
+                  {/* Heart shape A - outer */}
+                  <path
+                    d="M12 34 L22 10 L32 34 L12 34 Z"
+                    fill="#10964D"
+                    opacity="0.15"
+                  />
+                  {/* Heart top left curve */}
+                  <path
+                    d="M12 10 C12 2, 0 2, 0 10 C0 16, 8 22, 12 26"
+                    fill="#10964D"
+                    opacity="0.3"
+                  />
+                  {/* Heart top right curve */}
+                  <path
+                    d="M12 10 C12 2, 24 2, 24 10 C24 16, 16 22, 12 26"
+                    fill="#10964D"
+                    opacity="0.3"
+                  />
+                  {/* Heart center */}
+                  <path
+                    d="M12 10 C6 4, 0 6, 0 12 C0 18, 6 22, 12 28 C18 22, 24 18, 24 12 C24 6, 18 4, 12 10 Z"
+                    fill="#10964D"
+                    opacity="0.6"
+                  />
+                  {/* Heart inner highlight */}
+                  <path
+                    d="M12 12 C8 8, 4 10, 4 14 C4 18, 8 20, 12 24 C16 20, 20 18, 20 14 C20 10, 16 8, 12 12 Z"
+                    fill="#10964D"
+                    opacity="0.8"
+                  />
+                  {/* Pulse line running through heart */}
+                  <path
+                    d="M-4 18 L4 18 L6 12 L8 22 L10 18 L12 18 L14 12 L16 22 L18 18 L28 18"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      strokeDasharray: '60',
+                      strokeDashoffset: pulse ? '0' : '60',
+                      transition: 'stroke-dashoffset 0.3s ease',
+                    }}
+                  />
+                  {/* Heart center dot */}
+                  <circle
+                    cx="12"
+                    cy="18"
+                    r={pulse ? '4' : '2'}
+                    fill="white"
+                    style={{
+                      transition: 'all 0.3s ease',
+                    }}
+                  />
+                  {/* Pulse glow */}
+                  <circle
+                    cx="12"
+                    cy="18"
+                    r={pulse ? '12' : '6'}
+                    fill="#10964D"
+                    opacity={pulse ? '0.15' : '0'}
+                    style={{
+                      transition: 'all 0.3s ease',
+                    }}
+                  />
+                </g>
+              </svg>
             </div>
-            <div style={{
-              ...styles.heartbeatLine,
-              ...(pulse ? styles.heartbeatLineActive : {}),
-            }}>
-              <svg width="180" height="24" viewBox="0 0 180 24">
+            <div style={styles.heartbeatLine}>
+              <svg width="200" height="16" viewBox="0 0 200 16">
                 <polyline
-                  points="0,12 10,12 15,3 20,21 25,12 40,12 50,6 55,18 60,12 80,12 90,9 95,15 100,12 120,12 130,3 135,21 140,12 160,12 170,6 175,18 180,12"
+                  points="0,8 15,8 20,2 25,14 30,8 50,8 60,4 65,12 70,8 95,8 105,2 110,14 115,8 140,8 150,4 155,12 160,8 185,8 190,2 195,14 200,8"
                   fill="none"
                   stroke="white"
-                  strokeWidth="2.5"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  opacity="0.6"
                   style={{
-                    ...styles.heartbeatSvg,
-                    ...(pulse ? styles.heartbeatSvgActive : {}),
-                  }}
-                />
-                <circle
-                  cx="180"
-                  cy="12"
-                  r="2.5"
-                  fill="white"
-                  style={{
-                    ...styles.heartbeatDot,
-                    ...(pulse ? styles.heartbeatDotActive : {}),
+                    strokeDasharray: '200',
+                    strokeDashoffset: pulse ? '0' : '200',
+                    transition: 'stroke-dashoffset 0.5s ease',
                   }}
                 />
               </svg>
@@ -328,7 +389,7 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Stats Grid - Clean cards */}
+      {/* Stats Grid */}
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
           <div style={styles.statIcon}>
@@ -907,10 +968,14 @@ const styles = {
   heroSection: {
     background: 'linear-gradient(135deg, #721CBB, #10964D)',
     borderRadius: '16px',
-    padding: '24px 20px',
+    padding: '24px 16px',
     marginBottom: '16px',
     color: 'white',
     textAlign: 'center',
+    minHeight: '140px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroContent: {
     display: 'flex',
@@ -921,50 +986,24 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    marginBottom: '4px',
-  },
-  logoText: {
-    fontSize: '32px',
-    fontWeight: '800',
-    letterSpacing: '1px',
-    color: 'white',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   logoPulse: {
     transition: 'transform 0.1s ease',
     display: 'inline-block',
   },
   logoPulseActive: {
-    transform: 'scale(1.04)',
+    transform: 'scale(1.02)',
   },
   heartbeatLine: {
-    marginTop: '2px',
-    opacity: 0.8,
-  },
-  heartbeatLineActive: {
-    opacity: 1,
-  },
-  heartbeatSvg: {
-    strokeDasharray: '400',
-    strokeDashoffset: '400',
-    transition: 'stroke-dashoffset 0.3s ease',
-  },
-  heartbeatSvgActive: {
-    strokeDashoffset: '0',
-  },
-  heartbeatDot: {
-    transition: 'all 0.3s ease',
-    opacity: 0.3,
-  },
-  heartbeatDotActive: {
-    opacity: 1,
-    r: '3.5',
+    marginTop: '-2px',
+    opacity: 0.7,
+    height: '12px',
   },
   heroTagline: {
     fontSize: '13px',
     opacity: 0.85,
     letterSpacing: '3px',
-    margin: 0,
+    margin: '4px 0 0 0',
     fontWeight: '300',
   },
   profileCard: {
