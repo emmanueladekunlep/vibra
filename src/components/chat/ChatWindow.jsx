@@ -138,12 +138,10 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
 
     const unsubscribe = chatService.subscribeToMessages(handleWebSocketMessage);
 
-    // Clear any existing interval
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
     }
 
-    // Silent polling - faster response (1.5 seconds)
     pollIntervalRef.current = setInterval(() => {
       loadMessages(true);
     }, 1500);
@@ -262,7 +260,7 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
               Back
             </button>
           )}
-          <div style={styles.userInfo}>
+          <div style={styles.userInfo} onClick={() => onBack?.()}>
             <div style={styles.avatarSmall}>
               {otherUser.photos && otherUser.photos.length > 0 ? (
                 <img 
@@ -279,15 +277,15 @@ const ChatWindow = ({ conversationId, otherUser, onBack }) => {
                 </div>
               )}
             </div>
-            <div>
+            <div style={styles.userTextInfo}>
               <span style={styles.headerName}>
                 {otherUser.name}
                 {otherUser.isVerified && (
-                  <span style={styles.verifiedText}> Verified</span>
+                  <span style={styles.verifiedText}> ✓</span>
                 )}
               </span>
               <span style={styles.headerLevel}>
-                Level: {otherUser.level || 'Bronze'}
+                Level: {otherUser.level || 'Bronze'} • {otherUser.location || 'No location'}
               </span>
             </div>
           </div>
@@ -438,10 +436,16 @@ const styles = {
     gap: '10px',
     flex: 1,
     minWidth: 0,
+    cursor: 'pointer',
+  },
+  userTextInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
   },
   avatarSmall: {
-    width: '36px',
-    height: '36px',
+    width: '40px',
+    height: '40px',
     borderRadius: '50%',
     overflow: 'hidden',
     flexShrink: 0,
@@ -453,14 +457,15 @@ const styles = {
     objectFit: 'cover',
   },
   avatarPlaceholderSmall: {
-    width: '100%',
-    height: '100%',
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
     backgroundColor: '#6C3CE1',
     color: 'white',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '16px',
+    fontSize: '18px',
     fontWeight: '600',
   },
   headerName: {
@@ -471,13 +476,13 @@ const styles = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    maxWidth: '150px',
+    maxWidth: '160px',
   },
   verifiedText: {
     color: '#00B894',
     fontSize: '12px',
     fontWeight: '500',
-    marginLeft: '4px',
+    marginLeft: '2px',
   },
   headerLevel: {
     fontSize: '11px',

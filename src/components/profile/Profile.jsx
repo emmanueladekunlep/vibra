@@ -87,7 +87,6 @@ const Profile = ({ userId: propUserId, onEdit }) => {
   const { userId: paramUserId } = useParams();
   const navigate = useNavigate();
   
-  // Use prop userId, then param, then current user
   const targetUserId = propUserId || paramUserId || user?.id;
   
   const [profile, setProfile] = useState(null);
@@ -218,6 +217,29 @@ const Profile = ({ userId: propUserId, onEdit }) => {
   const zodiacSign = profile?.dateOfBirth ? getZodiacSign(profile.dateOfBirth) : null;
   const luckyNumber = profile?.dateOfBirth ? getLuckyNumber(profile.dateOfBirth) : null;
 
+  // Get display label for dating pace
+  const getDatingPaceLabel = (pace) => {
+    const map = {
+      'fast': 'Fast Tracker',
+      'medium': 'Vetter',
+      'slow': 'Pen Pal'
+    };
+    return map[pace] || pace;
+  };
+
+  // Get display label for lifestyle
+  const getLifestyleLabel = (style) => {
+    const map = {
+      'homebody': 'Homebody & Budget-Conscious',
+      'luxury': 'Fine Dining & High Luxury',
+      'adventurer': 'Outdoor Adventurer & Backpacking',
+      'social': 'Social Butterfly',
+      'balanced': 'Balanced',
+      'fitness': 'Fitness Enthusiast'
+    };
+    return map[style] || style;
+  };
+
   if (isLoading) {
     return (
       <div style={styles.container}>
@@ -310,6 +332,42 @@ const Profile = ({ userId: propUserId, onEdit }) => {
             )}
           </div>
         </div>
+
+        {/* ===== MATCHING PREFERENCES ===== */}
+        {!isOwner && (
+          <div style={styles.section}>
+            <h3 style={styles.sectionTitle}>Matching Preferences</h3>
+            <div style={styles.preferenceGrid}>
+              {profile.lifeGoals && (
+                <div style={styles.preferenceItem}>
+                  <span style={styles.preferenceLabel}>Life Goals</span>
+                  <span style={styles.preferenceValue}>{profile.lifeGoals}</span>
+                </div>
+              )}
+              {profile.dealbreakers && (
+                <div style={styles.preferenceItem}>
+                  <span style={styles.preferenceLabel}>Dealbreaker</span>
+                  <span style={styles.preferenceValue}>{profile.dealbreakers}</span>
+                </div>
+              )}
+              {profile.datingPace && (
+                <div style={styles.preferenceItem}>
+                  <span style={styles.preferenceLabel}>Dating Pace</span>
+                  <span style={styles.preferenceValue}>{getDatingPaceLabel(profile.datingPace)}</span>
+                </div>
+              )}
+              {profile.lifestyle && (
+                <div style={styles.preferenceItem}>
+                  <span style={styles.preferenceLabel}>Lifestyle</span>
+                  <span style={styles.preferenceValue}>{getLifestyleLabel(profile.lifestyle)}</span>
+                </div>
+              )}
+              {!profile.lifeGoals && !profile.dealbreakers && !profile.datingPace && !profile.lifestyle && (
+                <p style={styles.emptyText}>No preferences set yet</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {profile.photos && profile.photos.length > 0 && (
           <div style={styles.section}>
@@ -539,6 +597,32 @@ const styles = {
     objectFit: 'cover',
     borderRadius: '12px',
     border: '2px solid #f0f0f0',
+  },
+  preferenceGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  preferenceItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '8px 14px',
+    backgroundColor: '#f8f8f8',
+    borderRadius: '8px',
+    fontSize: '13px',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '4px',
+  },
+  preferenceLabel: {
+    color: '#888',
+    fontWeight: '500',
+    fontSize: '12px',
+  },
+  preferenceValue: {
+    color: '#1a1a1a',
+    fontWeight: '500',
+    textAlign: 'right',
   },
   editButton: {
     width: '100%',
