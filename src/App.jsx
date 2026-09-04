@@ -222,12 +222,21 @@ const AppLayout = ({ children }) => {
 };
 
 /**
- * Home Page - Colorful Badoo-style Feed
+ * Home Page - with Pulsing Heartbeat Logo
  */
 const HomePage = () => {
   const { user } = useAuth();
   const [selectedEvent, setSelectedEvent] = React.useState(null);
   const [showEventHost, setShowEventHost] = React.useState(false);
+  const [pulse, setPulse] = React.useState(false);
+
+  // Heartbeat pulse every 1.5 seconds
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setPulse(prev => !prev);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, []);
 
   if (selectedEvent) {
     return (
@@ -249,15 +258,49 @@ const HomePage = () => {
 
   return (
     <div style={styles.homeContainer}>
+      {/* Hero Section - Pulsing Heartbeat Logo */}
       <div style={styles.heroSection}>
         <div style={styles.heroContent}>
-          <h1 style={styles.heroTitle}>Connect. Vibe. Love.</h1>
-          <p style={styles.heroSubtitle}>Find real connections in Nigeria</p>
-          <div style={styles.heroBadges}>
-            <span style={styles.heroBadge}>Verified Users</span>
-            <span style={styles.heroBadge}>Real Gifts</span>
-            <span style={styles.heroBadge}>Nigeria</span>
+          {/* Logo with Pulse */}
+          <div style={styles.logoContainer}>
+            <div style={{
+              ...styles.logoPulse,
+              ...(pulse ? styles.logoPulseActive : {}),
+            }}>
+              <span style={styles.logoText}>VIBRA</span>
+            </div>
+            <div style={{
+              ...styles.heartbeatLine,
+              ...(pulse ? styles.heartbeatLineActive : {}),
+            }}>
+              <svg width="200" height="40" viewBox="0 0 200 40">
+                <polyline
+                  points="0,20 10,20 15,5 20,35 25,20 40,20 50,10 55,30 60,20 80,20 90,15 95,25 100,20 120,20 130,5 135,35 140,20 160,20 170,10 175,30 180,20 200,20"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{
+                    ...styles.heartbeatSvg,
+                    ...(pulse ? styles.heartbeatSvgActive : {}),
+                  }}
+                />
+                <circle
+                  cx="200"
+                  cy="20"
+                  r="3"
+                  fill="white"
+                  style={{
+                    ...styles.heartbeatDot,
+                    ...(pulse ? styles.heartbeatDotActive : {}),
+                  }}
+                />
+              </svg>
+            </div>
           </div>
+          {/* Tagline */}
+          <p style={styles.heroTagline}>Connect. Vibe. Love.</p>
         </div>
       </div>
 
@@ -849,34 +892,65 @@ const styles = {
     marginBottom: '20px',
     color: 'white',
     textAlign: 'center',
+    minHeight: '180px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroContent: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
   },
-  heroTitle: {
-    fontSize: '28px',
-    fontWeight: '700',
-    margin: '0 0 4px 0',
-  },
-  heroSubtitle: {
-    fontSize: '16px',
-    opacity: 0.9,
-    margin: '0 0 12px 0',
-  },
-  heroBadges: {
+  logoContainer: {
     display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
-    justifyContent: 'center',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: '8px',
   },
-  heroBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: '4px 14px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '500',
+  logoText: {
+    fontSize: '42px',
+    fontWeight: '700',
+    letterSpacing: '2px',
+    color: 'white',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  },
+  logoPulse: {
+    transition: 'transform 0.1s ease',
+    display: 'inline-block',
+  },
+  logoPulseActive: {
+    transform: 'scale(1.05)',
+  },
+  heartbeatLine: {
+    marginTop: '4px',
+    opacity: 0.8,
+  },
+  heartbeatLineActive: {
+    opacity: 1,
+  },
+  heartbeatSvg: {
+    strokeDasharray: '400',
+    strokeDashoffset: '400',
+    transition: 'stroke-dashoffset 0.3s ease',
+  },
+  heartbeatSvgActive: {
+    strokeDashoffset: '0',
+  },
+  heartbeatDot: {
+    transition: 'all 0.3s ease',
+    opacity: 0.3,
+  },
+  heartbeatDotActive: {
+    opacity: 1,
+    r: '4',
+  },
+  heroTagline: {
+    fontSize: '14px',
+    opacity: 0.9,
+    letterSpacing: '4px',
+    margin: 0,
+    fontWeight: '300',
   },
   profileCard: {
     backgroundColor: 'white',
