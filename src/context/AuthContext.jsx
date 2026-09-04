@@ -35,6 +35,10 @@ export const AuthProvider = ({ children }) => {
         if (cached && loggedIn) {
           // Ensure isFounder is properly set from cached data
           if (cached.isFounder === undefined) cached.isFounder = false;
+          // Ensure userId is used as the primary identifier
+          if (!cached.userId && cached.id) {
+            cached.userId = cached.id;
+          }
           setUser(cached);
           setIsAuthenticated(true);
         }
@@ -67,6 +71,10 @@ export const AuthProvider = ({ children }) => {
         if (userData) {
           // Ensure isFounder is set from database
           if (userData.isFounder === undefined) userData.isFounder = false;
+          // Ensure userId is set
+          if (!userData.userId && userData.id) {
+            userData.userId = userData.id;
+          }
           
           // Check if PIN is enabled and user needs to enter PIN
           if (userData.pinEnabled && !pin) {
@@ -142,6 +150,9 @@ export const AuthProvider = ({ children }) => {
   const completePinSetup = useCallback(async (userData) => {
     if (userData) {
       if (userData.isFounder === undefined) userData.isFounder = false;
+      if (!userData.userId && userData.id) {
+        userData.userId = userData.id;
+      }
       setUser(userData);
       setIsAuthenticated(true);
       setPendingPhone(null);
@@ -172,6 +183,9 @@ export const AuthProvider = ({ children }) => {
     const updated = authService.updateCachedUser(updates);
     if (updated) {
       if (updated.isFounder === undefined) updated.isFounder = false;
+      if (!updated.userId && updated.id) {
+        updated.userId = updated.id;
+      }
       setUser(updated);
     }
     return updated;
@@ -192,6 +206,9 @@ export const AuthProvider = ({ children }) => {
     const updated = authService.updateCachedUser({ hasWithdrawn: true });
     if (updated) {
       if (updated.isFounder === undefined) updated.isFounder = false;
+      if (!updated.userId && updated.id) {
+        updated.userId = updated.id;
+      }
       setUser(updated);
     }
     return updated;
