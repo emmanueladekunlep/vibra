@@ -40,22 +40,29 @@ import './App.css';
 // ===== VIBRA PULSING LOGO COMPONENT =====
 const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
   const sizes = {
-    small: { fontSize: 20, pulseW: 52, pulseH: 16, tagline: 7 },
-    medium: { fontSize: 32, pulseW: 78, pulseH: 20, tagline: 8.5 },
-    large: { fontSize: 44, pulseW: 110, pulseH: 26, tagline: 10 },
+    small: { fontSize: 20, pulseW: 42, pulseH: 14, tagline: 7 },
+    medium: { fontSize: 32, pulseW: 64, pulseH: 18, tagline: 8.5 },
+    large: { fontSize: 44, pulseW: 88, pulseH: 24, tagline: 10 },
   };
   const s = sizes[size] || sizes.medium;
 
   return (
-    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
-      <div style={{ display: 'flex', alignItems: 'center', lineHeight: 1 }}>
+    <div style={{ 
+      display: 'inline-flex', 
+      flexDirection: 'column', 
+      alignItems: 'center',
+      backgroundColor: '#ffffff',
+      padding: '24px 40px',
+      borderRadius: '20px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', lineHeight: 1, gap: '4px' }}>
         <span style={{
           color: '#721CBB',
           fontWeight: 900,
           fontSize: s.fontSize,
           letterSpacing: '-1.8px',
           fontFamily: 'Poppins, Inter, sans-serif',
-          textShadow: '0 1px 0 rgba(114,28,187,0.15)'
         }}>
           VIB
         </span>
@@ -63,32 +70,32 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
         <div style={{
           width: s.pulseW,
           height: s.pulseH,
-          margin: '0 -3px',
+          margin: '0 -2px',
           position: 'relative',
           overflow: 'visible',
           display: 'flex',
           alignItems: 'center'
         }}>
-          <svg width="100%" height="100%" viewBox="0 0 80 20" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+          <svg width="100%" height="100%" viewBox="0 0 70 18" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
             <path
-              d="M0 10 L20 10 L24 2 L28 18 L32 10 L40 10 L48 10 L52 3 L56 17 L60 10 L80 10"
-              stroke="rgba(114,28,187,0.18)"
+              d="M0 9 L18 9 L21 2 L25 16 L28 9 L35 9 L42 9 L45 3 L49 15 L52 9 L70 9"
+              stroke="rgba(114,28,187,0.15)"
               strokeWidth="1.5"
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
             <path
-              d="M0 10 L20 10 L24 2 L28 18 L32 10 L40 10 L48 10 L52 3 L56 17 L60 10 L80 10"
-              stroke="white"
-              strokeWidth="2.4"
+              d="M0 9 L18 9 L21 2 L25 16 L28 9 L35 9 L42 9 L45 3 L49 15 L52 9 L70 9"
+              stroke="#721CBB"
+              strokeWidth="2.2"
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeDasharray="16 180"
+              strokeDasharray="14 150"
               className={pulse ? "vibra-pulse-line" : ""}
               style={{
-                filter: 'drop-shadow(0 0 4px rgba(114,28,187,0.7)) drop-shadow(0 0 2px white)',
+                filter: 'drop-shadow(0 0 3px rgba(114,28,187,0.4))',
               }}
             />
           </svg>
@@ -101,7 +108,6 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
           letterSpacing: '-1.8px',
           fontFamily: 'Poppins, Inter, sans-serif',
           position: 'relative',
-          textShadow: '0 1px 0 rgba(16,150,77,0.15)'
         }}>
           ₦RA
           <span style={{
@@ -118,28 +124,26 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
 
       {showTagline && (
         <div style={{
-          marginTop: 5,
+          marginTop: 6,
           fontSize: s.tagline,
           letterSpacing: '3.8px',
-          fontWeight: 600,
+          fontWeight: 700,
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 4,
           fontFamily: 'Inter, sans-serif',
           textTransform: 'uppercase'
         }}>
-          <span style={{ color: '#721CBB', fontSize: s.tagline * 0.8 }}>♥</span>
           <span style={{ color: '#721CBB' }}>CONNECT.</span>
           <span style={{ color: '#10964D' }}>VIBE.</span>
           <span style={{ color: '#721CBB' }}>LOVE.</span>
-          <span style={{ color: '#10964D', fontSize: s.tagline * 0.8 }}>♥</span>
         </div>
       )}
 
       <style>{`
         @keyframes vibraPulseTravel {
-          0% { stroke-dashoffset: 140; }
-          100% { stroke-dashoffset: -140; }
+          0% { stroke-dashoffset: 130; }
+          100% { stroke-dashoffset: -130; }
         }
         .vibra-pulse-line {
           animation: vibraPulseTravel 1.35s linear infinite;
@@ -152,14 +156,14 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
 // Dark version for header (on white background)
 const VibraLogoDark = ({ size = 'small' }) => {
   const sizes = {
-    small: { fontSize: 20, pulseW: 52, pulseH: 16 },
-    medium: { fontSize: 32, pulseW: 78, pulseH: 20 },
+    small: { fontSize: 20, pulseW: 42, pulseH: 14 },
+    medium: { fontSize: 32, pulseW: 64, pulseH: 18 },
   };
   const s = sizes[size] || sizes.small;
 
   return (
     <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
-      <div style={{ display: 'flex', alignItems: 'center', lineHeight: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', lineHeight: 1, gap: '4px' }}>
         <span style={{
           color: '#721CBB',
           fontWeight: 900,
@@ -168,16 +172,16 @@ const VibraLogoDark = ({ size = 'small' }) => {
           fontFamily: 'Poppins, Inter, sans-serif'
         }}>VIB</span>
 
-        <div style={{ width: s.pulseW, height: s.pulseH, margin: '0 -3px', display: 'flex', alignItems: 'center' }}>
-          <svg width="100%" height="100%" viewBox="0 0 80 20" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+        <div style={{ width: s.pulseW, height: s.pulseH, margin: '0 -2px', display: 'flex', alignItems: 'center' }}>
+          <svg width="100%" height="100%" viewBox="0 0 70 18" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
             <path
-              d="M0 10 L20 10 L24 2 L28 18 L32 10 L40 10 L48 10 L52 3 L56 17 L60 10 L80 10"
+              d="M0 9 L18 9 L21 2 L25 16 L28 9 L35 9 L42 9 L45 3 L49 15 L52 9 L70 9"
               stroke="#721CBB"
               strokeWidth="2.2"
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeDasharray="16 180"
+              strokeDasharray="14 150"
               className="vibra-pulse-line-dark"
             />
           </svg>
@@ -204,8 +208,8 @@ const VibraLogoDark = ({ size = 'small' }) => {
       </div>
       <style>{`
         @keyframes vibraPulseTravelDark {
-          0% { stroke-dashoffset: 140; }
-          100% { stroke-dashoffset: -140; }
+          0% { stroke-dashoffset: 130; }
+          100% { stroke-dashoffset: -130; }
         }
         .vibra-pulse-line-dark {
           animation: vibraPulseTravelDark 1.35s linear infinite;
@@ -676,11 +680,10 @@ const styles = {
   content: { flex: 1, overflowY: 'auto', paddingBottom: '70px' },
   homeContainer: { padding: '14px', maxWidth: '600px', margin: '0 auto', width: '100%' },
   heroSection: {
-    background: 'linear-gradient(135deg, #721CBB 0%, #5B1FA8 40%, #10964D 100%)',
+    backgroundColor: '#f5f5f5',
     borderRadius: '20px',
     padding: '28px 16px',
     marginBottom: '16px',
-    color: 'white',
     textAlign: 'center',
     minHeight: '120px',
     display: 'flex',

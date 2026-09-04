@@ -21,25 +21,25 @@ const Logo = () => {
       <div style={styles.logoRow}>
         <span style={styles.vibText}>VIB</span>
         <div style={styles.pulseWrap}>
-          <svg width="100%" height="100%" viewBox="0 0 80 20" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-            <path d="M0 10 L20 10 L24 2 L28 18 L32 10 L40 10 L48 10 L52 3 L56 17 L60 10 L80 10"
-              stroke="#721CBB" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round"
-              strokeDasharray="16 180" className="loginPulse"
-              style={{ filter: 'drop-shadow(0 0 4px rgba(114,28,187,0.5))' }}
+          <svg width="100%" height="100%" viewBox="0 0 60 18" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+            <path d="M0 9 L15 9 L18 2 L22 16 L25 9 L32 9 L38 9 L41 3 L45 15 L48 9 L60 9"
+              stroke="#721CBB" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round"
+              strokeDasharray="14 150" className="loginPulse"
+              style={{ filter: 'drop-shadow(0 0 3px rgba(114,28,187,0.4))' }}
             />
           </svg>
         </div>
-        <span style={styles.raText}>RA
+        <span style={styles.raText}>₦RA
           <span style={styles.heartInA}>♥</span>
         </span>
       </div>
       <div style={styles.taglineRow}>
-        <span style={styles.taglineHeartPurple}>♥</span>
-        <span style={styles.tagline}>CONNECT. VIBE. LOVE.</span>
-        <span style={styles.taglineHeartGreen}>♥</span>
+        <span style={styles.taglinePurple}>CONNECT.</span>
+        <span style={styles.taglineGreen}>VIBE.</span>
+        <span style={styles.taglinePurple}>LOVE.</span>
       </div>
       <style>{`
-        @keyframes loginPulseAnim {0%{stroke-dashoffset:160}100%{stroke-dashoffset:-160}}
+        @keyframes loginPulseAnim {0%{stroke-dashoffset:130}100%{stroke-dashoffset:-130}}
         .loginPulse { animation: loginPulseAnim 1.4s linear infinite; }
       `}</style>
     </div>
@@ -276,11 +276,11 @@ const Login = () => {
                 </div>
                 <div style={styles.inputGroup}>
                   <label style={styles.label}>New PIN (4 digits)</label>
-                  <input type="password" value={resetPin} onChange={(e) => setResetPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} />
+                  <input type="password" value={resetPin} onChange={(e) => setResetPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} inputMode="numeric" pattern="[0-9]*" />
                 </div>
                 <div style={styles.inputGroup}>
                   <label style={styles.label}>Confirm New PIN</label>
-                  <input type="password" value={resetConfirmPin} onChange={(e) => setResetConfirmPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} />
+                  <input type="password" value={resetConfirmPin} onChange={(e) => setResetConfirmPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} inputMode="numeric" pattern="[0-9]*" />
                 </div>
                 <button type="submit" style={styles.button} disabled={isVerifyingSecurity}>{isVerifyingSecurity ? 'Verifying...' : 'Reset PIN'}</button>
                 <button type="button" onClick={() => { setShowSecurityQuestions(false); setSecurityError(null); }} style={{...styles.button, ...styles.skipButton}}>Back</button>
@@ -303,11 +303,11 @@ const Login = () => {
           <form onSubmit={handleSetPin} style={styles.form}>
             <div style={styles.inputGroup}>
               <label style={styles.label}>New PIN</label>
-              <input type="password" value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} disabled={isLoading} />
+              <input type="password" value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} disabled={isLoading} inputMode="numeric" pattern="[0-9]*" />
             </div>
             <div style={styles.inputGroup}>
               <label style={styles.label}>Confirm PIN</label>
-              <input type="password" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} disabled={isLoading} />
+              <input type="password" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} disabled={isLoading} inputMode="numeric" pattern="[0-9]*" />
             </div>
             <button type="submit" style={styles.button} disabled={isLoading}>{isLoading ? 'Setting...' : 'Set PIN & Continue'}</button>
           </form>
@@ -327,7 +327,7 @@ const Login = () => {
           {(error || loginError) && <div style={styles.errorContainer}><p style={styles.errorText}>{error || loginError}</p></div>}
           <form onSubmit={handlePinSubmit} style={styles.form}>
             <div style={styles.inputGroup}>
-              <input type="password" value={pin} onChange={(e) => setPinInput(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} disabled={isLoading} autoFocus />
+              <input type="password" value={pin} onChange={(e) => setPinInput(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} disabled={isLoading} autoFocus inputMode="numeric" pattern="[0-9]*" />
             </div>
             <button type="submit" style={styles.button} disabled={isLoading}>{isLoading ? 'Verifying...' : 'Continue'}</button>
             <button type="button" onClick={() => setShowForgotPin(true)} style={{...styles.button, backgroundColor: 'transparent', color: '#721CBB', border: '1.5px solid #F3E8FF'}}>Forgot PIN?</button>
@@ -361,18 +361,17 @@ const Login = () => {
 };
 
 const styles = {
-  container: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f8f7fb', fontFamily: 'Inter, Poppins, sans-serif', padding: '20px' },
-  card: { backgroundColor: 'white', borderRadius: '24px', padding: '32px 28px', maxWidth: '420px', width: '100%', boxShadow: '0 12px 40px rgba(114,28,187,0.1)', border: '1px solid #F3E8FF' },
+  container: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f5f5f5', fontFamily: 'Inter, Poppins, sans-serif', padding: '20px' },
+  card: { backgroundColor: 'white', borderRadius: '24px', padding: '32px 28px', maxWidth: '420px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.08)', border: '1px solid #f0f0f0' },
   logoContainer: { textAlign: 'center', marginBottom: '20px' },
   logoRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0 },
   vibText: { color: '#721CBB', fontWeight: 900, fontSize: 36, letterSpacing: '-1.5px', fontFamily: 'Poppins, sans-serif' },
-  pulseWrap: { width: 72, height: 20, margin: '0 -2px', display: 'flex', alignItems: 'center' },
+  pulseWrap: { width: 60, height: 18, margin: '0 -2px', display: 'flex', alignItems: 'center' },
   raText: { color: '#10964D', fontWeight: 900, fontSize: 36, letterSpacing: '-1.5px', fontFamily: 'Poppins, sans-serif', position: 'relative' },
   heartInA: { position: 'absolute', top: '18%', right: '22%', fontSize: 9, color: 'white', lineHeight: 1 },
-  taglineRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 6 },
-  taglineHeartPurple: { color: '#721CBB', fontSize: 8 },
-  taglineHeartGreen: { color: '#10964D', fontSize: 8 },
-  tagline: { color: '#9CA3AF', fontSize: '9px', letterSpacing: '3px', fontWeight: 600 },
+  taglineRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 6 },
+  taglinePurple: { color: '#721CBB', fontSize: '9px', letterSpacing: '3px', fontWeight: 700 },
+  taglineGreen: { color: '#10964D', fontSize: '9px', letterSpacing: '3px', fontWeight: 700 },
   setupTitle: { fontSize: '18px', fontWeight: '700', textAlign: 'center', color: '#1a1a1a', margin: '0 0 18px 0' },
   title: { fontSize: '22px', fontWeight: '800', margin: '0 0 4px 0', color: '#1a1a1a', textAlign: 'center', letterSpacing: '-0.3px' },
   subtitle: { fontSize: '13px', color: '#6B7280', margin: '0 0 20px 0', textAlign: 'center' },
