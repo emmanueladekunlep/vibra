@@ -1,5 +1,6 @@
 /**
  * VIBRA - Global Styles
+ * Brand Colors: Purple #721CBB, Green #10964D
  */
 
 * {
@@ -11,38 +12,35 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
     'Helvetica Neue', Arial, sans-serif;
-  background-color: #f5f5f5;
+  background-color: #f8f6fc;
   color: #1a1a1a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f0f0f0;
+  background: #f0edf5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #6C3CE1;
+  background: #721CBB;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #5a2fc4;
+  background: #5a1696;
 }
 
-/* Input focus styles */
 input:focus, textarea:focus, select:focus {
-  border-color: #6C3CE1 !important;
-  box-shadow: 0 0 0 3px rgba(108, 60, 225, 0.1) !important;
+  border-color: #721CBB !important;
+  box-shadow: 0 0 0 3px rgba(114, 28, 187, 0.1) !important;
 }
 
-/* Button hover effects */
 button:hover:not(:disabled) {
   transform: scale(0.98);
   opacity: 0.9;
@@ -52,7 +50,6 @@ button:active:not(:disabled) {
   transform: scale(0.95);
 }
 
-/* Utility */
 .text-center {
   text-align: center;
 }
@@ -69,13 +66,12 @@ button:active:not(:disabled) {
 .mb-2 { margin-bottom: 16px; }
 .mb-3 { margin-bottom: 24px; }
 
-/* Brand gradient */
 .brand-gradient {
-  background: linear-gradient(135deg, #6C3CE1, #00B894);
+  background: linear-gradient(135deg, #721CBB, #10964D);
 }
 
 .brand-text {
-  background: linear-gradient(135deg, #6C3CE1, #00B894);
+  background: linear-gradient(135deg, #721CBB, #10964D);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

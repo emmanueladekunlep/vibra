@@ -156,7 +156,6 @@ const AppLayout = ({ children }) => {
 
   return (
     <div style={styles.layout}>
-      {/* Header with Notification Bell */}
       <div style={styles.headerBar}>
         <span style={styles.headerTitle}>VIBRA</span>
         <div style={styles.headerActions}>
@@ -165,7 +164,7 @@ const AppLayout = ({ children }) => {
               onClick={handleInstall}
               style={styles.installButton}
             >
-              📱 Install
+              Install
             </button>
           )}
           <div style={styles.notificationContainer}>
@@ -250,20 +249,18 @@ const HomePage = () => {
 
   return (
     <div style={styles.homeContainer}>
-      {/* Hero Section - Badoo style */}
       <div style={styles.heroSection}>
         <div style={styles.heroContent}>
           <h1 style={styles.heroTitle}>Connect. Vibe. Love.</h1>
           <p style={styles.heroSubtitle}>Find real connections in Nigeria</p>
           <div style={styles.heroBadges}>
-            <span style={styles.heroBadge}>✅ Verified Users</span>
-            <span style={styles.heroBadge}>💰 Real Gifts</span>
-            <span style={styles.heroBadge}>📍 Nigeria</span>
+            <span style={styles.heroBadge}>Verified Users</span>
+            <span style={styles.heroBadge}>Real Gifts</span>
+            <span style={styles.heroBadge}>Nigeria</span>
           </div>
         </div>
       </div>
 
-      {/* Profile Card - Badoo style */}
       <div style={styles.profileCard}>
         <div style={styles.profileCardHeader}>
           <div style={styles.profileCardAvatar}>
@@ -278,11 +275,11 @@ const HomePage = () => {
             <p style={styles.profileCardLevel}>
               <span style={{ color: getLevelColor(user?.level) }}>●</span> {user?.level || 'Bronze'}
             </p>
-            <p style={styles.profileCardPoints}>⭐ {user?.points || 0} points</p>
+            <p style={styles.profileCardPoints}>{user?.points || 0} points</p>
           </div>
           <div style={styles.profileCardBadge}>
             {user?.isVerified ? (
-              <span style={styles.verifiedBadgeLarge}>✓ Verified</span>
+              <span style={styles.verifiedBadgeLarge}>Verified</span>
             ) : (
               <span style={styles.unverifiedBadge}>Get Verified</span>
             )}
@@ -290,17 +287,16 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Quick Stats - Badoo style cards */}
       <div style={styles.statsGrid}>
-        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #6C3CE1, #8B5CF6)'}}>
+        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #721CBB, #8B5CF6)'}}>
           <span style={styles.statValue}>{user?.level || 'Bronze'}</span>
           <span style={styles.statLabel}>Level</span>
         </div>
-        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #00B894, #00D68F)'}}>
+        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #10964D, #00D68F)'}}>
           <span style={styles.statValue}>{user?.points || 0}</span>
           <span style={styles.statLabel}>Points</span>
         </div>
-        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #FF6B35, #FF8A65)'}}>
+        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #721CBB, #10964D)'}}>
           <span style={styles.statValue}>
             {user?.isVerified ? '✓' : '⏳'}
           </span>
@@ -310,15 +306,13 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Section Title */}
       <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>🔥 Events Near You</h3>
+        <h3 style={styles.sectionTitle}>Events Near You</h3>
         <button onClick={() => setShowEventHost(true)} style={styles.hostEventButton}>
           + Host
         </button>
       </div>
 
-      {/* Events Feed */}
       <div style={styles.feedSection}>
         <EventList 
           onSelectEvent={(id) => setSelectedEvent(id)} 
@@ -454,7 +448,7 @@ const GiftsPage = () => {
       <div style={styles.giftsActions}>
         <button 
           onClick={() => setShowBuyPoints(true)} 
-          style={{...styles.giftActionButton, backgroundColor: '#FFD700', color: '#1a1a1a'}}
+          style={{...styles.giftActionButton, backgroundColor: '#10964D', color: 'white'}}
         >
           Buy Points
         </button>
@@ -466,14 +460,14 @@ const GiftsPage = () => {
         </button>
         <button 
           onClick={() => setShowRedemption(true)} 
-          style={{...styles.giftActionButton, backgroundColor: '#00B894'}}
+          style={{...styles.giftActionButton, backgroundColor: '#10964D'}}
         >
           Redeem Gift
         </button>
         {user?.level === 'Diamond' && (
           <button 
             onClick={() => setShowCodeGen(true)} 
-            style={{...styles.giftActionButton, backgroundColor: '#6C3CE1'}}
+            style={styles.giftActionButton}
           >
             Generate Codes
           </button>
@@ -577,7 +571,7 @@ const ProfilePage = () => {
       <div style={styles.profileActions}>
         <button 
           onClick={() => setShowMyGifts(true)} 
-          style={{...styles.profileActionButton, backgroundColor: '#00B894'}}
+          style={{...styles.profileActionButton, backgroundColor: '#10964D'}}
         >
           My Gifts
         </button>
@@ -608,7 +602,7 @@ const ProfilePage = () => {
         {isAdmin && (
           <button 
             onClick={() => setShowAdmin(true)} 
-            style={{...styles.profileActionButton, backgroundColor: '#FFD700', color: '#1a1a1a'}}
+            style={{...styles.profileActionButton, backgroundColor: '#721CBB', color: 'white'}}
           >
             Admin Panel
           </button>
@@ -715,14 +709,14 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     height: '100vh',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f6fc',
   },
   headerBar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 16px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     flexShrink: 0,
     zIndex: 10,
@@ -737,7 +731,7 @@ const styles = {
     gap: '12px',
   },
   installButton: {
-    background: '#00B894',
+    background: '#10964D',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
@@ -827,8 +821,8 @@ const styles = {
   clearAllButton: {
     width: '100%',
     padding: '10px',
-    backgroundColor: '#f0edff',
-    color: '#6C3CE1',
+    backgroundColor: '#f0ebf8',
+    color: '#721CBB',
     border: 'none',
     borderRadius: '8px',
     fontSize: '13px',
@@ -849,7 +843,7 @@ const styles = {
     width: '100%',
   },
   heroSection: {
-    background: 'linear-gradient(135deg, #6C3CE1, #00B894)',
+    background: 'linear-gradient(135deg, #721CBB, #10964D)',
     borderRadius: '20px',
     padding: '30px 24px',
     marginBottom: '20px',
@@ -902,7 +896,7 @@ const styles = {
     borderRadius: '50%',
     overflow: 'hidden',
     flexShrink: 0,
-    border: '3px solid #6C3CE1',
+    border: '3px solid #721CBB',
   },
   profileCardImg: {
     width: '100%',
@@ -918,7 +912,7 @@ const styles = {
     fontSize: '24px',
     fontWeight: '700',
     color: 'white',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
   },
   profileCardInfo: {
     flex: 1,
@@ -943,7 +937,7 @@ const styles = {
     flexShrink: 0,
   },
   verifiedBadgeLarge: {
-    backgroundColor: '#00B894',
+    backgroundColor: '#10964D',
     color: 'white',
     padding: '4px 12px',
     borderRadius: '12px',
@@ -994,7 +988,7 @@ const styles = {
   },
   hostEventButton: {
     padding: '6px 16px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '20px',
@@ -1031,7 +1025,7 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: 'white',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     border: 'none',
     borderRadius: '12px',
     cursor: 'pointer',
@@ -1055,7 +1049,7 @@ const styles = {
     fontSize: '15px',
     fontWeight: '500',
     color: 'white',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',

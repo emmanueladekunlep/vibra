@@ -3,33 +3,33 @@
  * Module: App Integration
  * 
  * Bottom navigation bar for the main app.
- * Professional design with SVG icons.
+ * Brand colors: Purple #721CBB, Green #10964D
  */
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-// Professional SVG Icons
+// Professional SVG Icons with brand colors
 const Icons = {
   Home: ({ active }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#6C3CE1' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/>
     </svg>
   ),
   Search: ({ active }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#6C3CE1' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8"/>
       <path d="M21 21l-4.35-4.35"/>
     </svg>
   ),
   Chat: ({ active }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#6C3CE1' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
     </svg>
   ),
   Gifts: ({ active }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#6C3CE1' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 12v10H4V12"/>
       <path d="M2 7h20v5H2z"/>
       <path d="M12 22V7"/>
@@ -38,7 +38,7 @@ const Icons = {
     </svg>
   ),
   Profile: ({ active }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#6C3CE1' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
       <circle cx="12" cy="7" r="4"/>
     </svg>
@@ -120,9 +120,9 @@ const styles = {
     left: 0,
     right: 0,
     backgroundColor: 'white',
-    borderTop: '1px solid #f0edff',
+    borderTop: '1px solid #f0ebf8',
     padding: '8px 0 14px 0',
-    boxShadow: '0 -4px 20px rgba(108, 60, 225, 0.06)',
+    boxShadow: '0 -4px 20px rgba(114, 28, 187, 0.06)',
     zIndex: 100,
   },
   navBar: {
@@ -149,7 +149,7 @@ const styles = {
     minWidth: '44px',
   },
   navButtonActive: {
-    backgroundColor: '#f5f0ff',
+    backgroundColor: '#f0ebf8',
     borderRadius: '10px',
   },
   navLabel: {
@@ -160,7 +160,7 @@ const styles = {
     letterSpacing: '0.3px',
   },
   navLabelActive: {
-    color: '#6C3CE1',
+    color: '#721CBB',
     fontWeight: '600',
   },
   logoutButton: {
