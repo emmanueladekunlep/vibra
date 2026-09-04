@@ -105,6 +105,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deletingPhoto, setDeletingPhoto] = useState(false);
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -170,10 +171,6 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       setZodiacSign(getZodiacSign(value));
       setLuckyNumber(getLuckyNumber(value));
     }
-  };
-
-  const handleMultiSelectChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -247,7 +244,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
     setError(null);
 
     try {
-      const result = await profileService.uploadPhoto(userId, file);
+      await profileService.uploadPhoto(userId, file);
       const updated = await profileService.getProfile(userId);
       setProfile(updated);
       if (user?.id === userId) {
@@ -268,6 +265,9 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
   const handleRemovePhoto = async (photoId) => {
     if (!confirm('Remove this photo?')) return;
 
+    setDeletingPhoto(true);
+    setError(null);
+
     try {
       await profileService.removePhoto(userId, photoId);
       const updated = await profileService.getProfile(userId);
@@ -275,9 +275,63 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       if (user?.id === userId) {
         updateUser(updated);
       }
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError('Failed to remove photo');
+    } finally {
+      setDeletingPhoto(false);
     }
+  };
+
+  const handleReplacePhoto = async (photoId, file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be less than 5MB');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setError(null);
+
+    try {
+      // First remove old photo, then upload new one
+      await profileService.removePhoto(userId, photoId);
+      await profileService.uploadPhoto(userId, file);
+      const updated = await profileService.getProfile(userId);
+      setProfile(updated);
+      if (user?.id === userId) {
+        updateUser(updated);
+      }
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to replace photo');
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleFileSelectForReplace = (photoId) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        handleReplacePhoto(photoId, file);
+      }
+    };
+    input.click();
   };
 
   if (isLoading) {
@@ -300,12 +354,22 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
             {profile?.photos?.map((photo) => (
               <div key={photo.id} style={styles.photoItem}>
                 <img src={photo.url} alt="Profile" style={styles.photoPreview} />
-                <button
-                  onClick={() => handleRemovePhoto(photo.id)}
-                  style={styles.removePhotoBtn}
-                >
-                  ✕
-                </button>
+                <div style={styles.photoActions}>
+                  <button
+                    onClick={() => handleFileSelectForReplace(photo.id)}
+                    style={{...styles.photoActionBtn, ...styles.replaceBtn}}
+                    title="Replace photo"
+                  >
+                    ↻
+                  </button>
+                  <button
+                    onClick={() => handleRemovePhoto(photo.id)}
+                    style={{...styles.photoActionBtn, ...styles.removeBtn}}
+                    title="Remove photo"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             ))}
             {(profile?.photos?.length || 0) < 10 && (
@@ -595,29 +659,40 @@ const styles = {
     position: 'relative',
     width: '80px',
     height: '80px',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    border: '2px solid #f0f0f0',
   },
   photoPreview: {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
-    borderRadius: '12px',
-    border: '2px solid #f0f0f0',
   },
-  removePhotoBtn: {
+  photoActions: {
     position: 'absolute',
-    top: '-6px',
-    right: '-6px',
-    width: '24px',
-    height: '24px',
+    top: '4px',
+    right: '4px',
+    display: 'flex',
+    gap: '4px',
+  },
+  photoActionBtn: {
+    width: '22px',
+    height: '22px',
     borderRadius: '50%',
-    backgroundColor: '#ff4444',
-    color: 'white',
     border: 'none',
-    fontSize: '12px',
+    fontSize: '11px',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    color: 'white',
+    fontWeight: '700',
+  },
+  replaceBtn: {
+    backgroundColor: '#6C3CE1',
+  },
+  removeBtn: {
+    backgroundColor: '#ff4444',
   },
   addPhotoBox: {
     width: '80px',
