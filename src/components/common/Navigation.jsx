@@ -1,35 +1,32 @@
 /**
- * VIBRA - Navigation Component
- * Module: App Integration
- * 
- * Bottom navigation bar for the main app.
- * Brand colors: Purple #721CBB, Green #10964D
+ * VIBRA - Navigation Component - FIXED
+ * Brand: Vib #721CBB, ra #10964D, pulse on active
  */
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-// Professional SVG Icons with brand colors
 const Icons = {
   Home: ({ active }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#9CA3AF'} strokeWidth={active ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/>
+      {active && <circle cx="12" cy="6" r="1.5" fill="#10964D" />}
     </svg>
   ),
   Search: ({ active }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#9CA3AF'} strokeWidth={active ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8"/>
       <path d="M21 21l-4.35-4.35"/>
     </svg>
   ),
   Chat: ({ active }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#9CA3AF'} strokeWidth={active ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
     </svg>
   ),
   Gifts: ({ active }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#9CA3AF'} strokeWidth={active ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 12v10H4V12"/>
       <path d="M2 7h20v5H2z"/>
       <path d="M12 22V7"/>
@@ -38,13 +35,13 @@ const Icons = {
     </svg>
   ),
   Profile: ({ active }) => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#721CBB' : '#9CA3AF'} strokeWidth={active ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
       <circle cx="12" cy="7" r="4"/>
     </svg>
   ),
   Logout: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
       <polyline points="16 17 21 12 16 7"/>
       <line x1="21" y1="12" x2="9" y2="12"/>
@@ -92,7 +89,10 @@ const Navigation = () => {
                 ...(active ? styles.navButtonActive : {}),
               }}
             >
-              <Icon active={active} />
+              <div style={active ? styles.iconPulseWrap : {}}>
+                <Icon active={active} />
+                {active && <span style={styles.activePulseDot} />}
+              </div>
               <span style={{
                 ...styles.navLabel,
                 ...(active ? styles.navLabelActive : {}),
@@ -102,13 +102,18 @@ const Navigation = () => {
             </button>
           );
         })}
-        <button
-          onClick={handleLogout}
-          style={styles.logoutButton}
-        >
+        <button onClick={handleLogout} style={styles.logoutButton}>
           <Icons.Logout />
         </button>
       </div>
+
+      <style>{`
+        @keyframes vibraNavPulse {
+          0% { transform: scale(0.8); opacity: 0.8; }
+          50% { transform: scale(1.4); opacity: 0; }
+          100% { transform: scale(1.4); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 };
@@ -120,9 +125,9 @@ const styles = {
     left: 0,
     right: 0,
     backgroundColor: 'white',
-    borderTop: '1px solid #f0ebf8',
-    padding: '8px 0 14px 0',
-    boxShadow: '0 -4px 20px rgba(114, 28, 187, 0.06)',
+    borderTop: '1px solid #F3E8FF',
+    padding: '8px 0 calc(14px + env(safe-area-inset-bottom)) 0',
+    boxShadow: '0 -4px 24px rgba(114, 28, 187, 0.08)',
     zIndex: 100,
   },
   navBar: {
@@ -131,52 +136,61 @@ const styles = {
     alignItems: 'center',
     maxWidth: '600px',
     margin: '0 auto',
-    padding: '0 6px',
+    padding: '0 4px',
   },
   navButton: {
     flex: 1,
     background: 'none',
     border: 'none',
-    padding: '4px 2px',
+    padding: '6px 2px',
     cursor: 'pointer',
-    borderRadius: '10px',
+    borderRadius: '12px',
     transition: 'all 0.2s ease',
     fontFamily: 'inherit',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '2px',
+    gap: '3px',
     minWidth: '44px',
   },
   navButtonActive: {
-    backgroundColor: '#f0ebf8',
-    borderRadius: '10px',
+    backgroundColor: '#F5F0FF',
+  },
+  iconPulseWrap: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activePulseDot: {
+    position: 'absolute',
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(114, 28, 187, 0.15)',
+    animation: 'vibraNavPulse 1.5s infinite',
+    zIndex: -1,
   },
   navLabel: {
     fontSize: '10px',
     fontWeight: '500',
-    color: '#999',
-    transition: 'color 0.2s ease',
+    color: '#9CA3AF',
     letterSpacing: '0.3px',
   },
   navLabelActive: {
     color: '#721CBB',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   logoutButton: {
     background: 'none',
     border: 'none',
-    padding: '4px 2px',
+    padding: '6px 8px',
     cursor: 'pointer',
     borderRadius: '10px',
-    fontFamily: 'inherit',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '2px',
-    minWidth: '44px',
-    opacity: 0.5,
-    transition: 'opacity 0.2s ease',
+    opacity: 0.6,
   },
 };
 

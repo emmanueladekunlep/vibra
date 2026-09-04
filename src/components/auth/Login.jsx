@@ -1,8 +1,6 @@
 /**
- * VIBRA - Login Component
- * Module: Authentication
- * 
- * Login screen - phone number entry with 4-digit PIN support.
+ * VIBRA - Login Component - FIXED with Pulsing Logo
+ * Brand: Vib #721CBB, ra #10964D, always pulsing
  */
 
 import React, { useState, useEffect } from 'react';
@@ -15,6 +13,38 @@ const LoadingSpinner = () => (
     <p style={styles.loadingText}>Loading...</p>
   </div>
 );
+
+// VIBRA PULSING LOGO - Large for Login
+const Logo = () => {
+  return (
+    <div style={styles.logoContainer}>
+      <div style={styles.logoRow}>
+        <span style={styles.vibText}>VIB</span>
+        <div style={styles.pulseWrap}>
+          <svg width="100%" height="100%" viewBox="0 0 80 20" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+            <path d="M0 10 L20 10 L24 2 L28 18 L32 10 L40 10 L48 10 L52 3 L56 17 L60 10 L80 10"
+              stroke="#721CBB" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round"
+              strokeDasharray="16 180" className="loginPulse"
+              style={{ filter: 'drop-shadow(0 0 4px rgba(114,28,187,0.5))' }}
+            />
+          </svg>
+        </div>
+        <span style={styles.raText}>RA
+          <span style={styles.heartInA}>♥</span>
+        </span>
+      </div>
+      <div style={styles.taglineRow}>
+        <span style={styles.taglineHeartPurple}>♥</span>
+        <span style={styles.tagline}>CONNECT. VIBE. LOVE.</span>
+        <span style={styles.taglineHeartGreen}>♥</span>
+      </div>
+      <style>{`
+        @keyframes loginPulseAnim {0%{stroke-dashoffset:160}100%{stroke-dashoffset:-160}}
+        .loginPulse { animation: loginPulseAnim 1.4s linear infinite; }
+      `}</style>
+    </div>
+  );
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -35,7 +65,6 @@ const Login = () => {
   const [loginPhone, setLoginPhone] = useState('');
   const [needsPinSetup, setNeedsPinSetup] = useState(false);
 
-  // Security questions state
   const [securityQuestions, setSecurityQuestions] = useState([]);
   const [selectedQuestion1, setSelectedQuestion1] = useState('');
   const [selectedQuestion2, setSelectedQuestion2] = useState('');
@@ -45,14 +74,12 @@ const Login = () => {
   const [securityError, setSecurityError] = useState(null);
   const [isVerifyingSecurity, setIsVerifyingSecurity] = useState(false);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
-  // Show PIN screen when auth context requires it
   useEffect(() => {
     if (authRequiresPin && pendingPhone) {
       setLoginPhone(pendingPhone);
@@ -65,51 +92,41 @@ const Login = () => {
     e.preventDefault();
     setLoginError(null);
     setNeedsPinSetup(false);
-
     if (!phone || phone.length < 10) {
       setLoginError('Please enter a valid phone number');
       return;
     }
-
     const result = await loginWithOpay(phone, null);
-    
     if (result.requiresPin) {
       setLoginPhone(phone);
       setShowPinScreen(true);
       return;
     }
-
     if (result.needsPinSetup) {
       setLoginPhone(phone);
       setNeedsPinSetup(true);
       setShowSetPin(true);
       return;
     }
-
     if (!result.success) {
       setLoginError(result.error || 'Login failed');
       return;
     }
-
     navigate('/', { replace: true });
   };
 
   const handlePinSubmit = async (e) => {
     e.preventDefault();
     setLoginError(null);
-
     if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
       setLoginError('Please enter a valid 4-digit PIN');
       return;
     }
-
     const result = await loginWithOpay(loginPhone, pin);
-    
     if (!result.success) {
       setLoginError(result.error || 'Invalid PIN');
       return;
     }
-
     setShowPinScreen(false);
     navigate('/', { replace: true });
   };
@@ -117,24 +134,19 @@ const Login = () => {
   const handleSetPin = async (e) => {
     e.preventDefault();
     setLoginError(null);
-
     if (!newPin || newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
       setLoginError('PIN must be 4 digits');
       return;
     }
-
     if (newPin !== confirmPin) {
       setLoginError('PINs do not match');
       return;
     }
-
     const result = await setPin(loginPhone, newPin);
-    
     if (!result.success) {
       setLoginError(result.error || 'Failed to set PIN');
       return;
     }
-
     const loginResult = await loginWithOpay(loginPhone, newPin);
     if (loginResult.success) {
       setShowSetPin(false);
@@ -144,17 +156,14 @@ const Login = () => {
     }
   };
 
-  // Handle Forgot PIN - Step 1: Enter phone, get security questions
   const handleForgotPinStep1 = async (e) => {
     e.preventDefault();
     setLoginError(null);
     setSecurityError(null);
-
     if (!resetPhone || resetPhone.length < 10) {
       setLoginError('Please enter a valid phone number');
       return;
     }
-
     setIsResetting(true);
     try {
       const response = await fetch('https://api.vibra.ng/api/get_security_questions.php', {
@@ -163,7 +172,6 @@ const Login = () => {
         body: JSON.stringify({ phone: resetPhone })
       });
       const data = await response.json();
-      
       if (data.success && data.questions && data.questions.length > 0) {
         setSecurityQuestions(data.questions);
         setSelectedQuestion1(data.questions[0]?.question || '');
@@ -180,21 +188,17 @@ const Login = () => {
     }
   };
 
-  // Handle Forgot PIN - Step 2: Verify answers and reset PIN
   const handleForgotPinStep2 = async (e) => {
     e.preventDefault();
     setSecurityError(null);
-
     if (!resetPin || resetPin.length !== 4 || !/^\d{4}$/.test(resetPin)) {
       setSecurityError('PIN must be 4 digits');
       return;
     }
-
     if (resetPin !== resetConfirmPin) {
       setSecurityError('PINs do not match');
       return;
     }
-
     if (!selectedQuestion1 || !answer1.trim()) {
       setSecurityError('Please answer question 1');
       return;
@@ -203,26 +207,23 @@ const Login = () => {
       setSecurityError('Please answer question 2');
       return;
     }
-
     setIsVerifyingSecurity(true);
     try {
-      const response = await fetch('https://api.vibra.ng/api/reset_pin.php', {
+      const response = await fetch('https://api.vibra.ng/api/verify_security_answers.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: resetPhone,
-          pin: resetPin,
-          answers: [
-            { question: selectedQuestion1, answer: answer1.trim() },
-            { question: selectedQuestion2, answer: answer2.trim() }
-          ]
+          question1: selectedQuestion1,
+          answer1: answer1.trim(),
+          question2: selectedQuestion2,
+          answer2: answer2.trim(),
+          newPin: resetPin
         })
       });
       const data = await response.json();
-      
       if (data.success) {
-        setLoginError(null);
-        setSecurityError(null);
+        alert('PIN reset successfully! Please login with your new PIN.');
         setShowForgotPin(false);
         setShowSecurityQuestions(false);
         setResetPhone('');
@@ -230,9 +231,8 @@ const Login = () => {
         setResetConfirmPin('');
         setAnswer1('');
         setAnswer2('');
-        alert('PIN reset successfully! Please login with your new PIN.');
       } else {
-        setSecurityError(data.message || 'Failed to verify answers. Please try again.');
+        setSecurityError(data.message || 'Failed to verify answers');
       }
     } catch (err) {
       setSecurityError('Failed to reset PIN. Please try again.');
@@ -241,569 +241,162 @@ const Login = () => {
     }
   };
 
-  // Go back from security questions to phone entry
-  const handleBackToPhone = () => {
-    setShowSecurityQuestions(false);
-    setSecurityError(null);
-    setResetPin('');
-    setResetConfirmPin('');
-    setAnswer1('');
-    setAnswer2('');
-  };
-
-  // Shared logo component
-  const Logo = () => (
-    <div style={styles.logoContainer}>
-      <img 
-        src="/logo.png" 
-        alt="VIBRA Logo" 
-        style={styles.logo}
-        onError={(e) => {
-          e.target.style.display = 'none';
-        }}
-      />
-      <p style={styles.tagline}>Nigerian • Verified • Real Dates</p>
-    </div>
-  );
-
-  if (isLoading) {
+  if (showForgotPin) {
     return (
       <div style={styles.container}>
-        <LoadingSpinner />
+        <div style={styles.card}>
+          <Logo />
+          {!showSecurityQuestions ? (
+            <>
+              <h2 style={styles.setupTitle}>Reset Your PIN</h2>
+              {(error || loginError) && (
+                <div style={styles.errorContainer}><p style={styles.errorText}>{error || loginError}</p></div>
+              )}
+              <form onSubmit={handleForgotPinStep1} style={styles.form}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Phone Number</label>
+                  <input type="tel" value={resetPhone} onChange={(e) => setResetPhone(e.target.value)} placeholder="08012345678" style={{...styles.input, letterSpacing: '1px', textAlign: 'left'}} disabled={isResetting} />
+                </div>
+                <button type="submit" style={styles.button} disabled={isResetting}>{isResetting ? 'Loading...' : 'Continue'}</button>
+                <button type="button" onClick={() => setShowForgotPin(false)} style={{...styles.button, ...styles.skipButton}}>Back to Login</button>
+              </form>
+            </>
+          ) : (
+            <>
+              <h2 style={styles.setupTitle}>Security Questions</h2>
+              {securityError && <div style={styles.errorContainer}><p style={styles.errorText}>{securityError}</p></div>}
+              <form onSubmit={handleForgotPinStep2} style={styles.form}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>{selectedQuestion1}</label>
+                  <input type="text" value={answer1} onChange={(e) => setAnswer1(e.target.value)} placeholder="Your answer" style={{...styles.input, letterSpacing: '1px', textAlign: 'left'}} />
+                </div>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>{selectedQuestion2}</label>
+                  <input type="text" value={answer2} onChange={(e) => setAnswer2(e.target.value)} placeholder="Your answer" style={{...styles.input, letterSpacing: '1px', textAlign: 'left'}} />
+                </div>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>New PIN (4 digits)</label>
+                  <input type="password" value={resetPin} onChange={(e) => setResetPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} />
+                </div>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Confirm New PIN</label>
+                  <input type="password" value={resetConfirmPin} onChange={(e) => setResetConfirmPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} />
+                </div>
+                <button type="submit" style={styles.button} disabled={isVerifyingSecurity}>{isVerifyingSecurity ? 'Verifying...' : 'Reset PIN'}</button>
+                <button type="button" onClick={() => { setShowSecurityQuestions(false); setSecurityError(null); }} style={{...styles.button, ...styles.skipButton}}>Back</button>
+              </form>
+            </>
+          )}
+          <p style={styles.credit}>Powered by LabelReach</p>
+        </div>
       </div>
     );
   }
 
-  // PIN Setup Screen
   if (showSetPin) {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
           <Logo />
-          <p style={styles.setupTitle}>Set Your 4-Digit PIN</p>
-
-          {(error || loginError) && (
-            <div style={styles.errorContainer}>
-              <p style={styles.errorText}>{error || loginError}</p>
-            </div>
-          )}
-
+          <h2 style={styles.setupTitle}>Set Your 4-Digit PIN</h2>
+          {(error || loginError) && <div style={styles.errorContainer}><p style={styles.errorText}>{error || loginError}</p></div>}
           <form onSubmit={handleSetPin} style={styles.form}>
-            <p style={styles.subtitle}>Create a 4-digit PIN to secure your account</p>
-            
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Create PIN</label>
-              <input
-                type="password"
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="1234"
-                style={styles.input}
-                maxLength="4"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                autoFocus
-              />
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Confirm PIN</label>
-              <input
-                type="password"
-                value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="1234"
-                style={styles.input}
-                maxLength="4"
-                inputMode="numeric"
-                pattern="[0-9]*"
-              />
-            </div>
-
-            <button 
-              type="submit" 
-              style={styles.button}
-              disabled={isLoading || newPin.length !== 4 || confirmPin.length !== 4}
-            >
-              Set PIN & Continue
-            </button>
-          </form>
-
-          <p style={styles.credit}>Powered by LabelReach</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Forgot PIN - Step 1: Phone entry
-  if (showForgotPin && !showSecurityQuestions) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <Logo />
-          <p style={styles.setupTitle}>Reset Your PIN</p>
-
-          {(error || loginError) && (
-            <div style={styles.errorContainer}>
-              <p style={styles.errorText}>{error || loginError}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleForgotPinStep1} style={styles.form}>
-            <p style={styles.subtitle}>Enter your phone number to verify your identity</p>
-            
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Phone Number</label>
-              <input
-                type="tel"
-                value={resetPhone}
-                onChange={(e) => setResetPhone(e.target.value)}
-                placeholder="08012345678"
-                style={styles.input}
-                disabled={isResetting}
-              />
-            </div>
-
-            <button 
-              type="submit" 
-              style={styles.button}
-              disabled={isResetting}
-            >
-              {isResetting ? 'Checking...' : 'Continue'}
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => setShowForgotPin(false)}
-              style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}
-            >
-              Back to Login
-            </button>
-          </form>
-
-          <p style={styles.credit}>Powered by LabelReach</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Forgot PIN - Step 2: Security Questions
-  if (showSecurityQuestions) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <Logo />
-          <p style={styles.setupTitle}>Verify Your Identity</p>
-
-          {(securityError) && (
-            <div style={styles.errorContainer}>
-              <p style={styles.errorText}>{securityError}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleForgotPinStep2} style={styles.form}>
-            <p style={styles.subtitle}>Answer these security questions to reset your PIN</p>
-
-            {/* Question 1 */}
-            {securityQuestions.length > 0 && (
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>Question 1</label>
-                <select
-                  value={selectedQuestion1}
-                  onChange={(e) => setSelectedQuestion1(e.target.value)}
-                  style={styles.select}
-                  disabled={isVerifyingSecurity}
-                >
-                  {securityQuestions.map((q, index) => (
-                    <option key={index} value={q.question}>{q.question}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={answer1}
-                  onChange={(e) => setAnswer1(e.target.value)}
-                  placeholder="Your answer"
-                  style={{...styles.input, letterSpacing: '2px', textAlign: 'left', padding: '12px 16px'}}
-                  disabled={isVerifyingSecurity}
-                />
-              </div>
-            )}
-
-            {/* Question 2 */}
-            {securityQuestions.length > 1 && (
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>Question 2</label>
-                <select
-                  value={selectedQuestion2}
-                  onChange={(e) => setSelectedQuestion2(e.target.value)}
-                  style={styles.select}
-                  disabled={isVerifyingSecurity}
-                >
-                  {securityQuestions.map((q, index) => (
-                    <option key={index} value={q.question}>{q.question}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={answer2}
-                  onChange={(e) => setAnswer2(e.target.value)}
-                  placeholder="Your answer"
-                  style={{...styles.input, letterSpacing: '2px', textAlign: 'left', padding: '12px 16px'}}
-                  disabled={isVerifyingSecurity}
-                />
-              </div>
-            )}
-
             <div style={styles.inputGroup}>
               <label style={styles.label}>New PIN</label>
-              <input
-                type="password"
-                value={resetPin}
-                onChange={(e) => setResetPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="1234"
-                style={styles.input}
-                maxLength="4"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                disabled={isVerifyingSecurity}
-              />
+              <input type="password" value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} disabled={isLoading} />
             </div>
-
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Confirm New PIN</label>
-              <input
-                type="password"
-                value={resetConfirmPin}
-                onChange={(e) => setResetConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="1234"
-                style={styles.input}
-                maxLength="4"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                disabled={isVerifyingSecurity}
-              />
+              <label style={styles.label}>Confirm PIN</label>
+              <input type="password" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} disabled={isLoading} />
             </div>
-
-            <button 
-              type="submit" 
-              style={styles.button}
-              disabled={isVerifyingSecurity || resetPin.length !== 4 || resetConfirmPin.length !== 4 || !answer1.trim() || !answer2.trim()}
-            >
-              {isVerifyingSecurity ? 'Verifying...' : 'Reset PIN'}
-            </button>
-
-            <button 
-              type="button" 
-              onClick={handleBackToPhone}
-              style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}
-              disabled={isVerifyingSecurity}
-            >
-              Back
-            </button>
+            <button type="submit" style={styles.button} disabled={isLoading}>{isLoading ? 'Setting...' : 'Set PIN & Continue'}</button>
           </form>
-
           <p style={styles.credit}>Powered by LabelReach</p>
         </div>
       </div>
     );
   }
 
-  // PIN Required Screen
   if (showPinScreen) {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
           <Logo />
-          <p style={styles.setupTitle}>Enter Your PIN</p>
-
-          {(error || loginError) && (
-            <div style={styles.errorContainer}>
-              <p style={styles.errorText}>{error || loginError}</p>
-            </div>
-          )}
-
+          <h2 style={styles.setupTitle}>Enter Your PIN</h2>
+          <p style={styles.subtitle}>Welcome back, {loginPhone}</p>
+          {(error || loginError) && <div style={styles.errorContainer}><p style={styles.errorText}>{error || loginError}</p></div>}
           <form onSubmit={handlePinSubmit} style={styles.form}>
-            <p style={styles.subtitle}>Enter your 4-digit PIN to continue</p>
-            
             <div style={styles.inputGroup}>
-              <label style={styles.label}>PIN</label>
-              <input
-                type="password"
-                value={pin}
-                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="1234"
-                style={styles.input}
-                maxLength="4"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                autoFocus
-              />
+              <input type="password" value={pin} onChange={(e) => setPinInput(e.target.value)} placeholder="••••" maxLength="4" style={styles.input} disabled={isLoading} autoFocus />
             </div>
-
-            <button 
-              type="submit" 
-              style={styles.button}
-              disabled={isLoading || pin.length !== 4}
-            >
-              {isLoading ? 'Verifying...' : 'Verify PIN'}
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => {
-                setShowPinScreen(false);
-                setPinInput('');
-                setShowForgotPin(true);
-              }}
-              style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}
-            >
-              Forgot PIN?
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => {
-                setShowPinScreen(false);
-                setPinInput('');
-              }}
-              style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}
-            >
-              Back
-            </button>
+            <button type="submit" style={styles.button} disabled={isLoading}>{isLoading ? 'Verifying...' : 'Continue'}</button>
+            <button type="button" onClick={() => setShowForgotPin(true)} style={{...styles.button, backgroundColor: 'transparent', color: '#721CBB', border: '1.5px solid #F3E8FF'}}>Forgot PIN?</button>
+            <button type="button" onClick={() => { setShowPinScreen(false); setPinInput(''); }} style={{...styles.button, ...styles.skipButton, marginTop: '10px'}}>Back</button>
           </form>
-
           <p style={styles.credit}>Powered by LabelReach</p>
         </div>
       </div>
     );
   }
 
-  // Main Login Screen
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <Logo />
-
-        {(error || loginError) && (
-          <div style={styles.errorContainer}>
-            <p style={styles.errorText}>{error || loginError}</p>
-          </div>
-        )}
-
+        {(error || loginError) && <div style={styles.errorContainer}><p style={styles.errorText}>{error || loginError}</p></div>}
         <form onSubmit={handleLogin} style={styles.form}>
           <h2 style={styles.title}>Welcome to VIBRA</h2>
           <p style={styles.subtitle}>Enter your phone number to get started</p>
-          
           <div style={styles.inputGroup}>
             <label style={styles.label}>Phone Number</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="08012345678"
-              style={styles.input}
-              disabled={isLoading}
-            />
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08012345678" style={{...styles.input, letterSpacing: '1px', textAlign: 'left'}} disabled={isLoading} />
           </div>
-
-          <button 
-            type="submit" 
-            style={styles.button}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Logging in...' : 'Continue'}
-          </button>
+          <button type="submit" style={styles.button} disabled={isLoading}>{isLoading ? 'Logging in...' : 'Continue'}</button>
         </form>
-
-        <p style={styles.footer}>
-          By continuing, you agree to VIBRA's <a href="/terms" style={styles.link}>Terms</a> & <a href="/privacy" style={styles.link}>Privacy Policy</a>
-        </p>
-        <p style={styles.credit}>
-          Powered by LabelReach
-        </p>
+        <p style={styles.footer}>By continuing, you agree to VIBRA's <a href="/terms" style={styles.link}>Terms</a> & <a href="/privacy" style={styles.link}>Privacy Policy</a></p>
+        <p style={styles.credit}>Powered by LabelReach</p>
       </div>
     </div>
   );
 };
 
 const styles = {
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    margin: 0,
-    padding: '20px',
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: '24px',
-    padding: '48px 40px',
-    maxWidth: '420px',
-    width: '100%',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
-    position: 'relative',
-  },
-  logoContainer: {
-    textAlign: 'center',
-    marginBottom: '8px',
-  },
-  logo: {
-    width: '80px',
-    height: '80px',
-    objectFit: 'contain',
-    margin: '0 auto',
-  },
-  setupTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#1a1a1a',
-    margin: '0 0 20px 0',
-  },
-  logoText: {
-    fontSize: '42px',
-    fontWeight: 'bold',
-    background: 'linear-gradient(135deg, #6C3CE1, #00B894)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    margin: 0,
-  },
-  tagline: {
-    color: '#666',
-    fontSize: '14px',
-    marginTop: '4px',
-    letterSpacing: '1px',
-    marginBottom: '16px',
-  },
-  title: {
-    fontSize: '24px',
-    fontWeight: '600',
-    margin: '0 0 4px 0',
-    color: '#1a1a1a',
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: '#666',
-    margin: '0 0 24px 0',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  inputGroup: {
-    marginBottom: '16px',
-  },
-  label: {
-    display: 'block',
-    fontSize: '13px',
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: '6px',
-  },
-  input: {
-    width: '100%',
-    padding: '14px 16px',
-    fontSize: '16px',
-    border: '2px solid #e0e0e0',
-    borderRadius: '12px',
-    outline: 'none',
-    transition: 'border-color 0.2s',
-    boxSizing: 'border-box',
-    fontFamily: 'inherit',
-    textAlign: 'center',
-    letterSpacing: '8px',
-  },
-  select: {
-    width: '100%',
-    padding: '14px 16px',
-    fontSize: '16px',
-    border: '2px solid #e0e0e0',
-    borderRadius: '12px',
-    outline: 'none',
-    backgroundColor: 'white',
-    fontFamily: 'inherit',
-    marginBottom: '8px',
-  },
-  button: {
-    width: '100%',
-    padding: '16px',
-    fontSize: '16px',
-    fontWeight: '600',
-    color: 'white',
-    backgroundColor: '#6C3CE1',
-    border: 'none',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s, transform 0.1s',
-    marginTop: '8px',
-    fontFamily: 'inherit',
-  },
-  skipButton: {
-    backgroundColor: '#e0e0e0',
-    color: '#333',
-  },
-  errorContainer: {
-    backgroundColor: '#ffebee',
-    borderRadius: '12px',
-    padding: '12px 16px',
-    marginBottom: '20px',
-    border: '1px solid #ffcdd2',
-  },
-  errorText: {
-    color: '#c62828',
-    fontSize: '14px',
-    margin: 0,
-  },
-  footer: {
-    textAlign: 'center',
-    fontSize: '12px',
-    color: '#999',
-    marginTop: '24px',
-    paddingTop: '16px',
-    borderTop: '1px solid #f0f0f0',
-  },
-  link: {
-    color: '#6C3CE1',
-    textDecoration: 'none',
-    fontWeight: '500',
-  },
-  credit: {
-    textAlign: 'center',
-    fontSize: '11px',
-    color: '#bbb',
-    marginTop: '8px',
-  },
-  spinnerContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '40px',
-  },
-  spinner: {
-    border: '4px solid #f3f3f3',
-    borderTop: '4px solid #6C3CE1',
-    borderRadius: '50%',
-    width: '40px',
-    height: '40px',
-    animation: 'spin 1s linear infinite',
-  },
-  loadingText: {
-    color: '#666',
-    marginTop: '12px',
-  },
+  container: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f8f7fb', fontFamily: 'Inter, Poppins, sans-serif', padding: '20px' },
+  card: { backgroundColor: 'white', borderRadius: '24px', padding: '32px 28px', maxWidth: '420px', width: '100%', boxShadow: '0 12px 40px rgba(114,28,187,0.1)', border: '1px solid #F3E8FF' },
+  logoContainer: { textAlign: 'center', marginBottom: '20px' },
+  logoRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0 },
+  vibText: { color: '#721CBB', fontWeight: 900, fontSize: 36, letterSpacing: '-1.5px', fontFamily: 'Poppins, sans-serif' },
+  pulseWrap: { width: 72, height: 20, margin: '0 -2px', display: 'flex', alignItems: 'center' },
+  raText: { color: '#10964D', fontWeight: 900, fontSize: 36, letterSpacing: '-1.5px', fontFamily: 'Poppins, sans-serif', position: 'relative' },
+  heartInA: { position: 'absolute', top: '18%', right: '22%', fontSize: 9, color: 'white', lineHeight: 1 },
+  taglineRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 6 },
+  taglineHeartPurple: { color: '#721CBB', fontSize: 8 },
+  taglineHeartGreen: { color: '#10964D', fontSize: 8 },
+  tagline: { color: '#9CA3AF', fontSize: '9px', letterSpacing: '3px', fontWeight: 600 },
+  setupTitle: { fontSize: '18px', fontWeight: '700', textAlign: 'center', color: '#1a1a1a', margin: '0 0 18px 0' },
+  title: { fontSize: '22px', fontWeight: '800', margin: '0 0 4px 0', color: '#1a1a1a', textAlign: 'center', letterSpacing: '-0.3px' },
+  subtitle: { fontSize: '13px', color: '#6B7280', margin: '0 0 20px 0', textAlign: 'center' },
+  form: { display: 'flex', flexDirection: 'column' },
+  inputGroup: { marginBottom: '14px' },
+  label: { display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', letterSpacing: '0.2px' },
+  input: { width: '100%', padding: '14px 16px', fontSize: '16px', border: '1.5px solid #E9E3F3', borderRadius: '12px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', textAlign: 'center', letterSpacing: '8px', transition: 'border-color 0.2s', backgroundColor: '#FAFAFF' },
+  button: { width: '100%', padding: '14px', fontSize: '15px', fontWeight: '700', color: 'white', backgroundColor: '#721CBB', border: 'none', borderRadius: '12px', cursor: 'pointer', marginTop: '8px', fontFamily: 'inherit', letterSpacing: '0.2px' },
+  skipButton: { backgroundColor: '#F3F0FF', color: '#6B7280' },
+  errorContainer: { backgroundColor: '#FEF2F2', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', border: '1px solid #FECACA' },
+  errorText: { color: '#DC2626', fontSize: '13px', margin: 0 },
+  footer: { textAlign: 'center', fontSize: '11px', color: '#9CA3AF', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #F9F5FF' },
+  link: { color: '#721CBB', textDecoration: 'none', fontWeight: '600' },
+  credit: { textAlign: 'center', fontSize: '10px', color: '#C4B5D6', marginTop: '10px', letterSpacing: '0.3px' },
+  spinnerContainer: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px' },
+  spinner: { border: '4px solid #F3E8FF', borderTop: '4px solid #721CBB', borderRadius: '50%', width: '36px', height: '36px', animation: 'spin 1s linear infinite' },
+  loadingText: { color: '#6B7280', marginTop: '12px', fontSize: '13px' },
 };
 
-const styleSheet = document.createElement('style');
-styleSheet.textContent = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-document.head.appendChild(styleSheet);
+if (typeof document !== 'undefined' && !document.querySelector('style[data-vibra-login]')) {
+  const styleSheet = document.createElement('style');
+  styleSheet.setAttribute('data-vibra-login', 'true');
+  styleSheet.textContent = `@keyframes spin {0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`;
+  document.head.appendChild(styleSheet);
+}
 
 export default Login;
