@@ -222,7 +222,7 @@ const AppLayout = ({ children }) => {
 };
 
 /**
- * Home Page - with Pulsing Heartbeat Logo
+ * Home Page - Clean Design
  */
 const HomePage = () => {
   const { user } = useAuth();
@@ -230,7 +230,6 @@ const HomePage = () => {
   const [showEventHost, setShowEventHost] = React.useState(false);
   const [pulse, setPulse] = React.useState(false);
 
-  // Heartbeat pulse every 1.5 seconds
   React.useEffect(() => {
     const interval = setInterval(() => {
       setPulse(prev => !prev);
@@ -258,10 +257,9 @@ const HomePage = () => {
 
   return (
     <div style={styles.homeContainer}>
-      {/* Hero Section - Pulsing Heartbeat Logo */}
+      {/* Hero Section - Clean Logo with Pulse */}
       <div style={styles.heroSection}>
         <div style={styles.heroContent}>
-          {/* Logo with Pulse */}
           <div style={styles.logoContainer}>
             <div style={{
               ...styles.logoPulse,
@@ -273,12 +271,12 @@ const HomePage = () => {
               ...styles.heartbeatLine,
               ...(pulse ? styles.heartbeatLineActive : {}),
             }}>
-              <svg width="200" height="40" viewBox="0 0 200 40">
+              <svg width="180" height="24" viewBox="0 0 180 24">
                 <polyline
-                  points="0,20 10,20 15,5 20,35 25,20 40,20 50,10 55,30 60,20 80,20 90,15 95,25 100,20 120,20 130,5 135,35 140,20 160,20 170,10 175,30 180,20 200,20"
+                  points="0,12 10,12 15,3 20,21 25,12 40,12 50,6 55,18 60,12 80,12 90,9 95,15 100,12 120,12 130,3 135,21 140,12 160,12 170,6 175,18 180,12"
                   fill="none"
                   stroke="white"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   style={{
@@ -287,9 +285,9 @@ const HomePage = () => {
                   }}
                 />
                 <circle
-                  cx="200"
-                  cy="20"
-                  r="3"
+                  cx="180"
+                  cy="12"
+                  r="2.5"
                   fill="white"
                   style={{
                     ...styles.heartbeatDot,
@@ -299,11 +297,11 @@ const HomePage = () => {
               </svg>
             </div>
           </div>
-          {/* Tagline */}
           <p style={styles.heroTagline}>Connect. Vibe. Love.</p>
         </div>
       </div>
 
+      {/* Profile Card */}
       <div style={styles.profileCard}>
         <div style={styles.profileCardHeader}>
           <div style={styles.profileCardAvatar}>
@@ -330,16 +328,36 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* Stats Grid - Clean cards */}
       <div style={styles.statsGrid}>
-        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #721CBB, #8B5CF6)'}}>
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#721CBB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
           <span style={styles.statValue}>{user?.level || 'Bronze'}</span>
           <span style={styles.statLabel}>Level</span>
         </div>
-        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #10964D, #00D68F)'}}>
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10964D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
           <span style={styles.statValue}>{user?.points || 0}</span>
           <span style={styles.statLabel}>Points</span>
         </div>
-        <div style={{...styles.statCard, background: 'linear-gradient(135deg, #721CBB, #10964D)'}}>
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#721CBB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </div>
           <span style={styles.statValue}>
             {user?.isVerified ? '✓' : '⏳'}
           </span>
@@ -349,6 +367,7 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* Events Section */}
       <div style={styles.sectionHeader}>
         <h3 style={styles.sectionTitle}>Events Near You</h3>
         <button onClick={() => setShowEventHost(true)} style={styles.hostEventButton}>
@@ -752,7 +771,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     height: '100vh',
-    backgroundColor: '#f8f6fc',
+    backgroundColor: '#f5f5f5',
   },
   headerBar: {
     display: 'flex',
@@ -887,15 +906,11 @@ const styles = {
   },
   heroSection: {
     background: 'linear-gradient(135deg, #721CBB, #10964D)',
-    borderRadius: '20px',
-    padding: '30px 24px',
-    marginBottom: '20px',
+    borderRadius: '16px',
+    padding: '24px 20px',
+    marginBottom: '16px',
     color: 'white',
     textAlign: 'center',
-    minHeight: '180px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   heroContent: {
     display: 'flex',
@@ -906,12 +921,12 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    marginBottom: '8px',
+    marginBottom: '4px',
   },
   logoText: {
-    fontSize: '42px',
-    fontWeight: '700',
-    letterSpacing: '2px',
+    fontSize: '32px',
+    fontWeight: '800',
+    letterSpacing: '1px',
     color: 'white',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
@@ -920,10 +935,10 @@ const styles = {
     display: 'inline-block',
   },
   logoPulseActive: {
-    transform: 'scale(1.05)',
+    transform: 'scale(1.04)',
   },
   heartbeatLine: {
-    marginTop: '4px',
+    marginTop: '2px',
     opacity: 0.8,
   },
   heartbeatLineActive: {
@@ -943,34 +958,34 @@ const styles = {
   },
   heartbeatDotActive: {
     opacity: 1,
-    r: '4',
+    r: '3.5',
   },
   heroTagline: {
-    fontSize: '14px',
-    opacity: 0.9,
-    letterSpacing: '4px',
+    fontSize: '13px',
+    opacity: 0.85,
+    letterSpacing: '3px',
     margin: 0,
     fontWeight: '300',
   },
   profileCard: {
     backgroundColor: 'white',
-    borderRadius: '16px',
-    padding: '16px',
-    marginBottom: '20px',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+    borderRadius: '14px',
+    padding: '14px 16px',
+    marginBottom: '16px',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
   },
   profileCardHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: '14px',
+    gap: '12px',
   },
   profileCardAvatar: {
-    width: '60px',
-    height: '60px',
+    width: '56px',
+    height: '56px',
     borderRadius: '50%',
     overflow: 'hidden',
     flexShrink: 0,
-    border: '3px solid #721CBB',
+    border: '2px solid #721CBB',
   },
   profileCardImg: {
     width: '100%',
@@ -983,7 +998,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '24px',
+    fontSize: '22px',
     fontWeight: '700',
     color: 'white',
     backgroundColor: '#721CBB',
@@ -992,19 +1007,19 @@ const styles = {
     flex: 1,
   },
   profileCardName: {
-    fontSize: '18px',
-    fontWeight: '600',
+    fontSize: '17px',
+    fontWeight: '700',
     margin: 0,
     color: '#1a1a1a',
   },
   profileCardLevel: {
-    fontSize: '13px',
-    margin: '2px 0',
+    fontSize: '12px',
+    margin: '1px 0',
     color: '#666',
   },
   profileCardPoints: {
-    fontSize: '13px',
-    margin: '0',
+    fontSize: '12px',
+    margin: 0,
     color: '#888',
   },
   profileCardBadge: {
@@ -1013,67 +1028,78 @@ const styles = {
   verifiedBadgeLarge: {
     backgroundColor: '#10964D',
     color: 'white',
-    padding: '4px 12px',
-    borderRadius: '12px',
-    fontSize: '12px',
+    padding: '3px 10px',
+    borderRadius: '10px',
+    fontSize: '11px',
     fontWeight: '600',
   },
   unverifiedBadge: {
     backgroundColor: '#FF6B35',
     color: 'white',
-    padding: '4px 12px',
-    borderRadius: '12px',
-    fontSize: '12px',
+    padding: '3px 10px',
+    borderRadius: '10px',
+    fontSize: '11px',
     fontWeight: '600',
   },
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '10px',
-    marginBottom: '20px',
+    marginBottom: '16px',
   },
   statCard: {
-    padding: '14px',
-    borderRadius: '14px',
+    backgroundColor: 'white',
+    padding: '12px 8px',
+    borderRadius: '12px',
     textAlign: 'center',
-    color: 'white',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+  },
+  statIcon: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: '#f5f0f8',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 4px auto',
   },
   statValue: {
     display: 'block',
-    fontSize: '22px',
+    fontSize: '18px',
     fontWeight: '700',
+    color: '#1a1a1a',
   },
   statLabel: {
-    fontSize: '12px',
-    opacity: 0.9,
+    fontSize: '11px',
+    color: '#888',
   },
   sectionHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '12px',
+    marginBottom: '10px',
   },
   sectionTitle: {
-    fontSize: '18px',
+    fontSize: '17px',
     fontWeight: '700',
     color: '#1a1a1a',
     margin: 0,
   },
   hostEventButton: {
-    padding: '6px 16px',
+    padding: '6px 14px',
     backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
-    borderRadius: '20px',
-    fontSize: '13px',
+    borderRadius: '16px',
+    fontSize: '12px',
     fontWeight: '600',
     cursor: 'pointer',
     fontFamily: 'inherit',
   },
   feedSection: {
     backgroundColor: 'white',
-    borderRadius: '16px',
+    borderRadius: '14px',
     padding: '4px',
     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
   },
