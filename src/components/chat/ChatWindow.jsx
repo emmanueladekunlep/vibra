@@ -40,9 +40,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     if (conversationId && !propOtherUser) {
       const loadOtherUser = async () => {
         try {
-          // Get conversation details to find other user
-          const conv = await chatService.getOrCreateConversation(user.id, '');
-          // Use the conversationId to get participants
           const response = await fetch(`https://api.vibra.ng/api/get_conversation.php?conversation_id=${conversationId}`);
           const data = await response.json();
           if (data.success && data.conversation) {
@@ -225,6 +222,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       inputRef.current?.focus();
     } catch (err) {
       setError(err.message || 'Failed to send message');
+      console.error('Send error:', err);
     } finally {
       setIsSending(false);
     }
@@ -508,7 +506,7 @@ const styles = {
   backButton: {
     background: 'none',
     border: 'none',
-    color: '#6C3CE1',
+    color: '#721CBB',
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
@@ -545,7 +543,7 @@ const styles = {
     width: '40px',
     height: '40px',
     borderRadius: '50%',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     display: 'flex',
     alignItems: 'center',
@@ -564,7 +562,7 @@ const styles = {
     maxWidth: '160px',
   },
   verifiedText: {
-    color: '#00B894',
+    color: '#10964D',
     fontSize: '12px',
     fontWeight: '500',
     marginLeft: '2px',
@@ -591,7 +589,7 @@ const styles = {
     wordWrap: 'break-word',
   },
   messageOwn: {
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     borderBottomRightRadius: '4px',
   },
@@ -624,7 +622,7 @@ const styles = {
   },
   readStatus: {
     fontSize: '10px',
-    color: '#00B894',
+    color: '#10964D',
     marginLeft: '2px',
   },
   typingIndicator: {
@@ -693,7 +691,7 @@ const styles = {
   },
   sendButton: {
     padding: '10px 18px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '24px',

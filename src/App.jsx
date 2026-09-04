@@ -121,7 +121,6 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
           marginTop: 5,
           fontSize: s.tagline,
           letterSpacing: '3.8px',
-          color: 'rgba(255,255,255,0.85)',
           fontWeight: 600,
           display: 'flex',
           alignItems: 'center',
@@ -129,9 +128,11 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
           fontFamily: 'Inter, sans-serif',
           textTransform: 'uppercase'
         }}>
-          <span style={{ color: '#E9D5FF', fontSize: s.tagline * 0.8 }}>♥</span>
-          CONNECT. VIBE. LOVE.
-          <span style={{ color: '#BBF7D0', fontSize: s.tagline * 0.8 }}>♥</span>
+          <span style={{ color: '#721CBB', fontSize: s.tagline * 0.8 }}>♥</span>
+          <span style={{ color: '#721CBB' }}>CONNECT.</span>
+          <span style={{ color: '#10964D' }}>VIBE.</span>
+          <span style={{ color: '#721CBB' }}>LOVE.</span>
+          <span style={{ color: '#10964D', fontSize: s.tagline * 0.8 }}>♥</span>
         </div>
       )}
 
@@ -190,7 +191,7 @@ const VibraLogoDark = ({ size = 'small' }) => {
           fontFamily: 'Poppins, Inter, sans-serif',
           position: 'relative'
         }}>
-          RA
+          ₦RA
           <span style={{
             position: 'absolute',
             top: '18%',
@@ -574,7 +575,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     minHeight: '100vh',
-    backgroundColor: '#f8f7fb',
+    backgroundColor: '#f5f5f5',
     fontFamily: 'Inter, Poppins, sans-serif',
   },
   headerBar: {
@@ -582,8 +583,8 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '10px 16px',
-    backgroundColor: 'white',
-    borderBottom: '1px solid #f0f0f0',
+    backgroundColor: '#ffffff',
+    borderBottom: '1px solid #e8e8e8',
     position: 'sticky',
     top: 0,
     zIndex: 100,
@@ -608,7 +609,7 @@ const styles = {
   },
   notificationBell: {
     position: 'relative',
-    backgroundColor: '#f8f7fb',
+    backgroundColor: '#f5f5f5',
     border: 'none',
     fontSize: '18px',
     cursor: 'pointer',
@@ -694,8 +695,8 @@ const styles = {
     borderRadius: '16px',
     padding: '14px 16px',
     marginBottom: '16px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
-    border: '1px solid #f5f0f8'
+    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+    border: '1px solid #f0f0f0'
   },
   profileCardHeader: { display: 'flex', alignItems: 'center', gap: '12px' },
   profileCardAvatar: {
@@ -733,11 +734,11 @@ const styles = {
   },
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '14px' },
   statCard: {
-    backgroundColor: '#faf8ff',
+    backgroundColor: '#f8f6fc',
     padding: '12px 8px',
     borderRadius: '12px',
     textAlign: 'center',
-    border: '1px solid #f0e6ff'
+    border: '1px solid #f0edf5'
   },
   statIcon: {
     width: '26px',
@@ -769,9 +770,9 @@ const styles = {
     backgroundColor: 'white',
     borderRadius: '16px',
     padding: '8px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
     minHeight: '200px',
-    border: '1px solid #f5f0f8'
+    border: '1px solid #f0f0f0'
   },
 };
 
