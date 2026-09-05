@@ -210,7 +210,8 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       const updated = await profileService.updateProfile(userId, updates);
       setProfile(updated);
       
-      if (user?.id === userId || user?.userId === userId) {
+      // Use userId for comparison, not id
+      if (user?.userId === userId) {
         updateUser(updated);
       }
 
@@ -246,7 +247,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       await profileService.uploadPhoto(userId, file);
       const updated = await profileService.getProfile(userId);
       setProfile(updated);
-      if (user?.id === userId || user?.userId === userId) {
+      if (user?.userId === userId) {
         updateUser(updated);
       }
       setSuccess(true);
@@ -271,7 +272,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       await profileService.removePhoto(userId, photoId);
       const updated = await profileService.getProfile(userId);
       setProfile(updated);
-      if (user?.id === userId || user?.userId === userId) {
+      if (user?.userId === userId) {
         updateUser(updated);
       }
       setSuccess(true);
@@ -304,7 +305,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       await profileService.uploadPhoto(userId, file);
       const updated = await profileService.getProfile(userId);
       setProfile(updated);
-      if (user?.id === userId || user?.userId === userId) {
+      if (user?.userId === userId) {
         updateUser(updated);
       }
       setSuccess(true);

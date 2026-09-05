@@ -41,13 +41,17 @@ export const getProfile = async (userId) => {
  */
 export const updateProfile = async (userId, updates) => {
   try {
+    const payload = { user_id: userId, ...updates };
+    console.log('Sending update payload:', payload);
+    
     const response = await fetch(`${API_URL}/update_user.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, ...updates })
+      body: JSON.stringify(payload)
     });
     
     const data = await response.json();
+    console.log('Update response:', data);
     
     if (data.success) {
       return data.user;
