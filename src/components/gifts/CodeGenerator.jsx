@@ -328,7 +328,7 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: 'white',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     border: 'none',
     borderRadius: '12px',
     cursor: 'pointer',
@@ -354,7 +354,7 @@ const styles = {
   },
   copyAllButton: {
     padding: '4px 12px',
-    backgroundColor: '#00B894',
+    backgroundColor: '#10964D',
     color: 'white',
     border: 'none',
     borderRadius: '6px',
@@ -384,7 +384,7 @@ const styles = {
   codeValue: {
     fontSize: '18px',
     fontWeight: '700',
-    color: '#6C3CE1',
+    color: '#721CBB',
     fontFamily: 'monospace',
     letterSpacing: '2px',
     flex: 1,

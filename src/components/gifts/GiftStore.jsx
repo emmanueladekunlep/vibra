@@ -123,7 +123,7 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
     }
 
     if (!recipientId) {
-      setError('Recipient not specified');
+      setError('Recipient not specified. Please select a user first.');
       return;
     }
 
@@ -133,7 +133,7 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
 
     try {
       const result = await giftService.purchaseGift(
-        user.id,
+        user.userId,
         recipientId,
         gift.id,
         message

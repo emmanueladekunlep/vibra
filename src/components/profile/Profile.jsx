@@ -87,7 +87,8 @@ const Profile = ({ userId: propUserId, onEdit }) => {
   const { userId: paramUserId } = useParams();
   const navigate = useNavigate();
   
-  const targetUserId = propUserId || paramUserId || user?.id;
+  // Use userId (VIB-1001) not id (numeric)
+  const targetUserId = propUserId || paramUserId || user?.userId;
   
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,7 +97,7 @@ const Profile = ({ userId: propUserId, onEdit }) => {
   const [reporting, setReporting] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
 
-  const isOwner = user?.id === targetUserId || user?.userId === targetUserId;
+  const isOwner = user?.userId === targetUserId;
   const isFounder = user?.isFounder === true || user?.isFounder === 1;
 
   useEffect(() => {
@@ -183,7 +184,7 @@ const Profile = ({ userId: propUserId, onEdit }) => {
     
     setStartingChat(true);
     try {
-      const conversation = await chatService.getOrCreateConversation(user.id, profile.id);
+      const conversation = await chatService.getOrCreateConversation(user.userId, profile.userId || profile.id);
       navigate(`/chat/${conversation.id}`);
     } catch (err) {
       console.error('Failed to start chat:', err);
@@ -394,9 +395,10 @@ const Profile = ({ userId: propUserId, onEdit }) => {
           </div>
         )}
 
-        {isOwner && onEdit && (
+        {/* Edit Profile Button - Always show for owner */}
+        {isOwner && (
           <button 
-            onClick={onEdit} 
+            onClick={() => navigate('/edit-profile')} 
             style={styles.editButton}
           >
             Edit Profile
@@ -417,14 +419,14 @@ const Profile = ({ userId: propUserId, onEdit }) => {
             <button
               onClick={handleChat}
               disabled={startingChat}
-              style={{...styles.actionButton, backgroundColor: '#6C3CE1'}}
+              style={{...styles.actionButton, backgroundColor: '#721CBB'}}
             >
               {startingChat ? 'Starting...' : '💬 Chat'}
             </button>
             {blocked ? (
               <button
                 onClick={handleUnblock}
-                style={{...styles.actionButton, backgroundColor: '#00B894'}}
+                style={{...styles.actionButton, backgroundColor: '#10964D'}}
               >
                 Unblock
               </button>
@@ -494,7 +496,7 @@ const styles = {
     width: '100px',
     height: '100px',
     borderRadius: '50%',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     display: 'flex',
     alignItems: 'center',
@@ -535,7 +537,7 @@ const styles = {
   },
   verifiedBadge: {
     display: 'inline-block',
-    backgroundColor: '#00B894',
+    backgroundColor: '#10964D',
     color: 'white',
     fontSize: '12px',
     fontWeight: '600',
@@ -552,7 +554,7 @@ const styles = {
   },
   zodiacText: {
     fontSize: '13px',
-    color: '#6C3CE1',
+    color: '#721CBB',
     fontWeight: '500',
     margin: '0 0 6px 0',
   },
@@ -590,7 +592,7 @@ const styles = {
   },
   interestTag: {
     backgroundColor: '#f0edff',
-    color: '#6C3CE1',
+    color: '#721CBB',
     padding: '4px 14px',
     borderRadius: '20px',
     fontSize: '13px',
@@ -645,7 +647,7 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: 'white',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     border: 'none',
     borderRadius: '12px',
     cursor: 'pointer',
@@ -682,7 +684,7 @@ const styles = {
   },
   backButton: {
     padding: '10px 24px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '10px',
@@ -707,7 +709,7 @@ const styles = {
   },
   spinner: {
     border: '4px solid #f3f3f3',
-    borderTop: '4px solid #6C3CE1',
+    borderTop: '4px solid #721CBB',
     borderRadius: '50%',
     width: '40px',
     height: '40px',

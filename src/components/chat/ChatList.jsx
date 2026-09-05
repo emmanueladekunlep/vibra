@@ -21,7 +21,6 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
   const previousUnreadRef = useRef(0);
   const notificationPermissionRef = useRef(false);
 
-  // Request notification permission on mount
   useEffect(() => {
     if ('Notification' in window) {
       if (Notification.permission === 'default') {
@@ -65,13 +64,12 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
     setError(null);
     
     try {
-      const data = await chatService.getConversations(user.id);
+      const data = await chatService.getConversations(user.userId);
       
-      // Filter out conversations with blocked users
       const blockedUsers = await profileService.getBlockedUsers();
       const blockedArray = Array.isArray(blockedUsers) ? blockedUsers : [];
       const filteredData = data.filter(conv => {
-        const otherUserId = conv.otherUser?.id;
+        const otherUserId = conv.otherUser?.userId;
         return otherUserId ? !blockedArray.includes(otherUserId) : true;
       });
       
@@ -84,7 +82,7 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
         if (newConv && newConv.lastMessage) {
           const senderName = newConv.otherUser?.name || 'Someone';
           const message = newConv.lastMessage.text || 'sent you a message';
-          sendBrowserNotification(senderName, message, newConv.otherUser?.id);
+          sendBrowserNotification(senderName, message, newConv.otherUser?.userId);
         }
       }
       
@@ -253,7 +251,7 @@ const styles = {
     margin: 0,
   },
   unreadBadge: {
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     padding: '2px 12px',
     borderRadius: '20px',
@@ -275,7 +273,7 @@ const styles = {
   },
   chatItemActive: {
     backgroundColor: '#f5f0ff',
-    borderLeft: '4px solid #6C3CE1',
+    borderLeft: '4px solid #721CBB',
   },
   avatarContainer: {
     position: 'relative',
@@ -293,7 +291,7 @@ const styles = {
     width: '48px',
     height: '48px',
     borderRadius: '50%',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     display: 'flex',
     alignItems: 'center',
@@ -308,7 +306,7 @@ const styles = {
     right: '0',
     width: '14px',
     height: '14px',
-    backgroundColor: '#00B894',
+    backgroundColor: '#10964D',
     borderRadius: '50%',
     border: '2px solid white',
   },
@@ -348,7 +346,7 @@ const styles = {
     flex: 1,
   },
   unreadCount: {
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     padding: '2px 8px',
     borderRadius: '12px',
@@ -406,7 +404,7 @@ const styles = {
   },
   retryButton: {
     padding: '10px 24px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '10px',

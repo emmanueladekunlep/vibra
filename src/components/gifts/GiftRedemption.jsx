@@ -46,7 +46,7 @@ const GiftRedemption = ({ type, onRedeemed, onClose }) => {
         return;
       }
 
-      if (gift.recipientId !== user?.id) {
+      if (gift.recipientId !== user?.userId) {
         setError('This gift was not sent to you');
         return;
       }
@@ -73,7 +73,7 @@ const GiftRedemption = ({ type, onRedeemed, onClose }) => {
         setSuccess(result.message);
         if (onRedeemed) onRedeemed(result);
       } else {
-        const result = await giftService.withdrawCashGift(code, user.id);
+        const result = await giftService.withdrawCashGift(code, user.userId);
         setSuccess(result.message);
         if (onRedeemed) onRedeemed(result);
       }
@@ -279,10 +279,10 @@ const styles = {
     fontFamily: 'inherit',
   },
   merchantButton: {
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
   },
   cashButton: {
-    backgroundColor: '#00B894',
+    backgroundColor: '#10964D',
   },
   errorBox: {
     backgroundColor: '#ffebee',
@@ -311,7 +311,7 @@ const styles = {
   },
   doneButton: {
     padding: '8px 24px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
@@ -336,7 +336,7 @@ const styles = {
   giftInfoPrice: {
     fontSize: '24px',
     fontWeight: '700',
-    color: '#6C3CE1',
+    color: '#721CBB',
     margin: '0 0 4px 0',
   },
   giftInfoSender: {

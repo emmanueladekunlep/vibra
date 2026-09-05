@@ -29,11 +29,10 @@ const MyGifts = ({ onClose }) => {
     setError(null);
     
     try {
-      const history = await giftService.getGiftHistory(user.id);
+      const history = await giftService.getGiftHistory(user.userId);
       
-      // Separate sent and received
-      const sent = history.filter(g => g.senderId === user.id);
-      const received = history.filter(g => g.recipientId === user.id);
+      const sent = history.filter(g => g.senderId === user.userId);
+      const received = history.filter(g => g.recipientId === user.userId);
       
       setSentGifts(sent);
       setReceivedGifts(received);
@@ -57,8 +56,8 @@ const MyGifts = ({ onClose }) => {
   const getStatusColor = (status) => {
     const colors = {
       pending: '#f39c12',
-      redeemed: '#00B894',
-      withdrawn: '#6C3CE1',
+      redeemed: '#10964D',
+      withdrawn: '#721CBB',
     };
     return colors[status] || '#888';
   };
@@ -115,7 +114,6 @@ const MyGifts = ({ onClose }) => {
           )}
         </div>
 
-        {/* Tabs */}
         <div style={styles.tabs}>
           <button
             style={{
@@ -143,7 +141,6 @@ const MyGifts = ({ onClose }) => {
           </div>
         )}
 
-        {/* Received Gifts */}
         {activeTab === 'received' && (
           <div style={styles.listContainer}>
             {receivedGifts.length === 0 ? (
@@ -201,7 +198,6 @@ const MyGifts = ({ onClose }) => {
           </div>
         )}
 
-        {/* Sent Gifts */}
         {activeTab === 'sent' && (
           <div style={styles.listContainer}>
             {sentGifts.length === 0 ? (
@@ -327,8 +323,8 @@ const styles = {
     transition: 'all 0.2s',
   },
   tabActive: {
-    color: '#6C3CE1',
-    borderBottomColor: '#6C3CE1',
+    color: '#721CBB',
+    borderBottomColor: '#721CBB',
   },
   listContainer: {
     maxHeight: '450px',
@@ -392,13 +388,13 @@ const styles = {
   codeValue: {
     fontSize: '18px',
     fontWeight: '700',
-    color: '#6C3CE1',
+    color: '#721CBB',
     fontFamily: 'monospace',
     letterSpacing: '2px',
   },
   copyButton: {
     padding: '4px 12px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '6px',

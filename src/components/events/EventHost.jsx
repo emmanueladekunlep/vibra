@@ -32,7 +32,6 @@ const EventHost = ({ onHosted, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showInviteSection, setShowInviteSection] = useState(false);
 
-  // Load users when event type is private
   useEffect(() => {
     if (formData.type === 'private') {
       loadUsers();
@@ -46,8 +45,7 @@ const EventHost = ({ onHosted, onClose }) => {
   const loadUsers = async () => {
     try {
       const users = await adminService.getAllUsers();
-      // Filter out current user
-      const filtered = users.filter(u => u.id !== user?.id);
+      const filtered = users.filter(u => u.userId !== user?.userId);
       setAllUsers(filtered);
     } catch (err) {
       console.error('Failed to load users:', err);
@@ -71,7 +69,7 @@ const EventHost = ({ onHosted, onClose }) => {
     if (invitedUsers.length === allUsers.length) {
       setInvitedUsers([]);
     } else {
-      setInvitedUsers(allUsers.map(u => u.id));
+      setInvitedUsers(allUsers.map(u => u.userId));
     }
   };
 
@@ -93,7 +91,6 @@ const EventHost = ({ onHosted, onClose }) => {
       return;
     }
 
-    // Validate invites for private events
     if (formData.type === 'private' && invitedUsers.length === 0) {
       setError('Please invite at least one person to a private event');
       return;
@@ -105,9 +102,8 @@ const EventHost = ({ onHosted, onClose }) => {
         ...formData,
         invitedUsers: formData.type === 'private' ? invitedUsers : [],
       };
-      const event = await eventService.createEvent(user.id, eventData);
+      const event = await eventService.createEvent(user.userId, eventData);
       
-      // Store invited users in event metadata
       if (formData.type === 'private') {
         event.invitedUsers = invitedUsers;
       }
@@ -139,7 +135,7 @@ const EventHost = ({ onHosted, onClose }) => {
         <div style={styles.header}>
           <h3 style={styles.title}>Host an Event</h3>
           {onClose && (
-            <button onClick={onClose} style={styles.closeButton}>
+            <button type="button" onClick={onClose} style={styles.closeButton}>
               Close
             </button>
           )}
@@ -288,7 +284,6 @@ const EventHost = ({ onHosted, onClose }) => {
             </div>
           </div>
 
-          {/* Invite Section - Only shown for Private events */}
           {showInviteSection && (
             <div style={styles.inviteSection}>
               <div style={styles.inviteHeader}>
@@ -321,16 +316,16 @@ const EventHost = ({ onHosted, onClose }) => {
                 ) : (
                   getFilteredUsers().map((u) => (
                     <div
-                      key={u.id}
+                      key={u.userId}
                       style={{
                         ...styles.userItem,
-                        ...(invitedUsers.includes(u.id) ? styles.userItemSelected : {}),
+                        ...(invitedUsers.includes(u.userId) ? styles.userItemSelected : {}),
                       }}
-                      onClick={() => handleToggleUser(u.id)}
+                      onClick={() => handleToggleUser(u.userId)}
                     >
                       <span style={styles.userName}>{u.name || u.phone}</span>
                       <span style={styles.userPhone}>{u.phone}</span>
-                      {invitedUsers.includes(u.id) && (
+                      {invitedUsers.includes(u.userId) && (
                         <span style={styles.invitedBadge}>✓</span>
                       )}
                     </div>
@@ -455,7 +450,7 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: 'white',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     border: 'none',
     borderRadius: '12px',
     cursor: 'pointer',
@@ -483,7 +478,7 @@ const styles = {
   },
   inviteCount: {
     fontSize: '13px',
-    color: '#6C3CE1',
+    color: '#721CBB',
     fontWeight: '600',
   },
   inviteActions: {
@@ -502,7 +497,7 @@ const styles = {
   },
   selectAllButton: {
     padding: '8px 14px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
@@ -530,7 +525,7 @@ const styles = {
   },
   userItemSelected: {
     backgroundColor: '#f0edff',
-    border: '1px solid #6C3CE1',
+    border: '1px solid #721CBB',
   },
   userName: {
     fontSize: '13px',
@@ -544,7 +539,7 @@ const styles = {
   },
   invitedBadge: {
     fontSize: '14px',
-    color: '#6C3CE1',
+    color: '#721CBB',
     fontWeight: '700',
     marginLeft: 'auto',
   },

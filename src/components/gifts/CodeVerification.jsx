@@ -54,7 +54,7 @@ const CodeVerification = ({ onVerified, onClose }) => {
     setError(null);
 
     try {
-      const result = await codeService.useCode(code, user.id);
+      const result = await codeService.useCode(code, user.userId);
       setCodeData(result);
       setVerificationResult('redeemed');
 
@@ -287,7 +287,7 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: 'white',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     border: 'none',
     borderRadius: '12px',
     cursor: 'pointer',
@@ -326,7 +326,7 @@ const styles = {
   codeInfoActive: {
     fontSize: '12px',
     fontWeight: '600',
-    color: '#00B894',
+    color: '#10964D',
     backgroundColor: '#e8f5e9',
     padding: '2px 10px',
     borderRadius: '10px',
@@ -342,7 +342,7 @@ const styles = {
   codeInfoCode: {
     fontSize: '28px',
     fontWeight: '700',
-    color: '#6C3CE1',
+    color: '#721CBB',
     fontFamily: 'monospace',
     letterSpacing: '4px',
     margin: '8px 0',
@@ -363,7 +363,7 @@ const styles = {
     fontSize: '15px',
     fontWeight: '600',
     color: 'white',
-    backgroundColor: '#00B894',
+    backgroundColor: '#10964D',
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',

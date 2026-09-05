@@ -73,7 +73,6 @@ const BuyPoints = ({ onClose, onPurchaseComplete }) => {
   const verificationPrice = getVerificationPrice();
   const verificationLabel = hasWithdrawn ? '₦5,000' : '₦10,000';
 
-  // Generate WhatsApp message with User ID
   const getWhatsAppMessage = (item, price) => {
     let itemName = '';
     if (item.type === 'points') {
@@ -161,7 +160,6 @@ const BuyPoints = ({ onClose, onPurchaseComplete }) => {
           )}
         </div>
 
-        {/* User ID Display */}
         <div style={styles.userIdBox}>
           <span style={styles.userIdLabel}>Your User ID:</span>
           <span style={styles.userIdValue}>{userID}</span>
@@ -468,7 +466,7 @@ const styles = {
     display: 'block',
     fontSize: '24px',
     fontWeight: '700',
-    color: '#6C3CE1',
+    color: '#721CBB',
     fontFamily: 'monospace',
     letterSpacing: '2px',
   },
@@ -498,8 +496,8 @@ const styles = {
     transition: 'all 0.2s',
   },
   tabActive: {
-    color: '#6C3CE1',
-    borderBottomColor: '#6C3CE1',
+    color: '#721CBB',
+    borderBottomColor: '#721CBB',
   },
   subtitle: {
     fontSize: '14px',
@@ -521,7 +519,7 @@ const styles = {
     transition: 'all 0.2s',
   },
   packageCardSelected: {
-    borderColor: '#6C3CE1',
+    borderColor: '#721CBB',
     backgroundColor: '#f0edff',
   },
   packagePoints: {
@@ -534,7 +532,7 @@ const styles = {
     display: 'block',
     fontSize: '16px',
     fontWeight: '600',
-    color: '#6C3CE1',
+    color: '#721CBB',
     marginTop: '4px',
   },
   packageRate: {
@@ -560,7 +558,7 @@ const styles = {
   maxLevelText: {
     fontSize: '18px',
     fontWeight: '700',
-    color: '#6C3CE1',
+    color: '#721CBB',
     margin: '0 0 8px 0',
   },
   maxLevelSubtext: {
@@ -569,7 +567,7 @@ const styles = {
     margin: 0,
   },
   verificationCard: {
-    border: '2px solid #00B894',
+    border: '2px solid #10964D',
     borderRadius: '12px',
     padding: '20px',
     textAlign: 'center',
@@ -578,7 +576,7 @@ const styles = {
   },
   verificationIcon: {
     fontSize: '48px',
-    color: '#00B894',
+    color: '#10964D',
     marginBottom: '8px',
   },
   verificationTitle: {
@@ -605,7 +603,7 @@ const styles = {
   },
   verificationPriceValue: {
     fontWeight: '700',
-    color: '#6C3CE1',
+    color: '#721CBB',
   },
   verificationNote: {
     fontSize: '13px',
@@ -621,7 +619,7 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: 'white',
-    backgroundColor: '#00B894',
+    backgroundColor: '#10964D',
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',

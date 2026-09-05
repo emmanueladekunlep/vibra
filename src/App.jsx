@@ -261,7 +261,7 @@ const AppLayout = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      connectWebSocket(user.id);
+      connectWebSocket(user.userId);
       return () => {
         disconnectWebSocket();
       };
@@ -276,9 +276,9 @@ const AppLayout = ({ children }) => {
 
   const loadNotifications = async () => {
     try {
-      const events = await eventService.getEvents(user.id, { type: 'private' });
+      const events = await eventService.getEvents(user.userId, { type: 'private' });
       const invites = events.filter(e => 
-        e.invitedUsers?.includes(user.id) && e.hostId !== user.id
+        e.invitedUsers?.includes(user.userId) && e.hostId !== user.userId
       );
       const notifs = invites.map(e => ({
         id: `invite_${e.id}`,
@@ -445,6 +445,8 @@ const HomePage = () => {
 };
 
 const App = () => {
+  const { user } = useAuth();
+  
   return (
     <AuthProvider>
       <Router>
@@ -467,7 +469,7 @@ const App = () => {
           } />
           <Route path="/edit-profile" element={
             <ProtectedRoute>
-              <AppLayout><EditProfile /></AppLayout>
+              <AppLayout><EditProfile userId={user?.userId} /></AppLayout>
             </ProtectedRoute>
           } />
           <Route path="/chat" element={

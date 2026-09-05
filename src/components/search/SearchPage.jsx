@@ -65,7 +65,6 @@ const SearchPage = () => {
   const [error, setError] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
 
-  // Filter states
   const [filters, setFilters] = useState({
     lifeGoals: '',
     dealbreakers: '',
@@ -84,7 +83,7 @@ const SearchPage = () => {
       const response = await fetch(`${API_URL}/admin_users.php`);
       const data = await response.json();
       if (data.success) {
-        const filtered = data.users.filter(u => u.id !== user?.id);
+        const filtered = data.users.filter(u => u.userId !== user?.userId);
         setAllUsers(filtered);
       }
     } catch (err) {
@@ -102,7 +101,6 @@ const SearchPage = () => {
 
   const applyFilters = (users) => {
     let filtered = users;
-
     if (filters.lifeGoals) {
       filtered = filtered.filter(u => u.lifeGoals === filters.lifeGoals);
     }
@@ -115,40 +113,28 @@ const SearchPage = () => {
     if (filters.lifestyle) {
       filtered = filtered.filter(u => u.lifestyle === filters.lifestyle);
     }
-
     return filtered;
   };
 
-  // Normalize search string - remove extra spaces, handle variations
   const normalizeSearch = (str) => {
     return str.toLowerCase().trim().replace(/\s+/g, ' ');
   };
 
-  // Check if string matches with flexible matching
   const matchesSearch = (text, searchTerm) => {
     if (!text) return false;
     const normalizedText = normalizeSearch(text);
     const normalizedSearch = normalizeSearch(searchTerm);
-    
-    // Exact match
     if (normalizedText === normalizedSearch) return true;
-    
-    // Contains match
     if (normalizedText.includes(normalizedSearch)) return true;
-    
-    // Word by word match (each word in search must appear in text)
     const searchWords = normalizedSearch.split(' ');
     const textWords = normalizedText.split(' ');
     const allWordsMatch = searchWords.every(word => 
       textWords.some(tw => tw.includes(word) || word.includes(tw))
     );
     if (allWordsMatch) return true;
-    
-    // Partial word match (e.g., "lag" matches "Lagos")
     if (searchWords.length === 1 && searchWords[0].length >= 2) {
       return textWords.some(tw => tw.includes(searchWords[0]));
     }
-    
     return false;
   };
 
@@ -165,7 +151,6 @@ const SearchPage = () => {
     try {
       let filtered = allUsers;
 
-      // Apply text search with flexible matching
       if (searchQuery.trim()) {
         const query = searchQuery.trim();
         if (searchType === 'location') {
@@ -179,7 +164,6 @@ const SearchPage = () => {
         }
       }
 
-      // Apply filters
       filtered = applyFilters(filtered);
 
       if (filtered.length === 0 && searchQuery.trim()) {
@@ -213,8 +197,9 @@ const SearchPage = () => {
   };
 
   const handleChat = async (otherUserId) => {
+    if (!user) return;
     try {
-      const conversation = await chatService.getOrCreateConversation(user.id, otherUserId);
+      const conversation = await chatService.getOrCreateConversation(user.userId, otherUserId);
       navigate(`/chat/${conversation.id}`);
     } catch (err) {
       console.error('Failed to start chat:', err);
@@ -234,10 +219,8 @@ const SearchPage = () => {
     setSuggestions([]);
   };
 
-  // Format phone number to hide most digits
   const formatHiddenPhone = (phone) => {
     if (!phone) return 'Number hidden';
-    // Show only last 4 digits
     const last4 = phone.slice(-4);
     return `••••••${last4}`;
   };
@@ -376,18 +359,15 @@ const SearchPage = () => {
           <div style={styles.resultsContainer}>
             <p style={styles.resultCount}>{results.length} user{results.length > 1 ? 's' : ''} found</p>
             {results.map((u) => (
-              <div
-                key={u.id}
-                style={styles.resultCard}
-              >
-                <div style={styles.resultAvatar} onClick={() => handleUserClick(u.id)}>
-                  {u.profilePhoto ? (
-                    <img src={u.profilePhoto} alt={u.name} style={styles.avatarImage} />
+              <div key={u.userId} style={styles.resultCard}>
+                <div style={styles.resultAvatar} onClick={() => handleUserClick(u.userId)}>
+                  {u.photos && u.photos.length > 0 ? (
+                    <img src={u.photos[0].url} alt={u.name} style={styles.avatarImage} />
                   ) : (
                     <div style={styles.avatarPlaceholder}>{u.name?.[0] || '?'}</div>
                   )}
                 </div>
-                <div style={styles.resultInfo} onClick={() => handleUserClick(u.id)}>
+                <div style={styles.resultInfo} onClick={() => handleUserClick(u.userId)}>
                   <span style={styles.resultName}>
                     {u.name}
                     {u.isVerified && <span style={styles.verifiedBadge}> ✓</span>}
@@ -404,7 +384,7 @@ const SearchPage = () => {
                   <span style={styles.resultPhone}>{formatHiddenPhone(u.phone)}</span>
                 </div>
                 <button
-                  onClick={() => handleChat(u.id)}
+                  onClick={() => handleChat(u.userId)}
                   style={styles.chatButton}
                 >
                   💬 Chat
@@ -479,9 +459,9 @@ const styles = {
     minWidth: '80px',
   },
   toggleActive: {
-    borderColor: '#6C3CE1',
+    borderColor: '#721CBB',
     backgroundColor: '#f0edff',
-    color: '#6C3CE1',
+    color: '#721CBB',
   },
   searchContainer: {
     display: 'flex',
@@ -504,7 +484,7 @@ const styles = {
   },
   searchButton: {
     padding: '12px 18px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '10px',
@@ -585,7 +565,7 @@ const styles = {
     borderRadius: '50%',
     overflow: 'hidden',
     flexShrink: 0,
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     cursor: 'pointer',
   },
   avatarImage: {
@@ -602,7 +582,7 @@ const styles = {
     fontSize: '18px',
     fontWeight: '600',
     color: 'white',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
   },
   resultInfo: {
     flex: 1,
@@ -616,13 +596,13 @@ const styles = {
     color: '#1a1a1a',
   },
   verifiedBadge: {
-    color: '#00B894',
+    color: '#10964D',
     fontSize: '13px',
   },
   resultTag: {
     display: 'inline-block',
     fontSize: '11px',
-    color: '#6C3CE1',
+    color: '#721CBB',
     backgroundColor: '#f0edff',
     padding: '2px 8px',
     borderRadius: '10px',
@@ -643,7 +623,7 @@ const styles = {
   },
   chatButton: {
     padding: '8px 16px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '20px',
