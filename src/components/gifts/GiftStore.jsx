@@ -110,20 +110,55 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [recipientInput, setRecipientInput] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearch, setShowSearch] = useState(!recipientId);
 
   useEffect(() => {
     const allGifts = giftService.getGifts(selectedType);
     setGifts(allGifts);
   }, [selectedType]);
 
+  useEffect(() => {
+    if (recipientId) {
+      setShowSearch(false);
+    }
+  }, [recipientId]);
+
+  const searchUsers = async (query) => {
+    if (!query || query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    try {
+      const response = await fetch(`https://api.vibra.ng/api/admin_users.php?search=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      if (data.success) {
+        const filtered = data.users.filter(u => u.userId !== user?.userId);
+        setSearchResults(filtered);
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+    }
+  };
+
+  const selectRecipient = (userId) => {
+    setRecipientInput(userId);
+    setSearchResults([]);
+    setShowSearch(false);
+  };
+
   const handlePurchase = async (gift) => {
+    const targetRecipient = recipientId || recipientInput;
+
     if (!user) {
       setError('Please login to send gifts');
       return;
     }
 
-    if (!recipientId) {
-      setError('Recipient not specified. Please select a user first.');
+    if (!targetRecipient) {
+      setError('Please select a recipient first. Search by User ID or Phone number.');
+      setShowSearch(true);
       return;
     }
 
@@ -134,7 +169,7 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
     try {
       const result = await giftService.purchaseGift(
         user.userId,
-        recipientId,
+        targetRecipient,
         gift.id,
         message
       );
@@ -151,7 +186,8 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
       setSuccess(successMessage);
       setSelectedGift(null);
       setMessage('');
-
+      setRecipientInput('');
+      
       if (onPurchase) {
         onPurchase(result);
       }
@@ -193,6 +229,48 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
           )}
         </div>
 
+        {/* Recipient Selector */}
+        <div style={styles.recipientSection}>
+          <label style={styles.label}>Recipient</label>
+          {recipientId ? (
+            <div style={styles.recipientSelected}>
+              <span>Recipient: {recipientId}</span>
+            </div>
+          ) : (
+            <div>
+              <input
+                type="text"
+                value={recipientInput}
+                onChange={(e) => {
+                  setRecipientInput(e.target.value);
+                  searchUsers(e.target.value);
+                }}
+                placeholder="Search by User ID or Phone..."
+                style={styles.searchInput}
+              />
+              {searchResults.length > 0 && (
+                <div style={styles.searchResults}>
+                  {searchResults.map((u) => (
+                    <div
+                      key={u.userId}
+                      style={styles.searchResultItem}
+                      onClick={() => selectRecipient(u.userId)}
+                    >
+                      <span>{u.name || u.userId}</span>
+                      <span style={styles.searchResultPhone}>{u.phone}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {recipientInput && searchResults.length === 0 && (
+                <div style={styles.searchResults}>
+                  <div style={styles.searchResultItem}>No users found</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div style={styles.filterContainer}>
           {['all', 'service', 'cash'].map((type) => (
             <button
@@ -222,14 +300,22 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
         <div style={styles.giftGrid}>
           {gifts.map((gift) => {
             const Icon = getIcon(gift.id);
+            const isSelected = selectedGift?.id === gift.id;
             return (
               <div
                 key={gift.id}
                 style={{
                   ...styles.giftCard,
-                  ...(selectedGift?.id === gift.id ? styles.giftCardSelected : {}),
+                  ...(isSelected ? styles.giftCardSelected : {}),
                 }}
-                onClick={() => setSelectedGift(gift)}
+                onClick={() => {
+                  if (isSelected) {
+                    setSelectedGift(null);
+                  } else {
+                    setSelectedGift(gift);
+                    setError(null);
+                  }
+                }}
               >
                 <div style={styles.giftIconWrapper}>
                   <Icon />
@@ -292,7 +378,7 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
               <button
                 onClick={() => handlePurchase(selectedGift)}
                 style={styles.button}
-                disabled={isLoading}
+                disabled={isLoading || !(recipientId || recipientInput)}
               >
                 {isLoading ? 'Processing...' : `Send ₦${selectedGift.price.toLocaleString()}`}
               </button>
@@ -347,6 +433,55 @@ const styles = {
     cursor: 'pointer',
     padding: '4px 8px',
     fontFamily: 'inherit',
+  },
+  recipientSection: {
+    marginBottom: '16px',
+  },
+  label: {
+    display: 'block',
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: '4px',
+  },
+  recipientSelected: {
+    padding: '10px 14px',
+    backgroundColor: '#f0edff',
+    borderRadius: '8px',
+    border: '1px solid #d4c4f0',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '10px 14px',
+    fontSize: '14px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '10px',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    boxSizing: 'border-box',
+    fontFamily: 'inherit',
+  },
+  searchResults: {
+    position: 'relative',
+    maxHeight: '150px',
+    overflowY: 'auto',
+    backgroundColor: 'white',
+    border: '1px solid #e0e0e0',
+    borderTop: 'none',
+    borderRadius: '0 0 10px 10px',
+    zIndex: 10,
+  },
+  searchResultItem: {
+    padding: '10px 14px',
+    cursor: 'pointer',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid #f0f0f0',
+  },
+  searchResultPhone: {
+    fontSize: '12px',
+    color: '#888',
   },
   filterContainer: {
     display: 'flex',
