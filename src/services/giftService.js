@@ -17,6 +17,7 @@
 // Storage keys
 const GIFT_HISTORY_KEY = 'vibra_gift_history';
 const REDEMPTION_CODES_KEY = 'vibra_redemption_codes';
+const VIP_POINTS_KEY = 'vibra_vip_points';
 
 // Gift catalog
 export const GIFT_CATALOG = {
@@ -147,6 +148,60 @@ export const getGiftById = (giftId) => {
 };
 
 /**
+ * Get user points from localStorage
+ */
+const getUserPoints = (userId) => {
+  try {
+    const user = JSON.parse(localStorage.getItem('vibra_user') || '{}');
+    return user.points || 0;
+  } catch {
+    return 0;
+  }
+};
+
+/**
+ * Get VIP points for a user (locked points from VIP codes)
+ */
+const getVIPPoints = (userId) => {
+  try {
+    const data = localStorage.getItem(`${VIP_POINTS_KEY}_${userId}`);
+    return data ? JSON.parse(data) : 0;
+  } catch {
+    return 0;
+  }
+};
+
+/**
+ * Set VIP points for a user
+ */
+const setVIPPoints = (userId, points) => {
+  try {
+    localStorage.setItem(`${VIP_POINTS_KEY}_${userId}`, JSON.stringify(points));
+  } catch (error) {
+    console.warn('Failed to save VIP points:', error);
+  }
+};
+
+/**
+ * Add VIP points (locked - cannot be withdrawn)
+ */
+const addVIPPoints = (userId, points) => {
+  const current = getVIPPoints(userId);
+  const newTotal = current + points;
+  setVIPPoints(userId, newTotal);
+  return newTotal;
+};
+
+/**
+ * Get total points including VIP points
+ */
+const getTotalUserPoints = (userId) => {
+  const regular = getUserPoints(userId);
+  const vip = getVIPPoints(userId);
+  return regular + vip;
+};
+
+/**
  * Purchase a gift
  * @param {string} userId - Purchaser user ID
  * @param {string} recipientId - Recipient user ID
@@ -162,10 +217,11 @@ export const purchaseGift = async (userId, recipientId, giftId, message = '') =>
     throw new Error('Gift not found');
   }
 
-  // Check if user has enough points (if paying with points)
-  const user = await getUser(userId);
-  if (user.points < gift.price * 2) {
-    throw new Error('Insufficient points. Need ₦1 = 2 points');
+  const pointsNeeded = gift.price * 2;
+  const totalPoints = getTotalUserPoints(userId);
+  
+  if (totalPoints < pointsNeeded) {
+    throw new Error(`Insufficient points. You have ${totalPoints} points, need ${pointsNeeded} points. ₦1 = 2 points.`);
   }
 
   // Generate 6-digit redemption code
@@ -182,7 +238,7 @@ export const purchaseGift = async (userId, recipientId, giftId, message = '') =>
     recipientId: recipientId,
     message: message,
     redemptionCode: redemptionCode,
-    status: 'pending', // pending, redeemed, withdrawn
+    status: 'pending',
     createdAt: new Date().toISOString(),
     redeemedAt: null,
     merchantId: null,
@@ -196,13 +252,21 @@ export const purchaseGift = async (userId, recipientId, giftId, message = '') =>
   // Save redemption code
   saveRedemptionCode(redemptionCode, giftRecord);
 
-  // Deduct points from sender
-  const pointsToDeduct = gift.price * 2;
-  await deductPoints(userId, pointsToDeduct, 'gift_sent', `Sent ${gift.name} to recipient`);
-
-  // Add points to recipient (for service gifts, points are added on redemption)
-  if (gift.type === 'cash') {
-    // Cash gifts don't add points immediately
+  // Deduct points from sender (use VIP points first if available)
+  const vipPoints = getVIPPoints(userId);
+  let regularPoints = getUserPoints(userId);
+  let pointsToDeduct = pointsNeeded;
+  
+  // Deduct from VIP points first
+  if (vipPoints > 0) {
+    const vipDeduct = Math.min(vipPoints, pointsToDeduct);
+    setVIPPoints(userId, vipPoints - vipDeduct);
+    pointsToDeduct -= vipDeduct;
+  }
+  
+  // Then deduct from regular points
+  if (pointsToDeduct > 0) {
+    await deductPoints(userId, pointsToDeduct, 'gift_sent', `Sent ${gift.name} to recipient`);
   }
 
   return {
@@ -260,8 +324,8 @@ export const redeemServiceGift = async (redemptionCode, merchantId) => {
   giftRecord.redeemedAt = new Date().toISOString();
   giftRecord.merchantId = merchantId;
 
-  // Update recipient's points (service gift value)
-  const recipient = await getUser(giftRecord.recipientId);
+  // Add points to recipient (service gift value)
+  // These points are NOT locked - they are regular redeemable points
   await addPoints(giftRecord.recipientId, giftRecord.price, 'gift_received', `Redeemed ${giftRecord.giftName}`);
 
   // Pay merchant (80% of value)
@@ -316,6 +380,7 @@ export const withdrawCashGift = async (redemptionCode, userId) => {
   giftRecord.withdrawalId = `wd_${Date.now()}`;
 
   // Add points to recipient (cash gift value)
+  // These points are NOT locked - they are regular withdrawable points
   await addPoints(userId, giftRecord.price, 'gift_received', `Withdrew ${giftRecord.giftName}`);
 
   // Save updated gift
@@ -429,15 +494,39 @@ export const getGiftStats = async (userId) => {
   };
 };
 
+/**
+ * Get VIP points for user
+ */
+export const getVIPPointsForUser = (userId) => {
+  return getVIPPoints(userId);
+};
+
+/**
+ * Get total points (regular + VIP) for user
+ */
+export const getTotalPointsForUser = (userId) => {
+  return getTotalUserPoints(userId);
+};
+
 // ========== MOCK HELPERS ==========
 
 async function getUser(userId) {
-  return {
-    id: userId,
-    points: 1000,
-    level: 'Bronze',
-    name: 'User',
-  };
+  try {
+    const user = JSON.parse(localStorage.getItem('vibra_user') || '{}');
+    return {
+      id: userId,
+      points: user.points || 0,
+      level: user.level || 'Bronze',
+      name: user.name || 'User',
+    };
+  } catch {
+    return {
+      id: userId,
+      points: 0,
+      level: 'Bronze',
+      name: 'User',
+    };
+  }
 }
 
 async function getMerchant(merchantId) {
@@ -450,13 +539,25 @@ async function getMerchant(merchantId) {
 }
 
 async function addPoints(userId, points, source, description) {
-  // Mock adding points
-  return { success: true };
+  try {
+    const user = JSON.parse(localStorage.getItem('vibra_user') || '{}');
+    user.points = (user.points || 0) + points;
+    localStorage.setItem('vibra_user', JSON.stringify(user));
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
 }
 
 async function deductPoints(userId, points, source, description) {
-  // Mock deducting points
-  return { success: true };
+  try {
+    const user = JSON.parse(localStorage.getItem('vibra_user') || '{}');
+    user.points = Math.max(0, (user.points || 0) - points);
+    localStorage.setItem('vibra_user', JSON.stringify(user));
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
 }
 
 async function payMerchant(merchantId, amount) {
@@ -476,4 +577,6 @@ export default {
   getGiftByCode,
   getGiftHistory,
   getGiftStats,
+  getVIPPointsForUser,
+  getTotalPointsForUser,
 };
