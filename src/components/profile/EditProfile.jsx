@@ -127,6 +127,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
 
   useEffect(() => {
     const loadProfile = async () => {
+      if (!userId) return;
       setIsLoading(true);
       setError(null);
       try {
@@ -158,9 +159,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       }
     };
 
-    if (userId) {
-      loadProfile();
-    }
+    loadProfile();
   }, [userId]);
 
   const handleChange = (e) => {
@@ -211,7 +210,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       const updated = await profileService.updateProfile(userId, updates);
       setProfile(updated);
       
-      if (user?.id === userId) {
+      if (user?.id === userId || user?.userId === userId) {
         updateUser(updated);
       }
 
@@ -247,7 +246,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       await profileService.uploadPhoto(userId, file);
       const updated = await profileService.getProfile(userId);
       setProfile(updated);
-      if (user?.id === userId) {
+      if (user?.id === userId || user?.userId === userId) {
         updateUser(updated);
       }
       setSuccess(true);
@@ -272,7 +271,7 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
       await profileService.removePhoto(userId, photoId);
       const updated = await profileService.getProfile(userId);
       setProfile(updated);
-      if (user?.id === userId) {
+      if (user?.id === userId || user?.userId === userId) {
         updateUser(updated);
       }
       setSuccess(true);
@@ -301,12 +300,11 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
     setError(null);
 
     try {
-      // First remove old photo, then upload new one
       await profileService.removePhoto(userId, photoId);
       await profileService.uploadPhoto(userId, file);
       const updated = await profileService.getProfile(userId);
       setProfile(updated);
-      if (user?.id === userId) {
+      if (user?.id === userId || user?.userId === userId) {
         updateUser(updated);
       }
       setSuccess(true);
@@ -413,7 +411,6 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
         )}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          {/* Basic Info */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Full Name</label>
             <input
@@ -520,12 +517,10 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
             />
           </div>
 
-          {/* ===== ADVANCED MATCHING ===== */}
           <div style={styles.divider}>
             <span style={styles.dividerText}>Matching Preferences</span>
           </div>
 
-          {/* Life Goals */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Life Goals (1-3 years)</label>
             <select
@@ -541,7 +536,6 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
             </select>
           </div>
 
-          {/* Dealbreakers */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Top Dealbreaker</label>
             <select
@@ -557,7 +551,6 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
             </select>
           </div>
 
-          {/* Dating Pace */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Dating Pace</label>
             <select
@@ -573,7 +566,6 @@ const EditProfile = ({ userId, onSave, onCancel }) => {
             </select>
           </div>
 
-          {/* Lifestyle */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Lifestyle</label>
             <select
@@ -634,7 +626,8 @@ const styles = {
     padding: '32px',
     maxWidth: '600px',
     width: '100%',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+    border: '1px solid #f0f0f0',
   },
   title: {
     fontSize: '24px',
@@ -689,7 +682,7 @@ const styles = {
     fontWeight: '700',
   },
   replaceBtn: {
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
   },
   removeBtn: {
     backgroundColor: '#ff4444',
@@ -732,7 +725,7 @@ const styles = {
   },
   zodiacText: {
     fontSize: '13px',
-    color: '#6C3CE1',
+    color: '#721CBB',
     fontWeight: '500',
   },
   form: {
@@ -780,7 +773,7 @@ const styles = {
   },
   helperText: {
     fontSize: '12px',
-    color: '#6C3CE1',
+    color: '#721CBB',
     marginTop: '4px',
     display: 'block',
   },
@@ -792,7 +785,7 @@ const styles = {
   dividerText: {
     fontSize: '14px',
     fontWeight: '600',
-    color: '#6C3CE1',
+    color: '#721CBB',
     backgroundColor: '#f0edff',
     padding: '4px 14px',
     borderRadius: '12px',
@@ -808,7 +801,7 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: 'white',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     border: 'none',
     borderRadius: '12px',
     cursor: 'pointer',
