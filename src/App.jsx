@@ -444,9 +444,13 @@ const HomePage = () => {
   );
 };
 
-const App = () => {
+// Wrapper component to pass userId to EditProfile
+const EditProfileWrapper = () => {
   const { user } = useAuth();
-  
+  return <EditProfile userId={user?.userId} />;
+};
+
+const App = () => {
   return (
     <AuthProvider>
       <Router>
@@ -469,7 +473,7 @@ const App = () => {
           } />
           <Route path="/edit-profile" element={
             <ProtectedRoute>
-              <AppLayout><EditProfile userId={user?.userId} /></AppLayout>
+              <AppLayout><EditProfileWrapper /></AppLayout>
             </ProtectedRoute>
           } />
           <Route path="/chat" element={
