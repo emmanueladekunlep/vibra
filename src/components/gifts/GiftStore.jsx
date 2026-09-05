@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import * as giftService from '../../services/giftService';
 
 // Professional SVG Icons
@@ -103,6 +104,7 @@ const getIcon = (giftId) => {
 
 const GiftStore = ({ recipientId, onPurchase, onClose }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [gifts, setGifts] = useState([]);
   const [selectedType, setSelectedType] = useState('all');
   const [selectedGift, setSelectedGift] = useState(null);
@@ -222,11 +224,22 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
       <div style={styles.card}>
         <div style={styles.header}>
           <h2 style={styles.title}>Send a Gift</h2>
-          {onClose && (
-            <button onClick={onClose} style={styles.closeButton}>
-              ✕
+          <div style={styles.headerActions}>
+            <button onClick={() => navigate('/gifts/my')} style={styles.headerButton}>
+              My Gifts
             </button>
-          )}
+            <button onClick={() => navigate('/gifts/buy')} style={styles.headerButton}>
+              Buy Points
+            </button>
+            <button onClick={() => navigate('/gifts/redeem')} style={styles.headerButton}>
+              Redeem
+            </button>
+            {onClose && (
+              <button onClick={onClose} style={styles.closeButton}>
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Recipient Selector */}
@@ -418,12 +431,31 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '16px',
+    flexWrap: 'wrap',
+    gap: '8px',
   },
   title: {
     fontSize: '20px',
     fontWeight: '700',
     color: '#1a1a1a',
     margin: 0,
+  },
+  headerActions: {
+    display: 'flex',
+    gap: '6px',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  headerButton: {
+    padding: '6px 12px',
+    backgroundColor: '#f0edff',
+    color: '#721CBB',
+    border: 'none',
+    borderRadius: '16px',
+    fontSize: '11px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
   },
   closeButton: {
     background: 'none',

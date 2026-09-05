@@ -44,7 +44,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           const data = await response.json();
           if (data.success && data.conversation) {
             const participants = data.conversation.participants || [];
-            const otherId = participants.find(id => id != user.id);
+            const otherId = participants.find(id => id != user.userId);
             if (otherId) {
               const userInfo = await profileService.getProfile(otherId);
               setOtherUser(userInfo);
@@ -56,7 +56,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       };
       loadOtherUser();
     }
-  }, [conversationId, user.id, propOtherUser]);
+  }, [conversationId, user.userId, propOtherUser]);
 
   // Merge messages without causing re-render flicker
   const mergeMessages = useCallback((newMessages) => {
@@ -94,7 +94,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         prevMessagesLength.current = formatted.length;
       }
       
-      await chatService.markAsRead(conversationId, user.id);
+      await chatService.markAsRead(conversationId, user.userId);
     } catch (err) {
       console.error('Failed to load messages:', err);
     } finally {
@@ -103,7 +103,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         isFirstLoad.current = false;
       }
     }
-  }, [conversationId, user.id, mergeMessages]);
+  }, [conversationId, user.userId, mergeMessages]);
 
   useEffect(() => {
     if (conversationId) {
@@ -143,7 +143,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           senderId: String(data.message.senderId || data.message.sender_id || '')
         };
         setMessages(prev => [...prev, newMsg]);
-        chatService.markAsRead(conversationId, user.id);
+        chatService.markAsRead(conversationId, user.userId);
         if (!isUserScrolling.current) {
           setTimeout(scrollToBottom, 50);
         }
@@ -160,7 +160,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       if (data.type === 'read' && data.conversationId === conversationId) {
         setMessages(prev => 
           prev.map(msg => 
-            String(msg.senderId) !== String(user.id) ? { ...msg, read: true } : msg
+            String(msg.senderId) !== String(user.userId) ? { ...msg, read: true } : msg
           )
         );
       }
@@ -185,7 +185,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       if (typingTimeout) clearTimeout(typingTimeout);
       if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     };
-  }, [conversationId, user.id, typingTimeout, loadMessages]);
+  }, [conversationId, user.userId, typingTimeout, loadMessages]);
 
   const scrollToBottom = () => {
     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
@@ -204,10 +204,10 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     setError(null);
     
     try {
-      const message = await chatService.sendMessage(conversationId, user.id, newMessage.trim());
+      const message = await chatService.sendMessage(conversationId, user.userId, newMessage.trim());
       const formattedMsg = {
         ...message,
-        senderId: String(message.senderId || message.sender_id || user.id)
+        senderId: String(message.senderId || message.sender_id || user.userId)
       };
       setNewMessage('');
       
@@ -233,7 +233,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     setNewMessage(value);
     
     if (value.length > 0) {
-      chatService.sendTyping(conversationId, user.id);
+      chatService.sendTyping(conversationId, user.userId);
     }
   };
 
@@ -391,7 +391,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           <>
             {messages.map((msg, index) => {
               const msgSenderId = String(msg.senderId || msg.sender_id || '');
-              const currentUserId = String(user.id);
+              const currentUserId = String(user.userId);
               const isOwn = msgSenderId === currentUserId;
               
               return (
