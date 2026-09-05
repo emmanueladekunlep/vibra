@@ -231,7 +231,7 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
 
         {/* Recipient Selector */}
         <div style={styles.recipientSection}>
-          <label style={styles.label}>Recipient</label>
+          <label style={styles.recipientLabel}>Recipient</label>
           {recipientId ? (
             <div style={styles.recipientSelected}>
               <span>Recipient: {recipientId}</span>
@@ -356,7 +356,7 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
             </div>
 
             <div style={styles.formGroup}>
-              <label style={styles.label}>Message (optional)</label>
+              <label style={styles.formLabel}>Message (optional)</label>
               <input
                 type="text"
                 value={message}
@@ -437,7 +437,7 @@ const styles = {
   recipientSection: {
     marginBottom: '16px',
   },
-  label: {
+  recipientLabel: {
     display: 'block',
     fontSize: '13px',
     fontWeight: '500',
@@ -618,7 +618,7 @@ const styles = {
   formGroup: {
     marginBottom: '12px',
   },
-  label: {
+  formLabel: {
     display: 'block',
     fontSize: '13px',
     fontWeight: '500',
