@@ -58,23 +58,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     }
   }, [conversationId, user.userId, propOtherUser]);
 
-  // Merge messages without causing re-render flicker
-  const mergeMessages = useCallback((newMessages) => {
-    if (newMessages.length === messages.length) {
-      const hasChanged = newMessages.some((msg, i) => {
-        const existing = messages[i];
-        return !existing || 
-               msg.text !== existing.text || 
-               msg.senderId !== existing.senderId ||
-               msg.read !== existing.read;
-      });
-      if (!hasChanged) return false;
-    }
-
-    setMessages(newMessages);
-    return true;
-  }, [messages]);
-
   const loadMessages = useCallback(async (silent = false) => {
     if (!conversationId) return;
     
@@ -85,13 +68,11 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         senderId: String(msg.senderId || msg.sender_id || '')
       }));
       
-      const changed = mergeMessages(formatted);
+      setMessages(formatted);
+      prevMessagesLength.current = formatted.length;
       
-      if (changed && formatted.length > prevMessagesLength.current && !isUserScrolling.current) {
+      if (!isUserScrolling.current && formatted.length > 0) {
         scrollToBottom();
-      }
-      if (changed) {
-        prevMessagesLength.current = formatted.length;
       }
       
       await chatService.markAsRead(conversationId, user.userId);
@@ -103,7 +84,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         isFirstLoad.current = false;
       }
     }
-  }, [conversationId, user.userId, mergeMessages]);
+  }, [conversationId, user.userId]);
 
   useEffect(() => {
     if (conversationId) {
@@ -339,6 +320,9 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     );
   }
 
+  // Get the current user ID for comparison
+  const currentUserId = String(user.userId);
+
   return (
     <div style={styles.container}>
       <div style={styles.header}>
@@ -391,7 +375,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           <>
             {messages.map((msg, index) => {
               const msgSenderId = String(msg.senderId || msg.sender_id || '');
-              const currentUserId = String(user.userId);
+              // Check if the message sender is the current user
               const isOwn = msgSenderId === currentUserId;
               
               return (
@@ -520,6 +504,7 @@ const styles = {
     gap: '10px',
     flex: 1,
     minWidth: 0,
+    cursor: 'pointer',
   },
   userTextInfo: {
     display: 'flex',
@@ -581,6 +566,7 @@ const styles = {
   messageRow: {
     display: 'flex',
     marginBottom: '10px',
+    width: '100%',
   },
   messageBubble: {
     maxWidth: '75%',

@@ -444,10 +444,30 @@ const HomePage = () => {
   );
 };
 
-// Wrapper component to pass userId to EditProfile
+// Wrapper components for close buttons
 const EditProfileWrapper = () => {
   const { user } = useAuth();
   return <EditProfile userId={user?.userId} />;
+};
+
+const GiftStoreWrapper = () => {
+  const navigate = useNavigate();
+  return <GiftStore onClose={() => navigate('/gifts')} />;
+};
+
+const MyGiftsWrapper = () => {
+  const navigate = useNavigate();
+  return <MyGifts onClose={() => navigate('/gifts')} />;
+};
+
+const BuyPointsWrapper = () => {
+  const navigate = useNavigate();
+  return <BuyPoints onClose={() => navigate('/gifts')} />;
+};
+
+const GiftRedemptionWrapper = () => {
+  const navigate = useNavigate();
+  return <GiftRedemption onClose={() => navigate('/gifts')} />;
 };
 
 const App = () => {
@@ -488,22 +508,22 @@ const App = () => {
           } />
           <Route path="/gifts" element={
             <ProtectedRoute>
-              <AppLayout><GiftStore /></AppLayout>
+              <AppLayout><GiftStoreWrapper /></AppLayout>
             </ProtectedRoute>
           } />
           <Route path="/gifts/my" element={
             <ProtectedRoute>
-              <AppLayout><MyGifts /></AppLayout>
+              <AppLayout><MyGiftsWrapper /></AppLayout>
             </ProtectedRoute>
           } />
           <Route path="/gifts/buy" element={
             <ProtectedRoute>
-              <AppLayout><BuyPoints /></AppLayout>
+              <AppLayout><BuyPointsWrapper /></AppLayout>
             </ProtectedRoute>
           } />
           <Route path="/gifts/redeem" element={
             <ProtectedRoute>
-              <AppLayout><GiftRedemption /></AppLayout>
+              <AppLayout><GiftRedemptionWrapper /></AppLayout>
             </ProtectedRoute>
           } />
           <Route path="/gifts/code" element={
