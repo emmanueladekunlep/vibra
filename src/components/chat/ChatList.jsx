@@ -123,11 +123,12 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
     return date.toLocaleDateString();
   };
 
-  const handleChatClick = (convId, otherUser) => {
+  const handleChatClick = (convId, otherUserData) => {
+    // Ensure we pass the full otherUser data with name
     if (onSelectChat) {
-      onSelectChat(convId, otherUser);
+      onSelectChat(convId, otherUserData);
     } else {
-      navigate(`/chat/${convId}`);
+      navigate(`/chat/${convId}`, { state: { otherUser: otherUserData } });
     }
   };
 
@@ -168,60 +169,63 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
         </div>
       ) : (
         <div style={styles.list}>
-          {conversations.map((conv) => (
-            <div
-              key={conv.id}
-              style={{
-                ...styles.chatItem,
-                ...(selectedChatId === conv.id ? styles.chatItemActive : {}),
-              }}
-              onClick={() => handleChatClick(conv.id, conv.otherUser)}
-            >
-              <div style={styles.avatarContainer}>
-                {conv.otherUser.photos && conv.otherUser.photos.length > 0 ? (
-                  <img 
-                    src={conv.otherUser.photos[0]} 
-                    alt={conv.otherUser.name}
-                    style={styles.avatar}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.parentElement.innerHTML = 
-                        `<span style="${styles.avatarPlaceholder}">${conv.otherUser.name?.[0] || '?'}</span>`;
-                    }}
-                  />
-                ) : (
-                  <div style={styles.avatarPlaceholder}>
-                    {conv.otherUser.name?.[0] || '?'}
-                  </div>
-                )}
-                {conv.otherUser.isVerified && (
-                  <span style={styles.verifiedDot}></span>
-                )}
-              </div>
-
-              <div style={styles.chatInfo}>
-                <div style={styles.chatHeader}>
-                  <span style={styles.chatName}>
-                    {conv.otherUser.name}
-                  </span>
-                  <span style={styles.chatTime}>
-                    {formatTime(conv.lastMessage?.timestamp || conv.createdAt)}
-                  </span>
-                </div>
-                <div style={styles.chatPreview}>
-                  <span style={styles.chatMessage}>
-                    {conv.lastMessage?.text || 'No messages yet'}
-                  </span>
-                  {conv.unreadCount > 0 && (
-                    <span style={styles.unreadCount}>{conv.unreadCount}</span>
+          {conversations.map((conv) => {
+            const otherUserData = conv.otherUser || {};
+            return (
+              <div
+                key={conv.id}
+                style={{
+                  ...styles.chatItem,
+                  ...(selectedChatId === conv.id ? styles.chatItemActive : {}),
+                }}
+                onClick={() => handleChatClick(conv.id, otherUserData)}
+              >
+                <div style={styles.avatarContainer}>
+                  {otherUserData.photos && otherUserData.photos.length > 0 ? (
+                    <img 
+                      src={otherUserData.photos[0]} 
+                      alt={otherUserData.name || 'User'}
+                      style={styles.avatar}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = 
+                          `<span style="${styles.avatarPlaceholder}">${(otherUserData.name || '?')[0]}</span>`;
+                      }}
+                    />
+                  ) : (
+                    <div style={styles.avatarPlaceholder}>
+                      {(otherUserData.name || '?')[0]}
+                    </div>
+                  )}
+                  {otherUserData.isVerified && (
+                    <span style={styles.verifiedDot}></span>
                   )}
                 </div>
-                <span style={styles.chatLevel}>
-                  Level: {conv.otherUser.level || 'Bronze'}
-                </span>
+
+                <div style={styles.chatInfo}>
+                  <div style={styles.chatHeader}>
+                    <span style={styles.chatName}>
+                      {otherUserData.name || 'User'}
+                    </span>
+                    <span style={styles.chatTime}>
+                      {formatTime(conv.lastMessage?.timestamp || conv.createdAt)}
+                    </span>
+                  </div>
+                  <div style={styles.chatPreview}>
+                    <span style={styles.chatMessage}>
+                      {conv.lastMessage?.text || 'No messages yet'}
+                    </span>
+                    {conv.unreadCount > 0 && (
+                      <span style={styles.unreadCount}>{conv.unreadCount}</span>
+                    )}
+                  </div>
+                  <span style={styles.chatLevel}>
+                    Level: {otherUserData.level || 'Bronze'}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
