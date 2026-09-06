@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import * as referralService from '../services/referralService';
 
 const Settings = ({ onClose }) => {
   const { user, logout, updateUser } = useAuth();
@@ -19,6 +20,9 @@ const Settings = ({ onClose }) => {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
 
   const handleClose = () => {
     if (onClose) {
@@ -121,6 +125,59 @@ const Settings = ({ onClose }) => {
     }
   };
 
+  const handleRedeemReferral = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+
+    if (!referralCode || referralCode.length !== 6 || !/^\d{6}$/.test(referralCode)) {
+      setError('Please enter a valid 6-digit referral code');
+      return;
+    }
+
+    if (!user) {
+      setError('Please login to redeem referral code');
+      return;
+    }
+
+    setIsRedeeming(true);
+    try {
+      const result = await referralService.redeemReferralCode(referralCode, user.userId);
+      if (result.success) {
+        setMessage(`✅ ${result.message}`);
+        setReferralCode('');
+        // Update user points
+        updateUser({ points: (user.points || 0) + (result.pointsEarned || 0) });
+        setTimeout(() => setShowReferral(false), 3000);
+      } else {
+        setError(result.message || 'Failed to redeem referral code');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to redeem referral code');
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
+  const copyReferralCode = () => {
+    const code = user?.referral_code || user?.userId?.slice(-6) || '';
+    if (code) {
+      navigator.clipboard.writeText(code)
+        .then(() => setMessage('Referral code copied!'))
+        .catch(() => {
+          const textarea = document.createElement('textarea');
+          textarea.value = code;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+          setMessage('Referral code copied!');
+        });
+    }
+  };
+
+  const userReferralCode = user?.referral_code || user?.userId?.slice(-6) || '';
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
@@ -166,10 +223,72 @@ const Settings = ({ onClose }) => {
 
           <div style={styles.settingItem}>
             <div style={styles.settingInfo}>
+              <span style={styles.settingLabel}>Points</span>
+              <span style={styles.settingValue}>{user?.points || 0}</span>
+            </div>
+          </div>
+
+          <div style={styles.settingItem}>
+            <div style={styles.settingInfo}>
               <span style={styles.settingLabel}>PIN Enabled</span>
               <span style={styles.settingValue}>{user?.pinEnabled ? 'Yes' : 'No'}</span>
             </div>
           </div>
+        </div>
+
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Referral</h3>
+          
+          <div style={styles.settingItem} onClick={() => setShowReferral(!showReferral)}>
+            <div style={styles.settingInfo}>
+              <span style={styles.settingLabel}>Referral Code</span>
+              <span style={styles.settingArrow}>›</span>
+            </div>
+          </div>
+
+          {showReferral && (
+            <div style={styles.referralSection}>
+              <div style={styles.referralCodeBox}>
+                <span style={styles.referralCodeLabel}>Your Referral Code</span>
+                <div style={styles.referralCodeDisplay}>
+                  <span style={styles.referralCodeValue}>{userReferralCode}</span>
+                  <button onClick={copyReferralCode} style={styles.copyButton}>
+                    Copy
+                  </button>
+                </div>
+                <p style={styles.referralNote}>
+                  Share this code with friends. You'll get 500 points and they'll get 200 points!
+                </p>
+              </div>
+
+              <div style={styles.divider} />
+
+              <form onSubmit={handleRedeemReferral} style={styles.referralForm}>
+                <label style={styles.label}>Redeem Referral Code</label>
+                <div style={styles.referralInputRow}>
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="123456"
+                    style={styles.referralInput}
+                    maxLength="6"
+                    disabled={isRedeeming}
+                  />
+                  <button
+                    type="submit"
+                    style={styles.redeemButton}
+                    disabled={isRedeeming || referralCode.length !== 6}
+                  >
+                    {isRedeeming ? '...' : 'Redeem'}
+                  </button>
+                </div>
+                <p style={styles.referralNote}>
+                  Enter a friend's 6-digit referral code to earn bonus points!
+                </p>
+              </form>
+            </div>
+          )}
         </div>
 
         <div style={styles.section}>
@@ -372,7 +491,7 @@ const styles = {
   pinButton: {
     width: '100%',
     padding: '12px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '10px',
@@ -384,7 +503,7 @@ const styles = {
   },
   smallButton: {
     padding: '4px 14px',
-    backgroundColor: '#6C3CE1',
+    backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
     borderRadius: '6px',
@@ -392,6 +511,89 @@ const styles = {
     fontWeight: '500',
     cursor: 'pointer',
     fontFamily: 'inherit',
+  },
+  referralSection: {
+    paddingTop: '12px',
+    paddingBottom: '8px',
+  },
+  referralCodeBox: {
+    backgroundColor: '#f8f6fc',
+    borderRadius: '10px',
+    padding: '14px',
+    marginBottom: '12px',
+  },
+  referralCodeLabel: {
+    fontSize: '12px',
+    color: '#888',
+    fontWeight: '500',
+    display: 'block',
+    marginBottom: '4px',
+  },
+  referralCodeDisplay: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  referralCodeValue: {
+    fontSize: '24px',
+    fontWeight: '700',
+    color: '#721CBB',
+    fontFamily: 'monospace',
+    letterSpacing: '2px',
+    flex: 1,
+  },
+  copyButton: {
+    padding: '6px 14px',
+    backgroundColor: '#721CBB',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  },
+  referralNote: {
+    fontSize: '12px',
+    color: '#888',
+    margin: '6px 0 0 0',
+  },
+  divider: {
+    height: '1px',
+    backgroundColor: '#f0f0f0',
+    margin: '12px 0',
+  },
+  referralForm: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  referralInputRow: {
+    display: 'flex',
+    gap: '10px',
+  },
+  referralInput: {
+    flex: 1,
+    padding: '12px',
+    fontSize: '20px',
+    fontFamily: 'monospace',
+    textAlign: 'center',
+    letterSpacing: '4px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '10px',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  redeemButton: {
+    padding: '12px 20px',
+    backgroundColor: '#10964D',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
   },
   errorBox: {
     backgroundColor: '#ffebee',
