@@ -29,7 +29,7 @@ const Logo = () => {
             />
           </svg>
         </div>
-        <span style={styles.raText}>₦RA
+        <span style={styles.raText}>RA
           <span style={styles.heartInA}>♥</span>
         </span>
       </div>
