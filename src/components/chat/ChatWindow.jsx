@@ -34,6 +34,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   const prevMessagesLength = useRef(0);
   const scrollTimeout = useRef(null);
   const pollIntervalRef = useRef(null);
+  const localMessageIds = useRef(new Set());
 
   // Load other user info if not provided
   useEffect(() => {
@@ -68,11 +69,17 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         senderId: String(msg.senderId || msg.sender_id || '')
       }));
       
-      setMessages(formatted);
-      prevMessagesLength.current = formatted.length;
+      // Check if messages changed
+      const hasChanged = formatted.length !== messages.length || 
+        formatted.some((msg, i) => msg.id !== messages[i]?.id);
       
-      if (!isUserScrolling.current && formatted.length > 0) {
-        scrollToBottom();
+      if (hasChanged) {
+        setMessages(formatted);
+        prevMessagesLength.current = formatted.length;
+        
+        if (!isUserScrolling.current && formatted.length > 0) {
+          scrollToBottom();
+        }
       }
       
       await chatService.markAsRead(conversationId, user.userId);
@@ -84,7 +91,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         isFirstLoad.current = false;
       }
     }
-  }, [conversationId, user.userId]);
+  }, [conversationId, user.userId, messages]);
 
   useEffect(() => {
     if (conversationId) {
@@ -184,21 +191,23 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     setIsSending(true);
     setError(null);
     
+    const messageText = newMessage.trim();
+    setNewMessage('');
+    
     try {
-      const message = await chatService.sendMessage(conversationId, user.userId, newMessage.trim());
+      const message = await chatService.sendMessage(conversationId, user.userId, messageText);
       const formattedMsg = {
         ...message,
         senderId: String(message.senderId || message.sender_id || user.userId)
       };
-      setNewMessage('');
       
-      if (formattedMsg) {
-        setMessages(prev => [...prev, formattedMsg]);
-        prevMessagesLength.current = prevMessagesLength.current + 1;
-        setTimeout(scrollToBottom, 50);
-      }
+      // Add message locally immediately
+      setMessages(prev => [...prev, formattedMsg]);
+      prevMessagesLength.current = prevMessagesLength.current + 1;
+      setTimeout(scrollToBottom, 50);
       
-      setTimeout(() => loadMessages(true), 500);
+      // Let polling handle the sync
+      setTimeout(() => loadMessages(true), 1000);
       
       inputRef.current?.focus();
     } catch (err) {
@@ -261,7 +270,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     }
   };
 
-  // Show loading state if otherUser is not loaded yet
   if (!conversationId) {
     return (
       <div style={styles.container}>
@@ -320,7 +328,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     );
   }
 
-  // Get the current user ID for comparison
   const currentUserId = String(user.userId);
 
   return (
@@ -375,7 +382,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           <>
             {messages.map((msg, index) => {
               const msgSenderId = String(msg.senderId || msg.sender_id || '');
-              // Check if the message sender is the current user
               const isOwn = msgSenderId === currentUserId;
               
               return (
