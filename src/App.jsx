@@ -109,7 +109,7 @@ const VibraLogo = ({ size = 'medium', showTagline = true, pulse = true }) => {
           fontFamily: 'Poppins, Inter, sans-serif',
           position: 'relative',
         }}>
-          ₦RA
+          RA
           <span style={{
             position: 'absolute',
             top: '18%',
@@ -195,7 +195,7 @@ const VibraLogoDark = ({ size = 'small' }) => {
           fontFamily: 'Poppins, Inter, sans-serif',
           position: 'relative'
         }}>
-          ₦RA
+          RA
           <span style={{
             position: 'absolute',
             top: '18%',
