@@ -9,11 +9,13 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import * as chatService from '../../services/chatService';
 import * as profileService from '../../services/profileService';
 
 const ChatList = ({ onSelectChat, selectedChatId }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -121,6 +123,14 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
     return date.toLocaleDateString();
   };
 
+  const handleChatClick = (convId, otherUser) => {
+    if (onSelectChat) {
+      onSelectChat(convId, otherUser);
+    } else {
+      navigate(`/chat/${convId}`);
+    }
+  };
+
   if (isLoading) {
     return (
       <div style={styles.container}>
@@ -165,7 +175,7 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
                 ...styles.chatItem,
                 ...(selectedChatId === conv.id ? styles.chatItemActive : {}),
               }}
-              onClick={() => onSelectChat?.(conv.id, conv.otherUser)}
+              onClick={() => handleChatClick(conv.id, conv.otherUser)}
             >
               <div style={styles.avatarContainer}>
                 {conv.otherUser.photos && conv.otherUser.photos.length > 0 ? (
