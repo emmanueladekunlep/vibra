@@ -317,8 +317,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     );
   }
 
-  const currentUserId = String(user.userId);
-
   return (
     <div style={styles.container}>
       <div style={styles.header}>
@@ -371,31 +369,41 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           <>
             {messages.map((msg, index) => {
               const msgSenderId = String(msg.senderId || msg.sender_id || '');
-              const isOwn = msgSenderId === currentUserId;
+              const isMe = msgSenderId === String(user.userId);
               
               return (
                 <div
                   key={msg.id || index}
                   style={{
-                    ...styles.messageRow,
-                    justifyContent: isOwn ? 'flex-end' : 'flex-start',
+                    display: 'flex',
+                    justifyContent: isMe ? 'flex-end' : 'flex-start',
+                    marginBottom: '10px',
+                    width: '100%',
                   }}
                 >
                   <div
                     style={{
-                      ...styles.messageBubble,
-                      ...(isOwn ? styles.messageOwn : styles.messageOther),
+                      maxWidth: '75%',
+                      padding: '10px 14px',
+                      borderRadius: '16px',
+                      wordWrap: 'break-word',
+                      backgroundColor: isMe ? '#721CBB' : '#f0f0f0',
+                      color: isMe ? 'white' : '#1a1a1a',
+                      borderBottomRightRadius: isMe ? '4px' : '16px',
+                      borderBottomLeftRadius: isMe ? '16px' : '4px',
                     }}
                   >
-                    <p style={styles.messageText}>{msg.text}</p>
-                    <div style={styles.messageFooter}>
-                      <span style={styles.messageSender}>
-                        {isOwn ? 'You' : (otherUser?.name || 'User')}
+                    <p style={{ fontSize: '15px', lineHeight: '1.5', margin: '0 0 4px 0' }}>
+                      {msg.text}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', opacity: 0.7, gap: '8px' }}>
+                      <span style={{ fontWeight: '500', opacity: 0.6, fontSize: '10px' }}>
+                        {isMe ? 'You' : (otherUser?.name || 'User')}
                       </span>
-                      <span style={styles.messageTime}>
+                      <span style={{ fontSize: '10px', opacity: 0.6 }}>
                         {formatTime(msg.timestamp)}
-                        {isOwn && msg.read && (
-                          <span style={styles.readStatus}> ✓</span>
+                        {isMe && msg.read && (
+                          <span style={{ fontSize: '10px', color: '#10964D', marginLeft: '2px' }}> ✓</span>
                         )}
                       </span>
                     </div>
@@ -557,54 +565,6 @@ const styles = {
     overflowY: 'auto',
     padding: '12px 16px',
     backgroundColor: '#fafafa',
-  },
-  messageRow: {
-    display: 'flex',
-    marginBottom: '10px',
-    width: '100%',
-  },
-  messageBubble: {
-    maxWidth: '75%',
-    padding: '10px 14px',
-    borderRadius: '16px',
-    wordWrap: 'break-word',
-  },
-  messageOwn: {
-    backgroundColor: '#721CBB',
-    color: 'white',
-    borderBottomRightRadius: '4px',
-  },
-  messageOther: {
-    backgroundColor: '#f0f0f0',
-    color: '#1a1a1a',
-    borderBottomLeftRadius: '4px',
-  },
-  messageText: {
-    fontSize: '15px',
-    lineHeight: '1.5',
-    margin: '0 0 4px 0',
-  },
-  messageFooter: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    fontSize: '10px',
-    opacity: 0.7,
-    gap: '8px',
-  },
-  messageSender: {
-    fontWeight: '500',
-    opacity: 0.6,
-    fontSize: '10px',
-  },
-  messageTime: {
-    fontSize: '10px',
-    opacity: 0.6,
-  },
-  readStatus: {
-    fontSize: '10px',
-    color: '#10964D',
-    marginLeft: '2px',
   },
   typingIndicator: {
     padding: '4px 8px',
