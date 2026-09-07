@@ -18,11 +18,17 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 
 // Cache for user names
 let userCache = {};
+let pollIntervalId = null;
+let isPolling = false;
 
 // ========== WEBSOCKET ==========
 
 export const connectWebSocket = (userId) => {
   console.log('WebSocket disabled - using polling fallback');
+  // Start polling for real-time updates if not already started
+  if (!isPolling && userId) {
+    startPolling(userId);
+  }
   return;
 };
 
@@ -32,6 +38,7 @@ export const disconnectWebSocket = () => {
     ws = null;
   }
   wsCallbacks = [];
+  stopPolling();
 };
 
 export const subscribeToMessages = (callback) => {
@@ -42,11 +49,64 @@ export const subscribeToMessages = (callback) => {
 };
 
 export const sendTyping = (conversationId, senderId) => {
-  console.log('Typing indicator disabled (WebSocket not available)');
+  // WebSocket disabled - silently return
+  return;
 };
 
 export const sendReadReceipt = (conversationId, userId) => {
-  // WebSocket disabled
+  // WebSocket disabled - silently return
+  return;
+};
+
+// ========== POLLING FOR REAL-TIME UPDATES ==========
+
+let pollingUserId = null;
+let pollingConversations = {};
+
+const startPolling = (userId) => {
+  if (pollIntervalId) {
+    clearInterval(pollIntervalId);
+  }
+  pollingUserId = userId;
+  pollIntervalId = setInterval(async () => {
+    if (!pollingUserId) return;
+    try {
+      const convs = await getConversations(pollingUserId);
+      // Check for new messages in conversations
+      for (const conv of convs) {
+        const prevId = pollingConversations[conv.id]?.lastMessageId || 0;
+        if (conv.lastMessage && conv.lastMessage.id !== prevId) {
+          // New message detected - trigger callbacks
+          const msgData = {
+            type: 'new_message',
+            conversationId: conv.id,
+            message: conv.lastMessage,
+            senderId: conv.lastMessage.senderId
+          };
+          wsCallbacks.forEach(cb => {
+            try { cb(msgData); } catch (e) {}
+          });
+          pollingConversations[conv.id] = {
+            lastMessageId: conv.lastMessage.id,
+            updatedAt: conv.updatedAt
+          };
+        }
+      }
+    } catch (e) {
+      // Silent fail
+    }
+  }, 1500);
+  isPolling = true;
+};
+
+const stopPolling = () => {
+  if (pollIntervalId) {
+    clearInterval(pollIntervalId);
+    pollIntervalId = null;
+  }
+  isPolling = false;
+  pollingUserId = null;
+  pollingConversations = {};
 };
 
 // ========== USER INFO FETCH ==========
@@ -57,10 +117,23 @@ export const sendReadReceipt = (conversationId, userId) => {
  * @returns {Promise<Object>} User info with name
  */
 export const fetchUserInfo = async (userId) => {
+  if (!userId) {
+    return {
+      id: userId,
+      userId: userId,
+      name: 'Unknown User',
+      level: 'Bronze',
+      isVerified: false,
+      photos: [],
+      phone: '',
+    };
+  }
+
   if (userCache[userId]) {
     return userCache[userId];
   }
 
+  // Handle mock user IDs
   if (typeof userId === 'string' && userId.startsWith('user_')) {
     const fallback = {
       id: userId,
@@ -76,13 +149,13 @@ export const fetchUserInfo = async (userId) => {
   }
 
   try {
-    const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+    const response = await fetch(`${API_URL}/get_user.php?user_id=${encodeURIComponent(userId)}`);
     const data = await response.json();
     
     if (data.success && data.user) {
       const userInfo = {
         id: data.user.id,
-        userId: data.user.userId,
+        userId: data.user.userId || userId,
         name: data.user.name || data.user.registration_name || 'User',
         level: data.user.level || 'Bronze',
         isVerified: data.user.isVerified || false,
@@ -119,6 +192,7 @@ export const fetchMultipleUsers = async (userIds) => {
   const uncached = [];
 
   for (const id of userIds) {
+    if (!id) continue;
     if (userCache[id]) {
       results[id] = userCache[id];
     } else {
@@ -182,22 +256,24 @@ export const sendMessage = async (conversationId, senderId, text) => {
 };
 
 export const getConversations = async (userId) => {
+  if (!userId) return [];
+  
   try {
-    const response = await fetch(`${API_URL}/get_conversations.php?user_id=${userId}`);
+    const response = await fetch(`${API_URL}/get_conversations.php?user_id=${encodeURIComponent(userId)}`);
     const data = await response.json();
     
     if (data.success) {
       const conversations = data.conversations || [];
       
       const otherUserIds = conversations
-        .map(conv => conv.otherUser?.id)
+        .map(conv => conv.otherUser?.id || conv.otherUser?.userId)
         .filter(id => id && id !== userId);
       
       if (otherUserIds.length > 0) {
         const userMap = await fetchMultipleUsers(otherUserIds);
         
         for (const conv of conversations) {
-          const otherId = conv.otherUser?.id;
+          const otherId = conv.otherUser?.id || conv.otherUser?.userId;
           if (otherId && userMap[otherId]) {
             conv.otherUser = {
               ...conv.otherUser,
@@ -219,10 +295,12 @@ export const getConversations = async (userId) => {
 };
 
 export const getMessages = async (conversationId, limit = 50, startAfter = null) => {
+  if (!conversationId) return [];
+  
   try {
-    let url = `${API_URL}/get_messages.php?conversation_id=${conversationId}&limit=${limit}`;
+    let url = `${API_URL}/get_messages.php?conversation_id=${encodeURIComponent(conversationId)}&limit=${limit}`;
     if (startAfter) {
-      url += `&start_after=${startAfter}`;
+      url += `&start_after=${encodeURIComponent(startAfter)}`;
     }
     
     const response = await fetch(url);
@@ -240,6 +318,10 @@ export const getMessages = async (conversationId, limit = 50, startAfter = null)
 };
 
 export const getOrCreateConversation = async (userId1, userId2) => {
+  if (!userId1 || !userId2) {
+    throw new Error('Both user IDs are required');
+  }
+
   try {
     const response = await fetch(`${API_URL}/get_conversation.php`, {
       method: 'POST',
@@ -272,6 +354,10 @@ export const getOrCreateConversation = async (userId1, userId2) => {
 };
 
 export const markAsRead = async (conversationId, userId) => {
+  if (!conversationId || !userId) {
+    return { success: false };
+  }
+
   try {
     const response = await fetch(`${API_URL}/mark_read.php`, {
       method: 'POST',
@@ -285,7 +371,6 @@ export const markAsRead = async (conversationId, userId) => {
     const data = await response.json();
     
     if (data.success) {
-      sendReadReceipt(conversationId, userId);
       return { success: true, messagesRead: data.messagesRead || 0 };
     } else {
       return { success: false };
@@ -297,8 +382,10 @@ export const markAsRead = async (conversationId, userId) => {
 };
 
 export const getUnreadCount = async (userId) => {
+  if (!userId) return 0;
+  
   try {
-    const response = await fetch(`${API_URL}/get_unread.php?user_id=${userId}`);
+    const response = await fetch(`${API_URL}/get_unread.php?user_id=${encodeURIComponent(userId)}`);
     const data = await response.json();
     
     if (data.success) {
@@ -313,6 +400,10 @@ export const getUnreadCount = async (userId) => {
 };
 
 export const deleteConversation = async (conversationId) => {
+  if (!conversationId) {
+    return { success: false };
+  }
+
   try {
     const response = await fetch(`${API_URL}/delete_conversation.php`, {
       method: 'POST',
@@ -345,6 +436,10 @@ let pollInterval = 1500; // 1.5 seconds instead of 3
 
 export const setPollInterval = (ms) => {
   pollInterval = ms;
+  if (pollIntervalId && pollingUserId) {
+    stopPolling();
+    startPolling(pollingUserId);
+  }
 };
 
 export default {

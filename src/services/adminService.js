@@ -23,7 +23,7 @@ export const isAdmin = async (userId) => {
     }
     
     // Fetch user from API
-    const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+    const response = await fetch(`${API_URL}/get_user.php?user_id=${encodeURIComponent(userId)}`);
     const data = await response.json();
     
     if (data.success && data.user) {
@@ -49,6 +49,10 @@ export const getAllUsers = async (filters = {}) => {
       params.append('isVerified', filters.isVerified);
     }
     if (filters.search) params.append('search', filters.search);
+    if (filters.lifeGoals) params.append('lifeGoals', filters.lifeGoals);
+    if (filters.dealbreakers) params.append('dealbreakers', filters.dealbreakers);
+    if (filters.datingPace) params.append('datingPace', filters.datingPace);
+    if (filters.lifestyle) params.append('lifestyle', filters.lifestyle);
     
     const query = params.toString();
     if (query) url += '?' + query;
@@ -70,8 +74,10 @@ export const getAllUsers = async (filters = {}) => {
  * Get user by ID
  */
 export const getUser = async (userId) => {
+  if (!userId) throw new Error('User ID is required');
+  
   try {
-    const response = await fetch(`${API_URL}/get_user.php?user_id=${userId}`);
+    const response = await fetch(`${API_URL}/get_user.php?user_id=${encodeURIComponent(userId)}`);
     const data = await response.json();
     if (data.success) {
       return data.user;
@@ -87,6 +93,8 @@ export const getUser = async (userId) => {
  * Update user (admin only)
  */
 export const updateUser = async (userId, updates) => {
+  if (!userId) throw new Error('User ID is required');
+  
   try {
     const response = await fetch(`${API_URL}/admin_update.php`, {
       method: 'POST',
@@ -224,20 +232,21 @@ export const generateVIPCode = async (level, recipientPhone = null, generatedBy 
     });
     
     const data = await response.json();
-    if (data.success) {
+    if (data.success && data.code) {
       return data.code;
     }
     throw new Error(data.message || 'Failed to generate VIP code');
   } catch (error) {
     console.error('Generate VIP code error:', error);
-    // Fallback: generate locally
+    // Fallback: generate locally with correct format
+    const points = { Silver: 10000, Gold: 25000, Platinum: 50000, Diamond: 100000 }[level] || 0;
     const prefix = level.toUpperCase().slice(0, 3);
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const code = `VIBRA-VIP-${prefix}-${random}`;
+    const random = String(Math.floor(100000 + Math.random() * 900000));
+    const code = `VIP-${prefix}-${random}`;
     return {
-      code,
-      level,
-      points: { Silver: 10000, Gold: 25000, Platinum: 50000, Diamond: 100000 }[level] || 0,
+      code: code,
+      level: level,
+      points: points,
       used: false,
       createdAt: new Date().toISOString(),
     };

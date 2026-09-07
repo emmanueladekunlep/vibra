@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }) => {
   const [requiresPin, setRequiresPin] = useState(false);
   const [pendingPhone, setPendingPhone] = useState(null);
   const [pendingUserData, setPendingUserData] = useState(null);
+  const [needsPinSetup, setNeedsPinSetup] = useState(false);
 
   // Load cached user on mount
   useEffect(() => {
@@ -39,6 +40,8 @@ export const AuthProvider = ({ children }) => {
           if (!cached.userId && cached.id) {
             cached.userId = cached.id;
           }
+          // Ensure pinEnabled is boolean
+          if (cached.pinEnabled === undefined) cached.pinEnabled = false;
           setUser(cached);
           setIsAuthenticated(true);
         }
@@ -61,6 +64,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     setIsLoading(true);
     setRequiresPin(false);
+    setNeedsPinSetup(false);
     setPendingUserData(null);
     
     try {
@@ -75,6 +79,22 @@ export const AuthProvider = ({ children }) => {
           if (!userData.userId && userData.id) {
             userData.userId = userData.id;
           }
+          // Ensure pinEnabled is boolean
+          if (userData.pinEnabled === undefined) userData.pinEnabled = false;
+          
+          // Check if user needs to set up PIN (new user - pinEnabled is false and no pin provided)
+          if (!userData.pinEnabled && !pin) {
+            setPendingPhone(phone);
+            setPendingUserData(userData);
+            setNeedsPinSetup(true);
+            setIsLoading(false);
+            return {
+              success: true,
+              requiresPin: false,
+              needsPinSetup: true,
+              user: userData,
+            };
+          }
           
           // Check if PIN is enabled and user needs to enter PIN
           if (userData.pinEnabled && !pin) {
@@ -85,20 +105,7 @@ export const AuthProvider = ({ children }) => {
             return { 
               success: true, 
               requiresPin: true,
-              user: userData,
               needsPinSetup: false,
-            };
-          }
-          
-          // Check if user needs to set up PIN (first time - pinEnabled is false)
-          if (!userData.pinEnabled) {
-            setPendingPhone(phone);
-            setPendingUserData(userData);
-            setIsLoading(false);
-            return {
-              success: true,
-              requiresPin: false,
-              needsPinSetup: true,
               user: userData,
             };
           }
@@ -110,6 +117,8 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(true);
           setPendingPhone(null);
           setPendingUserData(null);
+          setRequiresPin(false);
+          setNeedsPinSetup(false);
           return { 
             success: true, 
             user: userData,
@@ -138,11 +147,18 @@ export const AuthProvider = ({ children }) => {
   const setPin = useCallback(async (userId, pin) => {
     try {
       const result = await authService.setPin(userId, pin);
+      if (result.success && result.user) {
+        // Update pending user data with pinEnabled
+        if (pendingUserData) {
+          const updated = { ...pendingUserData, pinEnabled: true };
+          setPendingUserData(updated);
+        }
+      }
       return result;
     } catch (err) {
       return { success: false, error: err.message };
     }
-  }, []);
+  }, [pendingUserData]);
 
   /**
    * Complete PIN setup and authenticate user
@@ -153,11 +169,13 @@ export const AuthProvider = ({ children }) => {
       if (!userData.userId && userData.id) {
         userData.userId = userData.id;
       }
+      if (userData.pinEnabled === undefined) userData.pinEnabled = true;
       setUser(userData);
       setIsAuthenticated(true);
       setPendingPhone(null);
       setPendingUserData(null);
       setRequiresPin(false);
+      setNeedsPinSetup(false);
       return { success: true, user: userData };
     }
     return { success: false, error: 'No user data' };
@@ -172,6 +190,7 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     setError(null);
     setRequiresPin(false);
+    setNeedsPinSetup(false);
     setPendingPhone(null);
     setPendingUserData(null);
   }, []);
@@ -186,6 +205,7 @@ export const AuthProvider = ({ children }) => {
       if (!updated.userId && updated.id) {
         updated.userId = updated.id;
       }
+      if (updated.pinEnabled === undefined) updated.pinEnabled = false;
       setUser(updated);
     }
     return updated;
@@ -202,7 +222,7 @@ export const AuthProvider = ({ children }) => {
    * Mark user as having withdrawn
    */
   const markHasWithdrawn = useCallback(async () => {
-    if (!user) return;
+    if (!user) return null;
     const updated = authService.updateCachedUser({ hasWithdrawn: true });
     if (updated) {
       if (updated.isFounder === undefined) updated.isFounder = false;
@@ -220,6 +240,7 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     error,
     requiresPin,
+    needsPinSetup,
     pendingPhone,
     pendingUserData,
     loginWithOpay,
