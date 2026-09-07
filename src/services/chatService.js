@@ -25,7 +25,6 @@ let isPolling = false;
 
 export const connectWebSocket = (userId) => {
   console.log('WebSocket disabled - using polling fallback');
-  // Start polling for real-time updates if not already started
   if (!isPolling && userId) {
     startPolling(userId);
   }
@@ -49,12 +48,10 @@ export const subscribeToMessages = (callback) => {
 };
 
 export const sendTyping = (conversationId, senderId) => {
-  // WebSocket disabled - silently return
   return;
 };
 
 export const sendReadReceipt = (conversationId, userId) => {
-  // WebSocket disabled - silently return
   return;
 };
 
@@ -72,11 +69,9 @@ const startPolling = (userId) => {
     if (!pollingUserId) return;
     try {
       const convs = await getConversations(pollingUserId);
-      // Check for new messages in conversations
       for (const conv of convs) {
         const prevId = pollingConversations[conv.id]?.lastMessageId || 0;
         if (conv.lastMessage && conv.lastMessage.id !== prevId) {
-          // New message detected - trigger callbacks
           const msgData = {
             type: 'new_message',
             conversationId: conv.id,
@@ -92,9 +87,7 @@ const startPolling = (userId) => {
           };
         }
       }
-    } catch (e) {
-      // Silent fail
-    }
+    } catch (e) {}
   }, 1500);
   isPolling = true;
 };
@@ -111,11 +104,6 @@ const stopPolling = () => {
 
 // ========== USER INFO FETCH ==========
 
-/**
- * Fetch user info from API
- * @param {string} userId - User ID
- * @returns {Promise<Object>} User info with name
- */
 export const fetchUserInfo = async (userId) => {
   if (!userId) {
     return {
@@ -133,7 +121,6 @@ export const fetchUserInfo = async (userId) => {
     return userCache[userId];
   }
 
-  // Handle mock user IDs
   if (typeof userId === 'string' && userId.startsWith('user_')) {
     const fallback = {
       id: userId,
@@ -182,11 +169,6 @@ export const fetchUserInfo = async (userId) => {
   return fallback;
 };
 
-/**
- * Get multiple users info
- * @param {Array} userIds - List of user IDs
- * @returns {Promise<Object>} Map of user ID to user info
- */
 export const fetchMultipleUsers = async (userIds) => {
   const results = {};
   const uncached = [];
@@ -317,6 +299,26 @@ export const getMessages = async (conversationId, limit = 50, startAfter = null)
   }
 };
 
+export const getConversation = async (conversationId) => {
+  if (!conversationId) {
+    throw new Error('Conversation ID is required');
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/get_conversation.php?conversation_id=${encodeURIComponent(conversationId)}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.conversation;
+    } else {
+      throw new Error(data.message || 'Failed to get conversation');
+    }
+  } catch (error) {
+    console.error('Get conversation error:', error);
+    throw error;
+  }
+};
+
 export const getOrCreateConversation = async (userId1, userId2) => {
   if (!userId1 || !userId2) {
     throw new Error('Both user IDs are required');
@@ -431,8 +433,7 @@ export const clearUserCache = () => {
   userCache = {};
 };
 
-// Optimized polling - faster response
-let pollInterval = 1500; // 1.5 seconds instead of 3
+let pollInterval = 1500;
 
 export const setPollInterval = (ms) => {
   pollInterval = ms;
@@ -444,6 +445,7 @@ export const setPollInterval = (ms) => {
 
 export default {
   getOrCreateConversation,
+  getConversation,
   getConversations,
   getMessages,
   sendMessage,
