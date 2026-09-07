@@ -24,42 +24,41 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   const [otherUser, setOtherUser] = useState(propOtherUser || null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
   const [typing, setTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const isFirstLoad = useRef(true);
   const isUserScrolling = useRef(false);
   const scrollTimeout = useRef(null);
   const pollIntervalRef = useRef(null);
-  const lastMessageCountRef = useRef(0);
-  const shouldScrollRef = useRef(false);
+  const loadedRef = useRef(false);
 
+  // Load other user info
   useEffect(() => {
-    if (conversationId && conversationId !== 'undefined' && conversationId !== 'null' && !propOtherUser) {
-      const loadOtherUser = async () => {
-        try {
-          const conversation = await chatService.getConversation(conversationId);
-          if (conversation) {
-            const participants = conversation.participants || [];
-            const otherId = participants.find(id => id != user.userId);
-            if (otherId && otherId !== 'undefined' && otherId !== 'null') {
-              const userInfo = await profileService.getProfile(otherId);
-              if (userInfo) {
-                setOtherUser(userInfo);
-              }
+    if (!conversationId || conversationId === 'undefined' || conversationId === 'null' || propOtherUser) return;
+    
+    const loadOtherUser = async () => {
+      try {
+        const conversation = await chatService.getConversation(conversationId);
+        if (conversation) {
+          const participants = conversation.participants || [];
+          const otherId = participants.find(id => id != user?.userId);
+          if (otherId && otherId !== 'undefined' && otherId !== 'null') {
+            const userInfo = await profileService.getProfile(otherId);
+            if (userInfo) {
+              setOtherUser(userInfo);
             }
           }
-        } catch (err) {
-          console.error('Failed to load other user:', err);
         }
-      };
-      loadOtherUser();
-    }
-  }, [conversationId, user.userId, propOtherUser]);
+      } catch (err) {
+        console.error('Failed to load other user:', err);
+      }
+    };
+    loadOtherUser();
+  }, [conversationId, user?.userId, propOtherUser]);
 
   const scrollToBottom = () => {
     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
@@ -72,6 +71,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
 
   const loadMessages = useCallback(async () => {
     if (!conversationId || conversationId === 'undefined' || conversationId === 'null') return;
+    if (!user) return;
     
     try {
       const data = await chatService.getMessages(conversationId);
@@ -80,48 +80,34 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         senderId: String(msg.senderId || msg.sender_id || '')
       }));
       
-      const newCount = formatted.length;
-      const oldCount = lastMessageCountRef.current;
-      
-      if (newCount > oldCount) {
-        shouldScrollRef.current = true;
-      }
-      
       setMessages(formatted);
-      lastMessageCountRef.current = newCount;
       
-      if (shouldScrollRef.current && !isUserScrolling.current) {
-        scrollToBottom();
-        shouldScrollRef.current = false;
+      if (formatted.length > 0 && !loadedRef.current) {
+        setTimeout(scrollToBottom, 200);
+        loadedRef.current = true;
       }
       
-      if (isFirstLoad.current && formatted.length > 0) {
-        setTimeout(scrollToBottom, 300);
-        isFirstLoad.current = false;
-      }
+      setIsLoading(false);
       
       if (user && user.userId) {
         await chatService.markAsRead(conversationId, user.userId);
       }
     } catch (err) {
       console.error('Failed to load messages:', err);
-    } finally {
-      if (isFirstLoad.current) {
-        setIsInitialLoading(false);
-        isFirstLoad.current = false;
-      }
+      setIsLoading(false);
     }
   }, [conversationId, user]);
 
+  // Initial load
   useEffect(() => {
-    if (conversationId && conversationId !== 'undefined' && conversationId !== 'null') {
-      lastMessageCountRef.current = 0;
-      isFirstLoad.current = true;
-      setIsInitialLoading(true);
+    if (conversationId && conversationId !== 'undefined' && conversationId !== 'null' && user) {
+      loadedRef.current = false;
+      setIsLoading(true);
       loadMessages();
     }
-  }, [conversationId, loadMessages]);
+  }, [conversationId, user, loadMessages]);
 
+  // Scroll handler
   useEffect(() => {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
@@ -136,13 +122,17 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Polling for new messages
   useEffect(() => {
     if (!conversationId || conversationId === 'undefined' || conversationId === 'null') return;
+    if (!user) return;
 
     const handleWebSocketMessage = (data) => {
       if (data.type === 'new_message' && data.conversationId === conversationId) {
-        shouldScrollRef.current = true;
         loadMessages();
+        if (!isUserScrolling.current) {
+          setTimeout(scrollToBottom, 100);
+        }
       }
       
       if (data.type === 'typing' && data.conversationId === conversationId) {
@@ -150,14 +140,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         clearTimeout(typingTimeout);
         const timeout = setTimeout(() => setTyping(false), 2000);
         setTypingTimeout(timeout);
-      }
-      
-      if (data.type === 'read' && data.conversationId === conversationId) {
-        setMessages(prev => 
-          prev.map(msg => 
-            String(msg.senderId) !== String(user.userId) ? { ...msg, read: true } : msg
-          )
-        );
       }
     };
 
@@ -169,7 +151,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
 
     pollIntervalRef.current = setInterval(() => {
       loadMessages();
-    }, 1500);
+    }, 2000);
 
     return () => {
       unsubscribe();
@@ -180,24 +162,27 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       if (typingTimeout) clearTimeout(typingTimeout);
       if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     };
-  }, [conversationId, user.userId, typingTimeout, loadMessages]);
+  }, [conversationId, user, typingTimeout, loadMessages]);
 
   const handleSend = async (e) => {
     e.preventDefault();
     
     if (!newMessage.trim()) return;
     if (!conversationId || conversationId === 'undefined' || conversationId === 'null') return;
+    if (!user) return;
     
     setIsSending(true);
     setError(null);
     
     const messageText = newMessage.trim();
     setNewMessage('');
-    shouldScrollRef.current = true;
     
     try {
       await chatService.sendMessage(conversationId, user.userId, messageText);
       await loadMessages();
+      if (!isUserScrolling.current) {
+        setTimeout(scrollToBottom, 100);
+      }
       inputRef.current?.focus();
     } catch (err) {
       setError(err.message || 'Failed to send message');
@@ -222,9 +207,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     
     try {
       const date = new Date(timestamp);
-      if (isNaN(date.getTime())) {
-        return '';
-      }
+      if (isNaN(date.getTime())) return '';
       
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -270,7 +253,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     );
   }
 
-  if (isInitialLoading) {
+  if (isLoading) {
     return (
       <div style={styles.container}>
         <div style={styles.header}>
@@ -279,9 +262,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
               ← Back
             </button>
             <div style={styles.userInfo}>
-              <div style={styles.avatarPlaceholderSmall}>
-                ?
-              </div>
+              <div style={styles.avatarPlaceholderSmall}>?</div>
               <div style={styles.userTextInfo}>
                 <span style={styles.headerName}>Loading...</span>
               </div>
@@ -304,10 +285,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           />
           <button
             type="submit"
-            style={{
-              ...styles.sendButton,
-              ...styles.sendButtonDisabled,
-            }}
+            style={{ ...styles.sendButton, ...styles.sendButtonDisabled }}
             disabled={true}
           >
             Send
@@ -357,10 +335,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         </div>
       </div>
 
-      <div 
-        id="chat-messages-container"
-        style={styles.messagesContainer}
-      >
+      <div id="chat-messages-container" style={styles.messagesContainer}>
         {messages.length === 0 ? (
           <div style={styles.emptyMessages}>
             <p style={styles.emptyMessagesText}>No messages yet</p>
@@ -440,7 +415,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           onChange={handleTyping}
           placeholder="Type a message..."
           style={styles.input}
-          disabled={isSending || isInitialLoading}
+          disabled={isSending || isLoading}
           maxLength={1000}
         />
         <button
@@ -449,7 +424,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
             ...styles.sendButton,
             ...(isSending || !newMessage.trim() ? styles.sendButtonDisabled : {}),
           }}
-          disabled={isSending || !newMessage.trim() || isInitialLoading}
+          disabled={isSending || !newMessage.trim() || isLoading}
         >
           Send
         </button>
