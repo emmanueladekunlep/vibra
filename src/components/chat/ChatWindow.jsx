@@ -40,10 +40,9 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     if (conversationId && !propOtherUser) {
       const loadOtherUser = async () => {
         try {
-          const response = await fetch(`https://api.vibra.ng/api/get_conversation.php?conversation_id=${conversationId}`);
-          const data = await response.json();
-          if (data.success && data.conversation) {
-            const participants = data.conversation.participants || [];
+          const conversation = await chatService.getConversation(conversationId);
+          if (conversation) {
+            const participants = conversation.participants || [];
             const otherId = participants.find(id => id != user.userId);
             if (otherId) {
               const userInfo = await profileService.getProfile(otherId);
