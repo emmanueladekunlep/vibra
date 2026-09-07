@@ -36,6 +36,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   const prevMessagesLength = useRef(0);
   const scrollTimeout = useRef(null);
   const pollIntervalRef = useRef(null);
+  const isNewMessageArrived = useRef(false);
 
   useEffect(() => {
     if (conversationId && conversationId !== 'undefined' && conversationId !== 'null' && !propOtherUser) {
@@ -58,6 +59,13 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     }
   }, [conversationId, user.userId, propOtherUser]);
 
+  const scrollToBottom = () => {
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
   const loadMessages = useCallback(async (silent = false) => {
     if (!conversationId || conversationId === 'undefined' || conversationId === 'null') return;
     
@@ -68,11 +76,21 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         senderId: String(msg.senderId || msg.sender_id || '')
       }));
       
+      const oldLength = messages.length;
       setMessages(formatted);
+      
+      // Only scroll if new messages arrived OR it's initial load
+      if (formatted.length > oldLength) {
+        isNewMessageArrived.current = true;
+        if (!isUserScrolling.current) {
+          setTimeout(scrollToBottom, 100);
+        }
+      }
+      
       prevMessagesLength.current = formatted.length;
       
-      if (!isUserScrolling.current && formatted.length > 0) {
-        scrollToBottom();
+      if (isFirstLoad.current && formatted.length > 0) {
+        setTimeout(scrollToBottom, 200);
       }
       
       await chatService.markAsRead(conversationId, user.userId);
@@ -84,7 +102,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         isFirstLoad.current = false;
       }
     }
-  }, [conversationId, user.userId]);
+  }, [conversationId, user.userId, messages.length]);
 
   useEffect(() => {
     if (conversationId && conversationId !== 'undefined' && conversationId !== 'null') {
@@ -118,6 +136,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
 
     const handleWebSocketMessage = (data) => {
       if (data.type === 'new_message' && data.conversationId === conversationId) {
+        isNewMessageArrived.current = true;
         loadMessages(true);
         if (!isUserScrolling.current) {
           setTimeout(scrollToBottom, 100);
@@ -161,13 +180,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     };
   }, [conversationId, user.userId, typingTimeout, loadMessages]);
 
-  const scrollToBottom = () => {
-    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-    scrollTimeout.current = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
-
   const handleSend = async (e) => {
     e.preventDefault();
     
@@ -179,11 +191,14 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     
     const messageText = newMessage.trim();
     setNewMessage('');
+    isNewMessageArrived.current = true;
     
     try {
       await chatService.sendMessage(conversationId, user.userId, messageText);
       await loadMessages(true);
-      setTimeout(scrollToBottom, 100);
+      if (!isUserScrolling.current) {
+        setTimeout(scrollToBottom, 100);
+      }
       inputRef.current?.focus();
     } catch (err) {
       setError(err.message || 'Failed to send message');
