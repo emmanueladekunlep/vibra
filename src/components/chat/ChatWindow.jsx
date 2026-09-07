@@ -46,9 +46,11 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           if (conversation) {
             const participants = conversation.participants || [];
             const otherId = participants.find(id => id != user.userId);
-            if (otherId) {
+            if (otherId && otherId !== 'undefined' && otherId !== 'null') {
               const userInfo = await profileService.getProfile(otherId);
-              setOtherUser(userInfo);
+              if (userInfo) {
+                setOtherUser(userInfo);
+              }
             }
           }
         } catch (err) {
@@ -81,7 +83,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       const newCount = formatted.length;
       const oldCount = lastMessageCountRef.current;
       
-      // Check if new messages arrived
       if (newCount > oldCount) {
         shouldScrollRef.current = true;
       }
@@ -89,7 +90,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       setMessages(formatted);
       lastMessageCountRef.current = newCount;
       
-      // Only scroll on new messages or initial load
       if (shouldScrollRef.current && !isUserScrolling.current) {
         scrollToBottom();
         shouldScrollRef.current = false;
@@ -100,7 +100,9 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         isFirstLoad.current = false;
       }
       
-      await chatService.markAsRead(conversationId, user.userId);
+      if (user && user.userId) {
+        await chatService.markAsRead(conversationId, user.userId);
+      }
     } catch (err) {
       console.error('Failed to load messages:', err);
     } finally {
@@ -109,7 +111,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         isFirstLoad.current = false;
       }
     }
-  }, [conversationId, user.userId]);
+  }, [conversationId, user]);
 
   useEffect(() => {
     if (conversationId && conversationId !== 'undefined' && conversationId !== 'null') {
@@ -210,7 +212,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     const value = e.target.value;
     setNewMessage(value);
     
-    if (value.length > 0) {
+    if (value.length > 0 && user && user.userId) {
       chatService.sendTyping(conversationId, user.userId);
     }
   };
@@ -368,7 +370,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           <>
             {messages.map((msg, index) => {
               const msgSenderId = String(msg.senderId || msg.sender_id || '');
-              const isMe = msgSenderId === String(user.id) || msgSenderId === String(user.userId);
+              const isMe = msgSenderId === String(user?.id) || msgSenderId === String(user?.userId);
               const senderName = isMe ? 'You' : (otherUser?.name || 'User');
               
               return (
