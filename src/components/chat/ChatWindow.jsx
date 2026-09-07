@@ -4,7 +4,6 @@
  * 
  * Individual chat window with messages.
  * Real-time WebSocket support with polling fallback.
- * Professional design - no emojis.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -31,10 +30,11 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   const [typingTimeout, setTypingTimeout] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const isUserScrolling = useRef(false);
   const scrollTimeout = useRef(null);
   const pollIntervalRef = useRef(null);
   const loadedRef = useRef(false);
+  const isUserScrolling = useRef(false);
+  const pendingScroll = useRef(false);
 
   // Load other user info
   useEffect(() => {
@@ -63,9 +63,10 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   const scrollToBottom = () => {
     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     scrollTimeout.current = setTimeout(() => {
-      if (messagesEndRef.current) {
+      if (messagesEndRef.current && !isUserScrolling.current) {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
       }
+      pendingScroll.current = false;
     }, 100);
   };
 
@@ -83,7 +84,12 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       setMessages(formatted);
       
       if (formatted.length > 0 && !loadedRef.current) {
-        setTimeout(scrollToBottom, 200);
+        // Initial load - scroll to bottom after a delay
+        setTimeout(() => {
+          if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 300);
         loadedRef.current = true;
       }
       
@@ -107,7 +113,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     }
   }, [conversationId, user, loadMessages]);
 
-  // Scroll handler
+  // Scroll handler - detect when user scrolls up
   useEffect(() => {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
@@ -115,7 +121,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      isUserScrolling.current = distanceFromBottom > 50;
+      isUserScrolling.current = distanceFromBottom > 100;
     };
 
     container.addEventListener('scroll', handleScroll);
@@ -129,9 +135,14 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
 
     const handleWebSocketMessage = (data) => {
       if (data.type === 'new_message' && data.conversationId === conversationId) {
-        loadMessages();
+        // Only scroll if user is at bottom
         if (!isUserScrolling.current) {
-          setTimeout(scrollToBottom, 100);
+          pendingScroll.current = true;
+        }
+        loadMessages();
+        if (pendingScroll.current) {
+          setTimeout(scrollToBottom, 200);
+          pendingScroll.current = false;
         }
       }
       
@@ -151,7 +162,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
 
     pollIntervalRef.current = setInterval(() => {
       loadMessages();
-    }, 2000);
+    }, 3000);
 
     return () => {
       unsubscribe();
@@ -179,10 +190,8 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     
     try {
       await chatService.sendMessage(conversationId, user.userId, messageText);
-      await loadMessages();
-      if (!isUserScrolling.current) {
-        setTimeout(scrollToBottom, 100);
-      }
+      // Scroll to bottom after sending
+      setTimeout(scrollToBottom, 200);
       inputRef.current?.focus();
     } catch (err) {
       setError(err.message || 'Failed to send message');
