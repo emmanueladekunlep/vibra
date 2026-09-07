@@ -18,7 +18,10 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   const navigate = useNavigate();
   const { chatId: paramChatId } = useParams();
   
-  const conversationId = propConversationId || paramChatId;
+  // Ensure conversationId is always a string
+  const rawConversationId = propConversationId || paramChatId;
+  const conversationId = typeof rawConversationId === 'string' ? rawConversationId : String(rawConversationId || '');
+  
   const [otherUser, setOtherUser] = useState(propOtherUser || null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -37,7 +40,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
 
   // Load other user info if not provided
   useEffect(() => {
-    if (conversationId && !propOtherUser) {
+    if (conversationId && conversationId !== 'undefined' && conversationId !== 'null' && !propOtherUser) {
       const loadOtherUser = async () => {
         try {
           const conversation = await chatService.getConversation(conversationId);
@@ -58,7 +61,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   }, [conversationId, user.userId, propOtherUser]);
 
   const loadMessages = useCallback(async (silent = false) => {
-    if (!conversationId) return;
+    if (!conversationId || conversationId === 'undefined' || conversationId === 'null') return;
     
     try {
       const data = await chatService.getMessages(conversationId);
@@ -86,7 +89,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   }, [conversationId, user.userId]);
 
   useEffect(() => {
-    if (conversationId) {
+    if (conversationId && conversationId !== 'undefined' && conversationId !== 'null') {
       isFirstLoad.current = true;
       prevMessagesLength.current = 0;
       setIsInitialLoading(true);
@@ -114,7 +117,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   }, []);
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || conversationId === 'undefined' || conversationId === 'null') return;
 
     const handleWebSocketMessage = (data) => {
       if (data.type === 'new_message' && data.conversationId === conversationId) {
@@ -178,7 +181,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     e.preventDefault();
     
     if (!newMessage.trim()) return;
-    if (!conversationId) return;
+    if (!conversationId || conversationId === 'undefined' || conversationId === 'null') return;
     
     setIsSending(true);
     setError(null);
@@ -258,7 +261,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     }
   };
 
-  if (!conversationId) {
+  if (!conversationId || conversationId === 'undefined' || conversationId === 'null') {
     return (
       <div style={styles.container}>
         <div style={styles.emptyState}>
