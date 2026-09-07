@@ -18,7 +18,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   const navigate = useNavigate();
   const { chatId: paramChatId } = useParams();
   
-  // Ensure conversationId is always a string
   const rawConversationId = propConversationId || paramChatId;
   const conversationId = typeof rawConversationId === 'string' ? rawConversationId : String(rawConversationId || '');
   
@@ -38,7 +37,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   const scrollTimeout = useRef(null);
   const pollIntervalRef = useRef(null);
 
-  // Load other user info if not provided
   useEffect(() => {
     if (conversationId && conversationId !== 'undefined' && conversationId !== 'null' && !propOtherUser) {
       const loadOtherUser = async () => {
@@ -97,7 +95,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     }
   }, [conversationId, loadMessages]);
 
-  // Handle scroll detection for user scrolling up
   useEffect(() => {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
@@ -121,16 +118,10 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
 
     const handleWebSocketMessage = (data) => {
       if (data.type === 'new_message' && data.conversationId === conversationId) {
-        const newMsg = {
-          ...data.message,
-          senderId: String(data.message.senderId || data.message.sender_id || '')
-        };
-        setMessages(prev => [...prev, newMsg]);
-        chatService.markAsRead(conversationId, user.userId);
+        loadMessages(true);
         if (!isUserScrolling.current) {
-          setTimeout(scrollToBottom, 50);
+          setTimeout(scrollToBottom, 100);
         }
-        prevMessagesLength.current = prevMessagesLength.current + 1;
       }
       
       if (data.type === 'typing' && data.conversationId === conversationId) {
@@ -174,7 +165,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     scrollTimeout.current = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 50);
+    }, 100);
   };
 
   const handleSend = async (e) => {
@@ -190,20 +181,14 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     setNewMessage('');
     
     try {
-      const message = await chatService.sendMessage(conversationId, user.userId, messageText);
-      const formattedMsg = {
-        ...message,
-        senderId: String(message.senderId || message.sender_id || user.userId)
-      };
-      
-      setMessages(prev => [...prev, formattedMsg]);
-      prevMessagesLength.current = prevMessagesLength.current + 1;
-      setTimeout(scrollToBottom, 50);
-      
+      await chatService.sendMessage(conversationId, user.userId, messageText);
+      await loadMessages(true);
+      setTimeout(scrollToBottom, 100);
       inputRef.current?.focus();
     } catch (err) {
       setError(err.message || 'Failed to send message');
       console.error('Send error:', err);
+      setNewMessage(messageText);
     } finally {
       setIsSending(false);
     }
@@ -371,8 +356,8 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           <>
             {messages.map((msg, index) => {
               const msgSenderId = String(msg.senderId || msg.sender_id || '');
-              // Check against both numeric id and userId (VIB-XXXX)
               const isMe = msgSenderId === String(user.id) || msgSenderId === String(user.userId);
+              const senderName = isMe ? 'You' : (otherUser?.name || 'User');
               
               return (
                 <div
@@ -401,7 +386,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', opacity: 0.7, gap: '8px' }}>
                       <span style={{ fontWeight: '500', opacity: 0.6, fontSize: '10px' }}>
-                        {isMe ? 'You' : (otherUser?.name || 'User')}
+                        {senderName}
                       </span>
                       <span style={{ fontSize: '10px', opacity: 0.6 }}>
                         {formatTime(msg.timestamp)}
