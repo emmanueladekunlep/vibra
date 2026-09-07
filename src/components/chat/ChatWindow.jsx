@@ -369,7 +369,8 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           <>
             {messages.map((msg, index) => {
               const msgSenderId = String(msg.senderId || msg.sender_id || '');
-              const isMe = msgSenderId === String(user.userId);
+              // Check against both numeric id and userId (VIB-XXXX)
+              const isMe = msgSenderId === String(user.id) || msgSenderId === String(user.userId);
               
               return (
                 <div
