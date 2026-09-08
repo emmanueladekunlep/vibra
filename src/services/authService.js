@@ -60,12 +60,16 @@ export const loginWithOpay = async (phone, pin = null) => {
     const data = await response.json();
     
     if (data.success) {
-      // Ensure isFounder is preserved from database
+      // Ensure all fields are preserved from database
       if (data.user) {
         data.user.isFounder = data.user.isFounder === 1 || data.user.isFounder === true;
         data.user.isVerified = data.user.isVerified === 1 || data.user.isVerified === true;
         data.user.pinEnabled = data.user.pinEnabled === 1 || data.user.pinEnabled === true;
         data.user.hasWithdrawn = data.user.hasWithdrawn === 1 || data.user.hasWithdrawn === true;
+        // Preserve referral_code from API response
+        if (data.user.referralCode) {
+          data.user.referral_code = data.user.referralCode;
+        }
       }
       cacheUserData(data.user);
       return { 
@@ -155,6 +159,7 @@ const fallbackLogin = async (phone) => {
       hasWithdrawn: false,
       isFounder: false,
       pinEnabled: false,
+      referral_code: phone.slice(-6),
     };
     MOCK_USERS.push(user);
     try {
@@ -181,12 +186,16 @@ const cacheUserData = (user) => {
         user.userId = `VIB-${Math.floor(Math.random() * 9000 + 1000)}`;
       }
     }
-    // Ensure boolean fields are correct
+    // Ensure boolean fields are correct and preserve referral_code
     if (user) {
       user.isFounder = user.isFounder === 1 || user.isFounder === true;
       user.isVerified = user.isVerified === 1 || user.isVerified === true;
       user.pinEnabled = user.pinEnabled === 1 || user.pinEnabled === true;
       user.hasWithdrawn = user.hasWithdrawn === 1 || user.hasWithdrawn === true;
+      // Ensure referral_code is preserved
+      if (user.referralCode && !user.referral_code) {
+        user.referral_code = user.referralCode;
+      }
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     localStorage.setItem(SESSION_KEY, JSON.stringify({ 
