@@ -491,6 +491,11 @@ const App = () => {
               <AppLayout><Profile /></AppLayout>
             </ProtectedRoute>
           } />
+          <Route path="/profile/:userId" element={
+            <ProtectedRoute>
+              <AppLayout><Profile /></AppLayout>
+            </ProtectedRoute>
+          } />
           <Route path="/edit-profile" element={
             <ProtectedRoute>
               <AppLayout><EditProfileWrapper /></AppLayout>

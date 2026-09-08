@@ -30,6 +30,12 @@ const AdminPanel = ({ onClose }) => {
   const [logs, setLogs] = useState([]);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // Gift Management state
+  const [gifts, setGifts] = useState([]);
+  const [giftStats, setGiftStats] = useState(null);
+  const [giftFilter, setGiftFilter] = useState('all');
+  const [giftSearch, setGiftSearch] = useState('');
 
   useEffect(() => { checkAdminStatus(); }, [user]);
 
@@ -38,7 +44,10 @@ const AdminPanel = ({ onClose }) => {
     try {
       const adminStatus = await adminService.isAdmin(user.id);
       setIsAdmin(adminStatus);
-      if (adminStatus) await loadDashboardData();
+      if (adminStatus) {
+        await loadDashboardData();
+        await loadGifts();
+      }
     } catch (err) { setError('Failed to check admin status'); }
     finally { setIsLoading(false); }
   };
@@ -54,12 +63,77 @@ const AdminPanel = ({ onClose }) => {
     } catch (err) { setError('Failed to load dashboard data'); }
   };
 
+  const loadGifts = async () => {
+    try {
+      const [giftsData, statsData] = await Promise.all([
+        adminService.getAllGifts(),
+        adminService.getGiftStats(),
+      ]);
+      setGifts(giftsData);
+      setGiftStats(statsData);
+    } catch (err) {
+      console.error('Failed to load gifts:', err);
+    }
+  };
+
+  const handleUpdateGiftStatus = async (giftId, status) => {
+    if (!confirm(`Mark this gift as ${status}?`)) return;
+    try {
+      await adminService.updateGiftStatus(giftId, status);
+      await loadGifts();
+    } catch (err) {
+      setError(err.message || 'Failed to update gift');
+    }
+  };
+
+  const getFilteredGifts = () => {
+    let filtered = gifts;
+    if (giftFilter !== 'all') {
+      filtered = filtered.filter(g => g.status === giftFilter);
+    }
+    if (giftSearch.trim()) {
+      const search = giftSearch.toLowerCase().trim();
+      filtered = filtered.filter(g => 
+        g.redemption_code?.toLowerCase().includes(search) ||
+        g.gift_name?.toLowerCase().includes(search) ||
+        g.sender_id?.toLowerCase().includes(search) ||
+        g.recipient_id?.toLowerCase().includes(search)
+      );
+    }
+    return filtered;
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleString();
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      pending: '#f39c12',
+      redeemed: '#10964D',
+      withdrawn: '#721CBB',
+    };
+    return colors[status] || '#666';
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      pending: '⏳ Pending',
+      redeemed: '✅ Redeemed',
+      withdrawn: '💰 Withdrawn',
+    };
+    return labels[status] || status;
+  };
+
   if (isLoading) return <div style={styles.container}><div style={styles.loading}>Loading admin panel...</div></div>;
   if (!isAdmin) return (
     <div style={styles.container}>
       <div style={styles.card}><p style={styles.accessDenied}>Access denied. Admin privileges required.</p><button onClick={onClose} style={styles.closeButton}>Close</button></div>
     </div>
   );
+
+  const filteredGifts = getFilteredGifts();
 
   return (
     <div style={styles.container}>
@@ -76,6 +150,7 @@ const AdminPanel = ({ onClose }) => {
           {[
             { id: 'dashboard', label: 'Dashboard' },
             { id: 'users', label: 'Users' },
+            { id: 'gifts', label: 'Gifts' },
             { id: 'vip', label: 'VIP Codes' },
             { id: 'logs', label: 'Logs' },
           ].map(t => (
@@ -104,10 +179,10 @@ const AdminPanel = ({ onClose }) => {
               </div>
               <div style={styles.detailCard}>
                 <h4 style={styles.detailTitle}>Platform Stats</h4>
-                <div style={styles.detailRow}><span style={styles.detailLabel}>Total Gifts</span><span style={styles.detailValue}>{analytics.totalGifts}</span></div>
+                <div style={styles.detailRow}><span style={styles.detailLabel}>Total Gifts</span><span style={styles.detailValue}>{giftStats?.total || 0}</span></div>
+                <div style={styles.detailRow}><span style={styles.detailLabel}>Pending Gifts</span><span style={styles.detailValue}>{giftStats?.pending || 0}</span></div>
                 <div style={styles.detailRow}><span style={styles.detailLabel}>Total Events</span><span style={styles.detailValue}>{analytics.totalEvents}</span></div>
                 <div style={styles.detailRow}><span style={styles.detailLabel}>Total Referrals</span><span style={styles.detailValue}>{analytics.totalReferrals}</span></div>
-                <div style={styles.detailRow}><span style={styles.detailLabel}>Redemptions</span><span style={styles.detailValue}>{analytics.totalRedemptions}</span></div>
                 <div style={styles.detailRow}><span style={styles.detailLabel}>Conversion Rate</span><span style={{ ...styles.detailValue, color: '#10964D' }}>{analytics.conversionRate}%</span></div>
               </div>
             </div>
@@ -115,7 +190,71 @@ const AdminPanel = ({ onClose }) => {
         )}
 
         {activeTab === 'users' && <div style={styles.tabContent}><UserManagement /></div>}
+
+        {activeTab === 'gifts' && (
+          <div style={styles.tabContent}>
+            <div style={styles.giftStatsRow}>
+              <div style={styles.giftStatBox}><span style={styles.giftStatNumber}>{giftStats?.total || 0}</span><span style={styles.giftStatLabel}>Total Gifts</span></div>
+              <div style={{...styles.giftStatBox, borderLeft: '3px solid #f39c12'}}><span style={styles.giftStatNumber}>{giftStats?.pending || 0}</span><span style={styles.giftStatLabel}>Pending</span></div>
+              <div style={{...styles.giftStatBox, borderLeft: '3px solid #10964D'}}><span style={styles.giftStatNumber}>{giftStats?.redeemed || 0}</span><span style={styles.giftStatLabel}>Redeemed</span></div>
+              <div style={{...styles.giftStatBox, borderLeft: '3px solid #721CBB'}}><span style={styles.giftStatNumber}>{giftStats?.withdrawn || 0}</span><span style={styles.giftStatLabel}>Withdrawn</span></div>
+              <div style={{...styles.giftStatBox, borderLeft: '3px solid #10964D'}}><span style={styles.giftStatNumber}>₦{(giftStats?.totalValue || 0).toLocaleString()}</span><span style={styles.giftStatLabel}>Total Value</span></div>
+            </div>
+
+            <div style={styles.giftFilterRow}>
+              <select value={giftFilter} onChange={(e) => setGiftFilter(e.target.value)} style={styles.giftFilterSelect}>
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="redeemed">Redeemed</option>
+                <option value="withdrawn">Withdrawn</option>
+              </select>
+              <input
+                type="text"
+                value={giftSearch}
+                onChange={(e) => setGiftSearch(e.target.value)}
+                placeholder="Search by code, name, sender, recipient..."
+                style={styles.giftSearchInput}
+              />
+              <button onClick={() => { setGiftFilter('all'); setGiftSearch(''); }} style={styles.giftClearButton}>Clear</button>
+            </div>
+
+            <div style={styles.giftList}>
+              {filteredGifts.length === 0 ? (
+                <p style={styles.emptyText}>No gifts found</p>
+              ) : (
+                filteredGifts.map((gift) => (
+                  <div key={gift.id} style={styles.giftItem}>
+                    <div style={styles.giftItemHeader}>
+                      <span style={styles.giftItemCode}>🔑 {gift.redemption_code || 'No code'}</span>
+                      <span style={{...styles.giftItemStatus, backgroundColor: getStatusColor(gift.status)}}>
+                        {getStatusLabel(gift.status)}
+                      </span>
+                    </div>
+                    <div style={styles.giftItemDetails}>
+                      <span><strong>Gift:</strong> {gift.gift_name}</span>
+                      <span><strong>Type:</strong> {gift.gift_type}</span>
+                      <span><strong>Price:</strong> ₦{parseFloat(gift.price || 0).toLocaleString()}</span>
+                      <span><strong>Sender:</strong> {gift.sender_id}</span>
+                      <span><strong>Recipient:</strong> {gift.recipient_id}</span>
+                      {gift.message && <span><strong>Message:</strong> "{gift.message}"</span>}
+                      <span><strong>Created:</strong> {formatDate(gift.created_at)}</span>
+                      {gift.redeemed_at && <span><strong>Redeemed:</strong> {formatDate(gift.redeemed_at)}</span>}
+                    </div>
+                    {gift.status === 'pending' && (
+                      <div style={styles.giftItemActions}>
+                        <button onClick={() => handleUpdateGiftStatus(gift.id, 'redeemed')} style={{...styles.giftActionButton, backgroundColor: '#10964D'}}>Mark Redeemed</button>
+                        <button onClick={() => handleUpdateGiftStatus(gift.id, 'withdrawn')} style={{...styles.giftActionButton, backgroundColor: '#721CBB'}}>Mark Withdrawn</button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'vip' && <div style={styles.tabContent}><VIPCodeGenerator /></div>}
+        
         {activeTab === 'logs' && (
           <div style={styles.logsContainer}>
             <h4 style={styles.logsTitle}>System Logs</h4>
@@ -159,6 +298,23 @@ const styles = {
   detailLabel: { color: '#6B7280' },
   detailValue: { fontWeight: '700', color: '#1a1a1a' },
   tabContent: { minHeight: '200px' },
+  // Gift Management Styles
+  giftStatsRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px', marginBottom: '16px' },
+  giftStatBox: { backgroundColor: '#FAF8FF', padding: '10px', borderRadius: '10px', textAlign: 'center', border: '1px solid #F3E8FF' },
+  giftStatNumber: { display: 'block', fontSize: '20px', fontWeight: '800', color: '#1a1a1a' },
+  giftStatLabel: { fontSize: '10px', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.3px' },
+  giftFilterRow: { display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' },
+  giftFilterSelect: { padding: '8px 12px', border: '1.5px solid #E9E3F3', borderRadius: '8px', fontSize: '13px', backgroundColor: 'white' },
+  giftSearchInput: { flex: 1, padding: '8px 12px', border: '1.5px solid #E9E3F3', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '150px' },
+  giftClearButton: { padding: '8px 16px', backgroundColor: '#F3F4F6', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', color: '#6B7280', cursor: 'pointer' },
+  giftList: { maxHeight: '400px', overflowY: 'auto' },
+  giftItem: { border: '1px solid #F3E8FF', borderRadius: '12px', padding: '12px 14px', marginBottom: '10px', backgroundColor: '#FAF8FF' },
+  giftItemHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' },
+  giftItemCode: { fontSize: '15px', fontWeight: '700', color: '#721CBB', fontFamily: 'monospace' },
+  giftItemStatus: { padding: '2px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '700', color: 'white' },
+  giftItemDetails: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: '12px', color: '#4B5563' },
+  giftItemActions: { display: 'flex', gap: '8px', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #F3E8FF' },
+  giftActionButton: { padding: '5px 14px', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: 'white', cursor: 'pointer' },
   logsContainer: { minHeight: '200px' },
   logsTitle: { fontSize: '14px', fontWeight: '700', color: '#1a1a1a', margin: '0 0 10px 0' },
   logsList: { maxHeight: '400px', overflowY: 'auto' },

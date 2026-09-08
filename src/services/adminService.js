@@ -302,6 +302,97 @@ export const updatePlatformSettings = async (settings) => {
   }
 };
 
+/**
+ * Get all gifts (admin only)
+ */
+export const getAllGifts = async (filters = {}) => {
+  try {
+    let url = `${API_URL}/admin_gifts.php`;
+    const params = new URLSearchParams();
+    if (filters.status) params.append('status', filters.status);
+    if (filters.type) params.append('type', filters.type);
+    if (filters.search) params.append('search', filters.search);
+    
+    const query = params.toString();
+    if (query) url += '?' + query;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.gifts || [];
+    }
+    return [];
+  } catch (error) {
+    console.error('Get all gifts error:', error);
+    return [];
+  }
+};
+
+/**
+ * Update gift status (admin only)
+ */
+export const updateGiftStatus = async (giftId, status, notes = '') => {
+  try {
+    const response = await fetch(`${API_URL}/admin_update_gift.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gift_id: giftId, status, notes })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      return data.gift;
+    }
+    throw new Error(data.message || 'Failed to update gift');
+  } catch (error) {
+    console.error('Update gift error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get gift statistics
+ */
+export const getGiftStats = async () => {
+  try {
+    const gifts = await getAllGifts();
+    const total = gifts.length;
+    const pending = gifts.filter(g => g.status === 'pending').length;
+    const redeemed = gifts.filter(g => g.status === 'redeemed').length;
+    const withdrawn = gifts.filter(g => g.status === 'withdrawn').length;
+    
+    const totalValue = gifts.reduce((sum, g) => sum + parseFloat(g.price || 0), 0);
+    const pendingValue = gifts.filter(g => g.status === 'pending').reduce((sum, g) => sum + parseFloat(g.price || 0), 0);
+    
+    const cashGifts = gifts.filter(g => g.gift_type === 'cash');
+    const serviceGifts = gifts.filter(g => g.gift_type === 'service');
+    
+    return {
+      total,
+      pending,
+      redeemed,
+      withdrawn,
+      totalValue,
+      pendingValue,
+      cashCount: cashGifts.length,
+      serviceCount: serviceGifts.length,
+    };
+  } catch (error) {
+    console.error('Get gift stats error:', error);
+    return {
+      total: 0,
+      pending: 0,
+      redeemed: 0,
+      withdrawn: 0,
+      totalValue: 0,
+      pendingValue: 0,
+      cashCount: 0,
+      serviceCount: 0,
+    };
+  }
+};
+
 export default {
   isAdmin,
   getAllUsers,
@@ -315,4 +406,7 @@ export default {
   generateVIPCode,
   getPlatformSettings,
   updatePlatformSettings,
+  getAllGifts,
+  updateGiftStatus,
+  getGiftStats,
 };
