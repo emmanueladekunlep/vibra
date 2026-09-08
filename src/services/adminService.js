@@ -16,13 +16,11 @@ export const isAdmin = async (userId) => {
   if (!userId) return false;
   
   try {
-    // Check real user from localStorage first
     const cachedUser = JSON.parse(localStorage.getItem('vibra_user') || '{}');
     if (cachedUser && cachedUser.isFounder === true) {
       return true;
     }
     
-    // Fetch user from API
     const response = await fetch(`${API_URL}/get_user.php?user_id=${encodeURIComponent(userId)}`);
     const data = await response.json();
     
@@ -132,7 +130,6 @@ export const reactivateUser = async (userId) => {
  */
 export const getAnalytics = async () => {
   try {
-    // Get users from API
     const users = await getAllUsers();
     const totalUsers = users.length;
     const activeUsers = users.filter(u => u.status === 'active').length;
@@ -192,7 +189,6 @@ export const getAnalytics = async () => {
  */
 export const getSystemLogs = async (limit = 50) => {
   try {
-    // Try to get logs from API
     const response = await fetch(`${API_URL}/get_logs.php?limit=${limit}`);
     const data = await response.json();
     if (data.success) {
@@ -238,7 +234,6 @@ export const generateVIPCode = async (level, recipientPhone = null, generatedBy 
     throw new Error(data.message || 'Failed to generate VIP code');
   } catch (error) {
     console.error('Generate VIP code error:', error);
-    // Fallback: generate locally with correct format
     const points = { Silver: 10000, Gold: 25000, Platinum: 50000, Diamond: 100000 }[level] || 0;
     const prefix = level.toUpperCase().slice(0, 3);
     const random = String(Math.floor(100000 + Math.random() * 900000));

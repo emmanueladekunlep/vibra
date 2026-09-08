@@ -31,7 +31,6 @@ const AdminPanel = ({ onClose }) => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Gift Management state
   const [gifts, setGifts] = useState([]);
   const [giftStats, setGiftStats] = useState(null);
   const [giftFilter, setGiftFilter] = useState('all');
@@ -84,6 +83,40 @@ const AdminPanel = ({ onClose }) => {
     } catch (err) {
       setError(err.message || 'Failed to update gift');
     }
+  };
+
+  const handleWithdrawWithWhatsApp = (gift) => {
+    if (!confirm(`Send withdrawal notification for ${gift.gift_name} (₦${parseFloat(gift.price).toLocaleString()}) to admin?`)) return;
+    
+    const amount = parseFloat(gift.price || 0);
+    const fee = amount * 0.05;
+    const payout = amount - fee;
+    
+    const message = `🔔 *VIBRA WITHDRAWAL REQUEST*
+    
+👤 *User ID:* ${gift.recipient_id}
+👤 *Name:* ${gift.recipient_name || 'N/A'}
+💰 *Gift:* ${gift.gift_name}
+💵 *Amount:* ₦${amount.toLocaleString()}
+📝 *Code:* ${gift.redemption_code}
+📅 *Date:* ${new Date(gift.created_at).toLocaleString()}
+💳 *Fee (5%):* ₦${fee.toLocaleString()}
+💸 *Payout:* ₦${payout.toLocaleString()}
+
+📤 *Payment Instructions:*
+Send ₦${payout.toLocaleString()} to:
+Opay: 07032977572
+LabelReach Advertising Ltd
+
+After payment, mark gift as Withdrawn in admin panel.
+
+📎 Please attach screenshot of payment receipt.`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const phoneNumber = '07032977572';
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
   };
 
   const getFilteredGifts = () => {
@@ -242,8 +275,28 @@ const AdminPanel = ({ onClose }) => {
                     </div>
                     {gift.status === 'pending' && (
                       <div style={styles.giftItemActions}>
-                        <button onClick={() => handleUpdateGiftStatus(gift.id, 'redeemed')} style={{...styles.giftActionButton, backgroundColor: '#10964D'}}>Mark Redeemed</button>
-                        <button onClick={() => handleUpdateGiftStatus(gift.id, 'withdrawn')} style={{...styles.giftActionButton, backgroundColor: '#721CBB'}}>Mark Withdrawn</button>
+                        <button 
+                          onClick={() => handleUpdateGiftStatus(gift.id, 'redeemed')} 
+                          style={{...styles.giftActionButton, backgroundColor: '#10964D'}}
+                        >
+                          Mark Redeemed
+                        </button>
+                        <button 
+                          onClick={() => handleWithdrawWithWhatsApp(gift)} 
+                          style={{...styles.giftActionButton, backgroundColor: '#25D366'}}
+                        >
+                          📱 Withdraw & Notify
+                        </button>
+                      </div>
+                    )}
+                    {gift.status === 'withdrawn' && (
+                      <div style={{...styles.giftItemActions, borderTop: 'none', paddingTop: 0}}>
+                        <span style={{fontSize: '12px', color: '#10964D', fontWeight: '600'}}>✅ Withdrawal processed</span>
+                      </div>
+                    )}
+                    {gift.status === 'redeemed' && (
+                      <div style={{...styles.giftItemActions, borderTop: 'none', paddingTop: 0}}>
+                        <span style={{fontSize: '12px', color: '#721CBB', fontWeight: '600'}}>✅ Gift redeemed</span>
                       </div>
                     )}
                   </div>
@@ -298,7 +351,6 @@ const styles = {
   detailLabel: { color: '#6B7280' },
   detailValue: { fontWeight: '700', color: '#1a1a1a' },
   tabContent: { minHeight: '200px' },
-  // Gift Management Styles
   giftStatsRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px', marginBottom: '16px' },
   giftStatBox: { backgroundColor: '#FAF8FF', padding: '10px', borderRadius: '10px', textAlign: 'center', border: '1px solid #F3E8FF' },
   giftStatNumber: { display: 'block', fontSize: '20px', fontWeight: '800', color: '#1a1a1a' },
