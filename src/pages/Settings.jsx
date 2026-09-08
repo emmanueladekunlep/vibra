@@ -146,7 +146,6 @@ const Settings = ({ onClose }) => {
       if (result.success) {
         setMessage(`✅ ${result.message}`);
         setReferralCode('');
-        // Update user points
         updateUser({ points: (user.points || 0) + (result.pointsEarned || 0) });
         setTimeout(() => setShowReferral(false), 3000);
       } else {
@@ -160,7 +159,7 @@ const Settings = ({ onClose }) => {
   };
 
   const copyReferralCode = () => {
-    const code = user?.referral_code || user?.userId?.slice(-6) || '';
+    const code = user?.referral_code || '';
     if (code) {
       navigator.clipboard.writeText(code)
         .then(() => setMessage('Referral code copied!'))
@@ -173,10 +172,13 @@ const Settings = ({ onClose }) => {
           document.body.removeChild(textarea);
           setMessage('Referral code copied!');
         });
+    } else {
+      setError('No referral code found. Contact support.');
     }
   };
 
-  const userReferralCode = user?.referral_code || user?.userId?.slice(-6) || '';
+  // Only show referral code if it exists, never fallback to userId
+  const userReferralCode = user?.referral_code || '';
 
   return (
     <div style={styles.container}>
@@ -251,13 +253,19 @@ const Settings = ({ onClose }) => {
               <div style={styles.referralCodeBox}>
                 <span style={styles.referralCodeLabel}>Your Referral Code</span>
                 <div style={styles.referralCodeDisplay}>
-                  <span style={styles.referralCodeValue}>{userReferralCode}</span>
-                  <button onClick={copyReferralCode} style={styles.copyButton}>
-                    Copy
-                  </button>
+                  {userReferralCode ? (
+                    <>
+                      <span style={styles.referralCodeValue}>{userReferralCode}</span>
+                      <button onClick={copyReferralCode} style={styles.copyButton}>
+                        Copy
+                      </button>
+                    </>
+                  ) : (
+                    <span style={styles.noReferralCode}>No referral code available</span>
+                  )}
                 </div>
                 <p style={styles.referralNote}>
-                  Share this code with friends. You'll get 500 points and they'll get 200 points!
+                  {userReferralCode ? 'Share this code with friends. You\'ll get 500 points and they\'ll get 200 points!' : 'Contact support to get your referral code.'}
                 </p>
               </div>
 
@@ -540,6 +548,12 @@ const styles = {
     color: '#721CBB',
     fontFamily: 'monospace',
     letterSpacing: '2px',
+    flex: 1,
+  },
+  noReferralCode: {
+    fontSize: '16px',
+    color: '#999',
+    fontFamily: 'inherit',
     flex: 1,
   },
   copyButton: {
