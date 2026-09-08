@@ -3,29 +3,32 @@
  * Module: Gift Store
  * 
  * Redeem gift with 6-digit code.
- * Professional design - no emojis.
+ * User sends WhatsApp message to admin for cash withdrawal.
  */
 
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as giftService from '../../services/giftService';
 
-// Manual payout mode - admin processes withdrawals manually
-const MANUAL_PAYOUT_MODE = true;
+const WHATSAPP_NUMBER = '07032977572';
+const ADMIN_OPAY = '07032977572';
+const ADMIN_NAME = 'LabelReach Advertising Ltd';
 
 const GiftRedemption = ({ type, onRedeemed, onClose }) => {
-  const { user, markHasWithdrawn } = useAuth();
+  const { user } = useAuth();
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [giftInfo, setGiftInfo] = useState(null);
+  const [showWhatsApp, setShowWhatsApp] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     setGiftInfo(null);
+    setShowWhatsApp(false);
 
     if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
       setError('Please enter a valid 6-digit code');
@@ -52,31 +55,7 @@ const GiftRedemption = ({ type, onRedeemed, onClose }) => {
       }
 
       setGiftInfo(gift);
-
-      // MANUAL PAYOUT MODE - Admin processes payment manually
-      if (MANUAL_PAYOUT_MODE && type !== 'merchant') {
-        setSuccess('Withdrawal request submitted. You will be contacted within 24 hours.');
-        
-        // Mark user as having withdrawn (for verification discount)
-        if (user && !user.hasWithdrawn) {
-          await markHasWithdrawn();
-        }
-        
-        if (onRedeemed) onRedeemed({ success: true, manual: true });
-        setIsLoading(false);
-        return;
-      }
-
-      if (type === 'merchant') {
-        const merchantId = 'merchant_1';
-        const result = await giftService.redeemServiceGift(code, merchantId);
-        setSuccess(result.message);
-        if (onRedeemed) onRedeemed(result);
-      } else {
-        const result = await giftService.withdrawCashGift(code, user.userId);
-        setSuccess(result.message);
-        if (onRedeemed) onRedeemed(result);
-      }
+      setShowWhatsApp(true);
     } catch (err) {
       setError(err.message || 'Failed to redeem gift');
     } finally {
@@ -84,18 +63,60 @@ const GiftRedemption = ({ type, onRedeemed, onClose }) => {
     }
   };
 
+  const handleWhatsAppWithdrawal = () => {
+    if (!giftInfo || !user) return;
+
+    const amount = parseFloat(giftInfo.price || 0);
+    const fee = amount * 0.05;
+    const payout = amount - fee;
+
+    const message = `🔔 *VIBRA CASH WITHDRAWAL REQUEST*
+
+👤 *User ID:* ${user.userId}
+👤 *Name:* ${user.name || 'N/A'}
+📱 *Phone:* ${user.phone || 'N/A'}
+💰 *Gift:* ${giftInfo.giftName}
+💵 *Amount:* ₦${amount.toLocaleString()}
+📝 *Code:* ${giftInfo.redemptionCode}
+📅 *Date:* ${new Date().toLocaleString()}
+💳 *Fee (5%):* ₦${fee.toLocaleString()}
+💸 *Payout:* ₦${payout.toLocaleString()}
+
+📤 *Payment Details:*
+Bank: Opay
+Account: ${ADMIN_OPAY}
+Name: ${ADMIN_NAME}
+Amount: ₦${payout.toLocaleString()}
+
+📎 *Please attach screenshot of payment receipt.*
+
+After payment confirmation, your withdrawal will be processed.`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
+    
+    // Mark as withdrawn locally
+    giftInfo.status = 'withdrawn';
+    setShowWhatsApp(false);
+    setSuccess('Withdrawal request sent! Please complete payment and send screenshot via WhatsApp.');
+    
+    if (onRedeemed) {
+      onRedeemed({ success: true, manual: true, gift: giftInfo });
+    }
+  };
+
   const handleClose = () => {
     if (onClose) onClose();
   };
-
-  const isMerchant = type === 'merchant';
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.header}>
           <h3 style={styles.title}>
-            {isMerchant ? 'Redeem Gift (Merchant)' : 'Withdraw Cash Gift'}
+            {type === 'merchant' ? 'Redeem Gift (Merchant)' : 'Withdraw Cash Gift'}
           </h3>
           {onClose && (
             <button onClick={handleClose} style={styles.closeButton}>
@@ -105,9 +126,9 @@ const GiftRedemption = ({ type, onRedeemed, onClose }) => {
         </div>
 
         <p style={styles.subtitle}>
-          {isMerchant 
+          {type === 'merchant' 
             ? 'Enter the 6-digit gift code provided by the customer'
-            : 'Enter the 6-digit gift code to withdraw'}
+            : 'Enter your 6-digit gift code to withdraw cash'}
         </p>
 
         {error && (
@@ -124,18 +145,36 @@ const GiftRedemption = ({ type, onRedeemed, onClose }) => {
           </div>
         )}
 
-        {giftInfo && !success && (
+        {giftInfo && showWhatsApp && !success && (
           <div style={styles.giftInfo}>
             <p style={styles.giftInfoName}>{giftInfo.giftName}</p>
-            <p style={styles.giftInfoPrice}>₦{giftInfo.price.toLocaleString()}</p>
+            <p style={styles.giftInfoPrice}>₦{parseFloat(giftInfo.price).toLocaleString()}</p>
             <p style={styles.giftInfoSender}>From: {giftInfo.senderId}</p>
             {giftInfo.message && (
               <p style={styles.giftInfoMessage}>"{giftInfo.message}"</p>
             )}
+            
+            <div style={styles.paymentInfo}>
+              <p style={styles.paymentTitle}>📤 Payment Instructions</p>
+              <p style={styles.paymentText}>Send ₦{((parseFloat(giftInfo.price) * 0.95)).toLocaleString()} to:</p>
+              <div style={styles.paymentDetails}>
+                <span><strong>Bank:</strong> Opay</span>
+                <span><strong>Account:</strong> {ADMIN_OPAY}</span>
+                <span><strong>Name:</strong> {ADMIN_NAME}</span>
+              </div>
+              <p style={styles.paymentNote}>After payment, click below to send confirmation via WhatsApp</p>
+            </div>
+
+            <button
+              onClick={handleWhatsAppWithdrawal}
+              style={styles.whatsappButton}
+            >
+              📱 Send Withdrawal Request via WhatsApp
+            </button>
           </div>
         )}
 
-        {!success && (
+        {!success && !showWhatsApp && (
           <form onSubmit={handleSubmit} style={styles.form}>
             <div style={styles.inputGroup}>
               <label style={styles.label}>Redemption Code</label>
@@ -158,16 +197,16 @@ const GiftRedemption = ({ type, onRedeemed, onClose }) => {
               type="submit"
               style={{
                 ...styles.button,
-                ...(isMerchant ? styles.merchantButton : styles.cashButton),
+                ...(type === 'merchant' ? styles.merchantButton : styles.cashButton),
               }}
               disabled={isLoading || code.length !== 6}
             >
-              {isLoading ? 'Processing...' : isMerchant ? 'Redeem Gift' : 'Withdraw Cash'}
+              {isLoading ? 'Processing...' : type === 'merchant' ? 'Redeem Gift' : 'Withdraw Cash'}
             </button>
           </form>
         )}
 
-        {isMerchant && !success && (
+        {!success && !showWhatsApp && type === 'merchant' && (
           <div style={styles.merchantInfo}>
             <p style={styles.merchantInfoText}>
               After redemption, the gift value will be credited instantly.
@@ -178,13 +217,13 @@ const GiftRedemption = ({ type, onRedeemed, onClose }) => {
           </div>
         )}
 
-        {!isMerchant && !success && (
+        {!success && !showWhatsApp && type !== 'merchant' && (
           <div style={styles.cashInfo}>
             <p style={styles.cashInfoText}>
               Cash gifts are subject to a 5% withdrawal fee.
             </p>
             <p style={styles.cashInfoNote}>
-              Funds are processed through LabelReach.
+              Funds are processed through LabelReach. Click "Withdraw Cash" to send request via WhatsApp.
             </p>
           </div>
         )}
@@ -325,7 +364,6 @@ const styles = {
     borderRadius: '12px',
     padding: '16px',
     marginBottom: '16px',
-    textAlign: 'center',
   },
   giftInfoName: {
     fontSize: '18px',
@@ -349,6 +387,53 @@ const styles = {
     color: '#555',
     fontStyle: 'italic',
     margin: '4px 0 0 0',
+  },
+  paymentInfo: {
+    marginTop: '12px',
+    padding: '12px',
+    backgroundColor: '#fff8e1',
+    borderRadius: '10px',
+    border: '1px solid #ffe082',
+  },
+  paymentTitle: {
+    fontSize: '14px',
+    fontWeight: '700',
+    color: '#e65100',
+    margin: '0 0 8px 0',
+  },
+  paymentText: {
+    fontSize: '13px',
+    color: '#555',
+    margin: '0 0 8px 0',
+  },
+  paymentDetails: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    padding: '8px',
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    fontSize: '13px',
+    marginBottom: '8px',
+  },
+  paymentNote: {
+    fontSize: '12px',
+    color: '#888',
+    fontStyle: 'italic',
+    margin: 0,
+  },
+  whatsappButton: {
+    width: '100%',
+    padding: '14px',
+    fontSize: '16px',
+    fontWeight: '600',
+    color: 'white',
+    backgroundColor: '#25D366',
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    transition: 'background-color 0.2s',
   },
   merchantInfo: {
     marginTop: '16px',
