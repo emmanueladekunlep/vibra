@@ -2,8 +2,9 @@
  * VIBRA - Chat Window Component
  * Module: Chat
  * 
- * Individual chat window with messages.
- * Real-time WebSocket support with polling fallback.
+ * Silent polling - no flicker, no pulse.
+ * New messages only appear when they actually arrive.
+ * Auto-scroll only when user is at bottom.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -28,13 +29,17 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   const [error, setError] = useState(null);
   const [typing, setTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+  
   const messagesEndRef = useRef(null);
+  const containerRef = useRef(null);
   const inputRef = useRef(null);
   const scrollTimeout = useRef(null);
   const pollIntervalRef = useRef(null);
   const loadedRef = useRef(false);
   const isUserScrolling = useRef(false);
-  const pendingScroll = useRef(false);
+  const lastMessageCountRef = useRef(0);
+  const lastMessageIdRef = useRef(null);
 
   // Load other user info
   useEffect(() => {
@@ -60,17 +65,20 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     loadOtherUser();
   }, [conversationId, user?.userId, propOtherUser]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (smooth = true) => {
     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     scrollTimeout.current = setTimeout(() => {
-      if (messagesEndRef.current && !isUserScrolling.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: smooth ? 'smooth' : 'auto',
+          block: 'end'
+        });
       }
-      pendingScroll.current = false;
-    }, 100);
+      setHasNewMessages(false);
+    }, 50);
   };
 
-  const loadMessages = useCallback(async () => {
+  const loadMessages = useCallback(async (isInitial = false) => {
     if (!conversationId || conversationId === 'undefined' || conversationId === 'null') return;
     if (!user) return;
     
@@ -81,16 +89,28 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         senderId: String(msg.senderId || msg.sender_id || '')
       }));
       
-      setMessages(formatted);
+      // Check if there are actually new messages (by count and last message ID)
+      const newCount = formatted.length;
+      const oldCount = lastMessageCountRef.current;
+      const lastMsgId = formatted[formatted.length - 1]?.id || null;
+      const hasActualNewMessages = newCount > oldCount || (lastMsgId && lastMsgId !== lastMessageIdRef.current);
       
-      if (formatted.length > 0 && !loadedRef.current) {
-        // Initial load - scroll to bottom after a delay
-        setTimeout(() => {
-          if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 300);
-        loadedRef.current = true;
+      // SILENT UPDATE: Only update state if there's an actual change
+      if (hasActualNewMessages || isInitial) {
+        setMessages(formatted);
+        lastMessageCountRef.current = newCount;
+        lastMessageIdRef.current = lastMsgId;
+        
+        // Only auto-scroll if user is at bottom (not scrolled up)
+        if (isInitial) {
+          setTimeout(() => scrollToBottom(false), 200);
+          loadedRef.current = true;
+        } else if (!isUserScrolling.current && hasActualNewMessages) {
+          setTimeout(() => scrollToBottom(true), 100);
+        } else if (isUserScrolling.current && hasActualNewMessages) {
+          // User is scrolled up - show the "new messages" button
+          setHasNewMessages(true);
+        }
       }
       
       setIsLoading(false);
@@ -108,8 +128,10 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   useEffect(() => {
     if (conversationId && conversationId !== 'undefined' && conversationId !== 'null' && user) {
       loadedRef.current = false;
+      lastMessageCountRef.current = 0;
+      lastMessageIdRef.current = null;
       setIsLoading(true);
-      loadMessages();
+      loadMessages(true);
     }
   }, [conversationId, user, loadMessages]);
 
@@ -117,33 +139,33 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
   useEffect(() => {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
+    containerRef.current = container;
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      const wasScrolling = isUserScrolling.current;
       isUserScrolling.current = distanceFromBottom > 100;
+      
+      // If user scrolled back to bottom, clear the new messages indicator
+      if (wasScrolling && !isUserScrolling.current) {
+        setHasNewMessages(false);
+      }
     };
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Polling for new messages
+  // Silent polling - no flicker, no forced scroll
   useEffect(() => {
     if (!conversationId || conversationId === 'undefined' || conversationId === 'null') return;
     if (!user) return;
 
-    const handleWebSocketMessage = (data) => {
+    const handleNewMessage = (data) => {
       if (data.type === 'new_message' && data.conversationId === conversationId) {
-        // Only scroll if user is at bottom
-        if (!isUserScrolling.current) {
-          pendingScroll.current = true;
-        }
-        loadMessages();
-        if (pendingScroll.current) {
-          setTimeout(scrollToBottom, 200);
-          pendingScroll.current = false;
-        }
+        // Only process if we don't already have this message
+        loadMessages(false);
       }
       
       if (data.type === 'typing' && data.conversationId === conversationId) {
@@ -154,15 +176,16 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       }
     };
 
-    const unsubscribe = chatService.subscribeToMessages(handleWebSocketMessage);
+    const unsubscribe = chatService.subscribeToMessages(handleNewMessage);
 
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
     }
 
+    // Silent polling every 5 seconds
     pollIntervalRef.current = setInterval(() => {
-      loadMessages();
-    }, 3000);
+      loadMessages(false);
+    }, 5000);
 
     return () => {
       unsubscribe();
@@ -190,8 +213,10 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     
     try {
       await chatService.sendMessage(conversationId, user.userId, messageText);
-      // Scroll to bottom after sending
-      setTimeout(scrollToBottom, 200);
+      // Force scroll to bottom after sending
+      isUserScrolling.current = false;
+      await loadMessages(false);
+      setTimeout(() => scrollToBottom(true), 100);
       inputRef.current?.focus();
     } catch (err) {
       setError(err.message || 'Failed to send message');
@@ -209,6 +234,12 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     if (value.length > 0 && user && user.userId) {
       chatService.sendTyping(conversationId, user.userId);
     }
+  };
+
+  const handleScrollToNew = () => {
+    isUserScrolling.current = false;
+    scrollToBottom(true);
+    setHasNewMessages(false);
   };
 
   const formatTime = (timestamp) => {
@@ -407,6 +438,12 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         )}
       </div>
 
+      {hasNewMessages && (
+        <button onClick={handleScrollToNew} style={styles.newMessagesButton}>
+          ↓ New messages
+        </button>
+      )}
+
       {error && (
         <div style={styles.errorBar}>
           <p style={styles.errorBarText}>{error}</p>
@@ -457,6 +494,7 @@ const styles = {
     height: '600px',
     boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
     overflow: 'hidden',
+    position: 'relative',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   header: {
@@ -595,6 +633,23 @@ const styles = {
   emptyText: {
     fontSize: '16px',
     color: '#999',
+  },
+  newMessagesButton: {
+    position: 'absolute',
+    bottom: '80px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    backgroundColor: '#721CBB',
+    color: 'white',
+    border: 'none',
+    borderRadius: '20px',
+    padding: '8px 20px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(114, 28, 187, 0.3)',
+    zIndex: 10,
+    fontFamily: 'inherit',
   },
   inputContainer: {
     display: 'flex',

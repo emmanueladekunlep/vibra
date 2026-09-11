@@ -2,9 +2,8 @@
  * VIBRA - Chat List Component
  * Module: Chat
  * 
- * Displays list of conversations for the current user.
- * Blocks: Blocked users are hidden from chat list.
- * Professional design - no emojis.
+ * Silent refresh - no flicker on poll.
+ * Only re-renders when conversation data actually changes.
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -22,6 +21,7 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
   const [unreadTotal, setUnreadTotal] = useState(0);
   const previousUnreadRef = useRef(0);
   const notificationPermissionRef = useRef(false);
+  const conversationsHashRef = useRef('');
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -59,10 +59,12 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
     }
   };
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (isInitial = false) => {
     if (!user) return;
     
-    setIsLoading(true);
+    if (isInitial) {
+      setIsLoading(true);
+    }
     setError(null);
     
     try {
@@ -75,21 +77,33 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
         return otherUserId ? !blockedArray.includes(otherUserId) : true;
       });
       
-      setConversations(filteredData);
+      // Compute a hash of the conversation data to detect actual changes
+      const hash = JSON.stringify(filteredData.map(c => ({
+        id: c.id,
+        lastMessageId: c.lastMessage?.id || '',
+        lastMessageText: c.lastMessage?.text || '',
+        unreadCount: c.unreadCount || 0,
+      })));
       
-      const total = filteredData.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
-      
-      if (total > previousUnreadRef.current && total > 0) {
-        const newConv = filteredData.find(conv => (conv.unreadCount || 0) > 0);
-        if (newConv && newConv.lastMessage) {
-          const senderName = newConv.otherUser?.name || 'Someone';
-          const message = newConv.lastMessage.text || 'sent you a message';
-          sendBrowserNotification(senderName, message, newConv.otherUser?.userId);
+      // Only update state if data actually changed (SILENT - no re-render if same)
+      if (hash !== conversationsHashRef.current || isInitial) {
+        conversationsHashRef.current = hash;
+        setConversations(filteredData);
+        
+        const total = filteredData.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
+        
+        if (total > previousUnreadRef.current && total > 0) {
+          const newConv = filteredData.find(conv => (conv.unreadCount || 0) > 0);
+          if (newConv && newConv.lastMessage) {
+            const senderName = newConv.otherUser?.name || 'Someone';
+            const message = newConv.lastMessage.text || 'sent you a message';
+            sendBrowserNotification(senderName, message, newConv.otherUser?.userId);
+          }
         }
+        
+        previousUnreadRef.current = total;
+        setUnreadTotal(total);
       }
-      
-      previousUnreadRef.current = total;
-      setUnreadTotal(total);
     } catch (err) {
       setError('Failed to load conversations');
       console.error(err);
@@ -99,12 +113,13 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
   }, [user]);
 
   useEffect(() => {
-    loadConversations();
+    loadConversations(true);
   }, [loadConversations]);
 
+  // Silent polling every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      loadConversations();
+      loadConversations(false);
     }, 5000);
 
     return () => clearInterval(interval);
@@ -124,11 +139,11 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
   };
 
   const handleChatClick = (convId, otherUserData) => {
-    // Ensure we pass the full otherUser data with name
+    const convIdStr = typeof convId === 'string' ? convId : String(convId || '');
     if (onSelectChat) {
-      onSelectChat(convId, otherUserData);
+      onSelectChat(convIdStr, otherUserData);
     } else {
-      navigate(`/chat/${convId}`, { state: { otherUser: otherUserData } });
+      navigate(`/chat/${convIdStr}`, { state: { otherUser: otherUserData } });
     }
   };
 
@@ -145,7 +160,7 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
       <div style={styles.container}>
         <div style={styles.errorCard}>
           <p style={styles.errorText}>{error}</p>
-          <button onClick={loadConversations} style={styles.retryButton}>
+          <button onClick={() => loadConversations(true)} style={styles.retryButton}>
             Retry
           </button>
         </div>

@@ -4,11 +4,11 @@
  * 
  * Handles all chat operations with real-time WebSocket support.
  * Messages are stored in database, not localStorage.
+ * 
+ * Polling is SILENT - callbacks only fire when there's an actual change.
  */
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
-// WebSocket disabled for now - use polling fallback
-const WS_URL = null;
 
 let ws = null;
 let wsCallbacks = [];
@@ -55,7 +55,7 @@ export const sendReadReceipt = (conversationId, userId) => {
   return;
 };
 
-// ========== POLLING FOR REAL-TIME UPDATES ==========
+// ========== SILENT POLLING FOR REAL-TIME UPDATES ==========
 
 let pollingUserId = null;
 let pollingConversations = {};
@@ -71,7 +71,10 @@ const startPolling = (userId) => {
       const convs = await getConversations(pollingUserId);
       for (const conv of convs) {
         const prevId = pollingConversations[conv.id]?.lastMessageId || 0;
-        if (conv.lastMessage && conv.lastMessage.id !== prevId) {
+        const currentId = conv.lastMessage?.id || 0;
+        
+        // Only fire callback if there's actually a NEW message
+        if (conv.lastMessage && currentId !== prevId && prevId !== 0) {
           const msgData = {
             type: 'new_message',
             conversationId: conv.id,
@@ -81,14 +84,16 @@ const startPolling = (userId) => {
           wsCallbacks.forEach(cb => {
             try { cb(msgData); } catch (e) {}
           });
-          pollingConversations[conv.id] = {
-            lastMessageId: conv.lastMessage.id,
-            updatedAt: conv.updatedAt
-          };
         }
+        
+        // Always update the tracker without firing callbacks
+        pollingConversations[conv.id] = {
+          lastMessageId: currentId,
+          updatedAt: conv.updatedAt
+        };
       }
     } catch (e) {}
-  }, 1500);
+  }, 3000);
   isPolling = true;
 };
 
@@ -433,7 +438,7 @@ export const clearUserCache = () => {
   userCache = {};
 };
 
-let pollInterval = 1500;
+let pollInterval = 3000;
 
 export const setPollInterval = (ms) => {
   pollInterval = ms;
