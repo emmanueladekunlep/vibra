@@ -5,6 +5,7 @@
  * Silent polling - no flicker, no pulse.
  * New messages only appear when they actually arrive.
  * Auto-scroll only when user is at bottom.
+ * Click on user header to view their profile.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -89,26 +90,22 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
         senderId: String(msg.senderId || msg.sender_id || '')
       }));
       
-      // Check if there are actually new messages (by count and last message ID)
       const newCount = formatted.length;
       const oldCount = lastMessageCountRef.current;
       const lastMsgId = formatted[formatted.length - 1]?.id || null;
       const hasActualNewMessages = newCount > oldCount || (lastMsgId && lastMsgId !== lastMessageIdRef.current);
       
-      // SILENT UPDATE: Only update state if there's an actual change
       if (hasActualNewMessages || isInitial) {
         setMessages(formatted);
         lastMessageCountRef.current = newCount;
         lastMessageIdRef.current = lastMsgId;
         
-        // Only auto-scroll if user is at bottom (not scrolled up)
         if (isInitial) {
           setTimeout(() => scrollToBottom(false), 200);
           loadedRef.current = true;
         } else if (!isUserScrolling.current && hasActualNewMessages) {
           setTimeout(() => scrollToBottom(true), 100);
         } else if (isUserScrolling.current && hasActualNewMessages) {
-          // User is scrolled up - show the "new messages" button
           setHasNewMessages(true);
         }
       }
@@ -135,7 +132,7 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     }
   }, [conversationId, user, loadMessages]);
 
-  // Scroll handler - detect when user scrolls up
+  // Scroll handler
   useEffect(() => {
     const container = document.getElementById('chat-messages-container');
     if (!container) return;
@@ -147,7 +144,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       const wasScrolling = isUserScrolling.current;
       isUserScrolling.current = distanceFromBottom > 100;
       
-      // If user scrolled back to bottom, clear the new messages indicator
       if (wasScrolling && !isUserScrolling.current) {
         setHasNewMessages(false);
       }
@@ -157,14 +153,13 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Silent polling - no flicker, no forced scroll
+  // Silent polling
   useEffect(() => {
     if (!conversationId || conversationId === 'undefined' || conversationId === 'null') return;
     if (!user) return;
 
     const handleNewMessage = (data) => {
       if (data.type === 'new_message' && data.conversationId === conversationId) {
-        // Only process if we don't already have this message
         loadMessages(false);
       }
       
@@ -182,7 +177,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
       clearInterval(pollIntervalRef.current);
     }
 
-    // Silent polling every 5 seconds
     pollIntervalRef.current = setInterval(() => {
       loadMessages(false);
     }, 5000);
@@ -213,7 +207,6 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     
     try {
       await chatService.sendMessage(conversationId, user.userId, messageText);
-      // Force scroll to bottom after sending
       isUserScrolling.current = false;
       await loadMessages(false);
       setTimeout(() => scrollToBottom(true), 100);
@@ -240,6 +233,14 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
     isUserScrolling.current = false;
     scrollToBottom(true);
     setHasNewMessages(false);
+  };
+
+  const handleProfileClick = () => {
+    if (!otherUser) return;
+    const targetUserId = otherUser.userId || otherUser.id;
+    if (targetUserId) {
+      navigate(`/profile/${targetUserId}`);
+    }
   };
 
   const formatTime = (timestamp) => {
@@ -343,7 +344,13 @@ const ChatWindow = ({ conversationId: propConversationId, otherUser: propOtherUs
           <button onClick={handleBack} style={styles.backButton}>
             ← Back
           </button>
-          <div style={styles.userInfo}>
+          <div 
+            style={styles.userInfo} 
+            onClick={handleProfileClick}
+            role="button"
+            tabIndex={0}
+            onKeyPress={(e) => { if (e.key === 'Enter') handleProfileClick(); }}
+          >
             <div style={styles.avatarSmall}>
               {otherUser?.photos && otherUser.photos.length > 0 ? (
                 <img 
@@ -532,6 +539,10 @@ const styles = {
     flex: 1,
     minWidth: 0,
     cursor: 'pointer',
+    padding: '4px 8px',
+    borderRadius: '8px',
+    transition: 'background-color 0.15s',
+    outline: 'none',
   },
   userTextInfo: {
     display: 'flex',
