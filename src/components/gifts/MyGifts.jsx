@@ -3,7 +3,7 @@
  * Module: Gift Store
  * 
  * Displays all gifts sent and received by the user.
- * Shows redemption codes for pending gifts.
+ * Gifts are instant transfers - all show as completed.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -44,24 +44,6 @@ const MyGifts = ({ onClose }) => {
     }
   };
 
-  const getStatusLabel = (status) => {
-    const labels = {
-      pending: 'Pending',
-      redeemed: 'Redeemed',
-      withdrawn: 'Withdrawn',
-    };
-    return labels[status] || status;
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      pending: '#f39c12',
-      redeemed: '#10964D',
-      withdrawn: '#721CBB',
-    };
-    return colors[status] || '#888';
-  };
-
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -69,29 +51,28 @@ const MyGifts = ({ onClose }) => {
     return date.toLocaleDateString('en-NG', { 
       month: 'short', 
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
-  const formatCode = (code) => {
-    if (!code) return 'No code';
-    return `${code.slice(0, 3)} ${code.slice(3, 6)}`;
+  const getNairaValue = (price) => {
+    return parseFloat(price || 0);
   };
 
-  const handleCopyCode = (code) => {
-    navigator.clipboard.writeText(code)
-      .then(() => {
-        alert('Code copied to clipboard');
-      })
-      .catch(() => {
-        const textarea = document.createElement('textarea');
-        textarea.value = code;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        alert('Code copied to clipboard');
-      });
+  const getPointsValue = (price) => {
+    return Math.round(parseFloat(price || 0) * 2);
+  };
+
+  const getFeeRate = (type) => {
+    return type === 'cash' ? 0.05 : 0.20;
+  };
+
+  const getRecipientNet = (gift) => {
+    const price = parseFloat(gift.price || 0);
+    const feeRate = getFeeRate(gift.gift_type);
+    return Math.round(price * (1 - feeRate));
   };
 
   if (isLoading) {
@@ -155,45 +136,31 @@ const MyGifts = ({ onClose }) => {
                 <div key={gift.id} style={styles.giftItem}>
                   <div style={styles.giftHeader}>
                     <span style={styles.giftName}>{gift.gift_name || gift.giftName}</span>
-                    <span 
-                      style={{
-                        ...styles.statusBadge,
-                        backgroundColor: getStatusColor(gift.status),
-                      }}
-                    >
-                      {getStatusLabel(gift.status)}
+                    <span style={styles.giftBadge}>
+                      {gift.gift_type === 'cash' ? 'CASH' : 'SERVICE'}
                     </span>
                   </div>
                   <div style={styles.giftDetails}>
                     <span>From: {gift.sender_userId || gift.sender_name || gift.senderId}</span>
-                    <span>₦{parseFloat(gift.price || 0).toLocaleString()}</span>
                     <span>{formatDate(gift.created_at || gift.createdAt)}</span>
                   </div>
                   {gift.message && (
                     <p style={styles.giftMessage}>"{gift.message}"</p>
                   )}
-                  {gift.status === 'pending' && gift.redemption_code && (
-                    <div style={styles.codeSection}>
-                      <span style={styles.codeLabel}>Redemption Code:</span>
-                      <span style={styles.codeValue}>{formatCode(gift.redemption_code)}</span>
-                      <button
-                        onClick={() => handleCopyCode(gift.redemption_code)}
-                        style={styles.copyButton}
-                      >
-                        Copy
-                      </button>
+                  <div style={styles.amountBox}>
+                    <div style={styles.amountRow}>
+                      <span style={styles.amountLabel}>You received:</span>
+                      <span style={styles.amountValue}>
+                        {getPointsValue(getRecipientNet(gift)).toLocaleString()} points
+                      </span>
                     </div>
-                  )}
-                  {gift.status === 'pending' && gift.gift_type === 'cash' && (
-                    <div style={styles.redeemHint}>
-                      <span>Go to Gifts → Redeem Gift to withdraw this cash gift</span>
+                    <div style={styles.amountRow}>
+                      <span style={styles.amountLabel}></span>
+                      <span style={styles.amountNaira}>
+                        ≈ ₦{getRecipientNet(gift).toLocaleString()}
+                      </span>
                     </div>
-                  )}
-                  {gift.status === 'pending' && gift.gift_type === 'service' && (
-                    <div style={styles.redeemHint}>
-                      <span>Present this code at any Vibra merchant to redeem</span>
-                    </div>
-                  )}
+                  </div>
                 </div>
               ))
             )}
@@ -212,50 +179,47 @@ const MyGifts = ({ onClose }) => {
                 <div key={gift.id} style={styles.giftItem}>
                   <div style={styles.giftHeader}>
                     <span style={styles.giftName}>{gift.gift_name || gift.giftName}</span>
-                    <span 
-                      style={{
-                        ...styles.statusBadge,
-                        backgroundColor: getStatusColor(gift.status),
-                      }}
-                    >
-                      {getStatusLabel(gift.status)}
+                    <span style={styles.giftBadge}>
+                      {gift.gift_type === 'cash' ? 'CASH' : 'SERVICE'}
                     </span>
                   </div>
                   <div style={styles.giftDetails}>
                     <span>To: {gift.recipient_userId || gift.recipient_name || gift.recipientId}</span>
-                    <span>₦{parseFloat(gift.price || 0).toLocaleString()}</span>
                     <span>{formatDate(gift.created_at || gift.createdAt)}</span>
                   </div>
                   {gift.message && (
                     <p style={styles.giftMessage}>"{gift.message}"</p>
                   )}
-                  {gift.status === 'pending' && gift.redemption_code && (
-                    <div style={styles.codeSection}>
-                      <span style={styles.codeLabel}>Redemption Code:</span>
-                      <span style={styles.codeValue}>{formatCode(gift.redemption_code)}</span>
-                      <button
-                        onClick={() => handleCopyCode(gift.redemption_code)}
-                        style={styles.copyButton}
-                      >
-                        Copy
-                      </button>
+                  <div style={styles.amountBox}>
+                    <div style={styles.amountRow}>
+                      <span style={styles.amountLabel}>You sent:</span>
+                      <span style={styles.amountValue}>
+                        {getPointsValue(gift.price).toLocaleString()} points
+                      </span>
                     </div>
-                  )}
-                  {gift.status === 'pending' && (
-                    <div style={styles.pendingHint}>
-                      <span>Recipient has not redeemed this gift yet</span>
+                    <div style={styles.amountRow}>
+                      <span style={styles.amountLabel}></span>
+                      <span style={styles.amountNaira}>
+                        ≈ ₦{getNairaValue(gift.price).toLocaleString()}
+                      </span>
                     </div>
-                  )}
-                  {gift.status === 'redeemed' && (
-                    <div style={styles.redeemedHint}>
-                      <span>✅ This gift has been redeemed</span>
+                    <div style={styles.amountDivider}></div>
+                    <div style={styles.amountRow}>
+                      <span style={styles.amountLabelSmall}>Recipient got:</span>
+                      <span style={styles.amountValueSmall}>
+                        ≈ ₦{getRecipientNet(gift).toLocaleString()}
+                      </span>
                     </div>
-                  )}
-                  {gift.status === 'withdrawn' && (
-                    <div style={styles.withdrawnHint}>
-                      <span>💰 This cash gift has been withdrawn</span>
+                    <div style={styles.amountRow}>
+                      <span style={styles.amountLabelSmall}>Fee ({gift.gift_type === 'cash' ? '5%' : '20%'}):</span>
+                      <span style={styles.amountFeeSmall}>
+                        ≈ ₦{(getNairaValue(gift.price) - getRecipientNet(gift)).toLocaleString()}
+                      </span>
                     </div>
-                  )}
+                  </div>
+                  <div style={styles.deliveredHint}>
+                    <span>✅ Delivered instantly</span>
+                  </div>
                 </div>
               ))
             )}
@@ -350,13 +314,14 @@ const styles = {
     fontWeight: '600',
     color: '#1a1a1a',
   },
-  statusBadge: {
-    fontSize: '11px',
-    padding: '2px 12px',
-    borderRadius: '12px',
-    color: 'white',
-    fontWeight: '600',
-    textTransform: 'uppercase',
+  giftBadge: {
+    fontSize: '10px',
+    padding: '2px 10px',
+    borderRadius: '10px',
+    backgroundColor: '#f0edff',
+    color: '#721CBB',
+    fontWeight: '700',
+    letterSpacing: '0.5px',
   },
   giftDetails: {
     display: 'flex',
@@ -370,72 +335,61 @@ const styles = {
     fontSize: '13px',
     color: '#555',
     fontStyle: 'italic',
-    margin: '4px 0',
+    margin: '4px 0 8px 0',
   },
-  codeSection: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    marginTop: '8px',
-    padding: '8px 12px',
+  amountBox: {
     backgroundColor: '#f0edff',
     borderRadius: '8px',
-    flexWrap: 'wrap',
+    padding: '10px 12px',
+    marginTop: '8px',
   },
-  codeLabel: {
+  amountRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '2px 0',
+  },
+  amountLabel: {
     fontSize: '12px',
     color: '#666',
-    fontWeight: '500',
   },
-  codeValue: {
-    fontSize: '18px',
+  amountValue: {
+    fontSize: '14px',
     fontWeight: '700',
     color: '#721CBB',
-    fontFamily: 'monospace',
-    letterSpacing: '2px',
   },
-  copyButton: {
-    padding: '4px 12px',
-    backgroundColor: '#721CBB',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
+  amountNaira: {
+    fontSize: '12px',
+    color: '#10964D',
+    fontWeight: '600',
+  },
+  amountDivider: {
+    height: '1px',
+    backgroundColor: '#d4c4f0',
+    margin: '6px 0',
+  },
+  amountLabelSmall: {
+    fontSize: '11px',
+    color: '#888',
+  },
+  amountValueSmall: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#10964D',
+  },
+  amountFeeSmall: {
     fontSize: '12px',
     fontWeight: '500',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
+    color: '#999',
   },
-  redeemHint: {
-    marginTop: '8px',
-    padding: '6px 12px',
-    backgroundColor: '#fff3cd',
-    borderRadius: '6px',
-    fontSize: '12px',
-    color: '#856404',
-  },
-  pendingHint: {
-    marginTop: '8px',
-    padding: '6px 12px',
-    backgroundColor: '#fff3cd',
-    borderRadius: '6px',
-    fontSize: '12px',
-    color: '#856404',
-  },
-  redeemedHint: {
+  deliveredHint: {
     marginTop: '8px',
     padding: '6px 12px',
     backgroundColor: '#e8f5e9',
     borderRadius: '6px',
     fontSize: '12px',
     color: '#2e7d32',
-  },
-  withdrawnHint: {
-    marginTop: '8px',
-    padding: '6px 12px',
-    backgroundColor: '#e8f5e9',
-    borderRadius: '6px',
-    fontSize: '12px',
-    color: '#2e7d32',
+    textAlign: 'center',
   },
   emptyState: {
     textAlign: 'center',

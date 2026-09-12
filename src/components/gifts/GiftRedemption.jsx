@@ -1,9 +1,10 @@
 /**
- * VIBRA - Gift Redemption Component
+ * VIBRA - Withdrawal Component
  * Module: Gift Store
  * 
- * Redeem gift with 6-digit code.
- * User sends WhatsApp message to admin for cash withdrawal.
+ * User requests withdrawal of points to Naira.
+ * Points deducted instantly. WhatsApp notification to admin.
+ * 2 points = ₦1
  */
 
 import React, { useState } from 'react';
@@ -13,97 +14,101 @@ import * as giftService from '../../services/giftService';
 const WHATSAPP_NUMBER = '07032977572';
 const ADMIN_OPAY = '07032977572';
 const ADMIN_NAME = 'LabelReach Advertising Ltd';
+const POINTS_PER_NAIRA = 2;
 
-const GiftRedemption = ({ type, onRedeemed, onClose }) => {
-  const { user } = useAuth();
-  const [code, setCode] = useState('');
+const GiftRedemption = ({ onRedeemed, onClose }) => {
+  const { user, updateUser } = useAuth();
+  const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [giftInfo, setGiftInfo] = useState(null);
-  const [showWhatsApp, setShowWhatsApp] = useState(false);
+  const [withdrawalData, setWithdrawalData] = useState(null);
+
+  const userPoints = user?.points || 0;
+  const maxNaira = Math.floor(userPoints / POINTS_PER_NAIRA);
+  const nairaAmount = parseFloat(amount) || 0;
+  const pointsRequired = nairaAmount * POINTS_PER_NAIRA;
+  const canWithdraw = nairaAmount > 0 && pointsRequired <= userPoints;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setGiftInfo(null);
-    setShowWhatsApp(false);
+    setWithdrawalData(null);
 
-    if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
-      setError('Please enter a valid 6-digit code');
+    if (nairaAmount <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+
+    if (nairaAmount < 100) {
+      setError('Minimum withdrawal is ₦100');
+      return;
+    }
+
+    if (pointsRequired > userPoints) {
+      setError(`Insufficient points. You need ${pointsRequired.toLocaleString()} points, you have ${userPoints.toLocaleString()}`);
+      return;
+    }
+
+    if (!confirm(`Withdraw ₦${nairaAmount.toLocaleString()}?\n\nThis will deduct ${pointsRequired.toLocaleString()} points from your account immediately.`)) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const gift = await giftService.getGiftByCode(code);
-      if (!gift) {
-        setError('Invalid redemption code');
-        return;
+      const result = await giftService.requestWithdrawal(user.userId, nairaAmount);
+
+      setWithdrawalData({
+        amount: nairaAmount,
+        pointsDeducted: result.points_deducted,
+        withdrawalId: result.withdrawal_id,
+        newBalance: result.new_points_balance,
+      });
+
+      // Update user's cached points
+      if (result.new_points_balance !== undefined) {
+        updateUser({ points: result.new_points_balance });
       }
 
-      if (gift.status !== 'pending') {
-        setError('This gift has already been redeemed');
-        return;
-      }
-
-      if (gift.recipientId !== user?.userId) {
-        setError('This gift was not sent to you');
-        return;
-      }
-
-      setGiftInfo(gift);
-      setShowWhatsApp(true);
-    } catch (err) {
-      setError(err.message || 'Failed to redeem gift');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleWhatsAppWithdrawal = () => {
-    if (!giftInfo || !user) return;
-
-    const amount = parseFloat(giftInfo.price || 0);
-    const fee = amount * 0.05;
-    const payout = amount - fee;
-
-    const message = `🔔 *VIBRA CASH WITHDRAWAL REQUEST*
+      // Open WhatsApp with message
+      const message = `🔔 *VIBRA WITHDRAWAL REQUEST*
 
 👤 *User ID:* ${user.userId}
 👤 *Name:* ${user.name || 'N/A'}
 📱 *Phone:* ${user.phone || 'N/A'}
-💰 *Gift:* ${giftInfo.giftName}
-💵 *Amount:* ₦${amount.toLocaleString()}
-📝 *Code:* ${giftInfo.redemptionCode}
-📅 *Date:* ${new Date().toLocaleString()}
-💳 *Fee (5%):* ₦${fee.toLocaleString()}
-💸 *Payout:* ₦${payout.toLocaleString()}
 
-📤 *Payment Details:*
-Bank: Opay
+💵 *Amount:* ₦${nairaAmount.toLocaleString()}
+🪙 *Points Deducted:* ${result.points_deducted.toLocaleString()}
+📝 *Reference:* #${result.withdrawal_id}
+📅 *Date:* ${new Date().toLocaleString()}
+
+📤 *Please send ₦${nairaAmount.toLocaleString()} to:*
+Bank: ${ADMIN_OPAY ? 'Opay' : ''}
 Account: ${ADMIN_OPAY}
 Name: ${ADMIN_NAME}
-Amount: ₦${payout.toLocaleString()}
 
-📎 *Please attach screenshot of payment receipt.*
+📎 *Please attach your bank details and phone number for payment.*
 
-After payment confirmation, your withdrawal will be processed.`;
+I have submitted this withdrawal request.`;
 
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
-    
-    window.open(whatsappUrl, '_blank');
-    
-    // Mark as withdrawn locally
-    giftInfo.status = 'withdrawn';
-    setShowWhatsApp(false);
-    setSuccess('Withdrawal request sent! Please complete payment and send screenshot via WhatsApp.');
-    
-    if (onRedeemed) {
-      onRedeemed({ success: true, manual: true, gift: giftInfo });
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+
+      setSuccess(`Withdrawal request submitted!\n\n₦${nairaAmount.toLocaleString()} will be sent to your account within 24 hours.`);
+      setAmount('');
+
+      // Open WhatsApp
+      window.open(whatsappUrl, '_blank');
+
+      if (onRedeemed) {
+        onRedeemed(result);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to submit withdrawal request');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -111,13 +116,19 @@ After payment confirmation, your withdrawal will be processed.`;
     if (onClose) onClose();
   };
 
+  const handleQuickAmount = (value) => {
+    if (value <= maxNaira) {
+      setAmount(value.toString());
+    } else {
+      setAmount(maxNaira.toString());
+    }
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.header}>
-          <h3 style={styles.title}>
-            {type === 'merchant' ? 'Redeem Gift (Merchant)' : 'Withdraw Cash Gift'}
-          </h3>
+          <h3 style={styles.title}>Withdraw to Bank</h3>
           {onClose && (
             <button onClick={handleClose} style={styles.closeButton}>
               Close
@@ -125,106 +136,121 @@ After payment confirmation, your withdrawal will be processed.`;
           )}
         </div>
 
-        <p style={styles.subtitle}>
-          {type === 'merchant' 
-            ? 'Enter the 6-digit gift code provided by the customer'
-            : 'Enter your 6-digit gift code to withdraw cash'}
-        </p>
+        <div style={styles.balanceBox}>
+          <span style={styles.balanceLabel}>Your Balance</span>
+          <span style={styles.balancePoints}>{userPoints.toLocaleString()} points</span>
+          <span style={styles.balanceNaira}>≈ ₦{maxNaira.toLocaleString()} withdrawable</span>
+        </div>
 
         {error && (
           <div style={styles.errorBox}>
             <p style={styles.errorText}>{error}</p>
           </div>
         )}
+
         {success && (
           <div style={styles.successBox}>
             <p style={styles.successText}>{success}</p>
+            {withdrawalData && (
+              <div style={styles.receiptBox}>
+                <div style={styles.receiptRow}>
+                  <span>Amount:</span>
+                  <strong>₦{withdrawalData.amount.toLocaleString()}</strong>
+                </div>
+                <div style={styles.receiptRow}>
+                  <span>Points deducted:</span>
+                  <strong>{withdrawalData.pointsDeducted.toLocaleString()}</strong>
+                </div>
+                <div style={styles.receiptRow}>
+                  <span>Reference:</span>
+                  <strong>#{withdrawalData.withdrawalId}</strong>
+                </div>
+                <div style={styles.receiptRow}>
+                  <span>New balance:</span>
+                  <strong>{withdrawalData.newBalance.toLocaleString()} points</strong>
+                </div>
+              </div>
+            )}
             <button onClick={handleClose} style={styles.doneButton}>
               Done
             </button>
           </div>
         )}
 
-        {giftInfo && showWhatsApp && !success && (
-          <div style={styles.giftInfo}>
-            <p style={styles.giftInfoName}>{giftInfo.giftName}</p>
-            <p style={styles.giftInfoPrice}>₦{parseFloat(giftInfo.price).toLocaleString()}</p>
-            <p style={styles.giftInfoSender}>From: {giftInfo.senderId}</p>
-            {giftInfo.message && (
-              <p style={styles.giftInfoMessage}>"{giftInfo.message}"</p>
-            )}
-            
-            <div style={styles.paymentInfo}>
-              <p style={styles.paymentTitle}>📤 Payment Instructions</p>
-              <p style={styles.paymentText}>Send ₦{((parseFloat(giftInfo.price) * 0.95)).toLocaleString()} to:</p>
-              <div style={styles.paymentDetails}>
-                <span><strong>Bank:</strong> Opay</span>
-                <span><strong>Account:</strong> {ADMIN_OPAY}</span>
-                <span><strong>Name:</strong> {ADMIN_NAME}</span>
-              </div>
-              <p style={styles.paymentNote}>After payment, click below to send confirmation via WhatsApp</p>
-            </div>
-
-            <button
-              onClick={handleWhatsAppWithdrawal}
-              style={styles.whatsappButton}
-            >
-              📱 Send Withdrawal Request via WhatsApp
-            </button>
-          </div>
-        )}
-
-        {!success && !showWhatsApp && (
+        {!success && (
           <form onSubmit={handleSubmit} style={styles.form}>
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Redemption Code</label>
+              <label style={styles.label}>Amount to Withdraw (₦)</label>
               <input
-                type="text"
-                value={code}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                  setCode(val);
-                }}
-                placeholder="123456"
-                style={styles.codeInput}
-                maxLength="6"
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
+                style={styles.amountInput}
+                min="100"
+                max={maxNaira}
+                step="50"
                 disabled={isLoading}
                 autoFocus
               />
+              {nairaAmount > 0 && (
+                <p style={styles.conversionText}>
+                  = {pointsRequired.toLocaleString()} points will be deducted
+                </p>
+              )}
+            </div>
+
+            <div style={styles.quickAmounts}>
+              {[500, 1000, 2000, 5000].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleQuickAmount(value)}
+                  style={{
+                    ...styles.quickButton,
+                    ...(value > maxNaira ? styles.quickButtonDisabled : {}),
+                  }}
+                  disabled={value > maxNaira || isLoading}
+                >
+                  ₦{value.toLocaleString()}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => handleQuickAmount(maxNaira)}
+                style={{
+                  ...styles.quickButton,
+                  ...styles.quickButtonMax,
+                }}
+                disabled={maxNaira < 100 || isLoading}
+              >
+                Max (₦{maxNaira.toLocaleString()})
+              </button>
             </div>
 
             <button
               type="submit"
               style={{
                 ...styles.button,
-                ...(type === 'merchant' ? styles.merchantButton : styles.cashButton),
+                ...(!canWithdraw ? styles.buttonDisabled : {}),
               }}
-              disabled={isLoading || code.length !== 6}
+              disabled={!canWithdraw || isLoading}
             >
-              {isLoading ? 'Processing...' : type === 'merchant' ? 'Redeem Gift' : 'Withdraw Cash'}
+              {isLoading ? 'Processing...' : `Withdraw ₦${nairaAmount > 0 ? nairaAmount.toLocaleString() : '0'}`}
             </button>
           </form>
         )}
 
-        {!success && !showWhatsApp && type === 'merchant' && (
-          <div style={styles.merchantInfo}>
-            <p style={styles.merchantInfoText}>
-              After redemption, the gift value will be credited instantly.
-            </p>
-            <p style={styles.merchantInfoNote}>
-              BVN verification is required for first-time merchants.
-            </p>
-          </div>
-        )}
-
-        {!success && !showWhatsApp && type !== 'merchant' && (
-          <div style={styles.cashInfo}>
-            <p style={styles.cashInfoText}>
-              Cash gifts are subject to a 5% withdrawal fee.
-            </p>
-            <p style={styles.cashInfoNote}>
-              Funds are processed through LabelReach. Click "Withdraw Cash" to send request via WhatsApp.
-            </p>
+        {!success && (
+          <div style={styles.infoBox}>
+            <p style={styles.infoTitle}>How it works</p>
+            <ul style={styles.infoList}>
+              <li>2 points = ₦1</li>
+              <li>Minimum withdrawal: ₦100</li>
+              <li>Points deducted instantly</li>
+              <li>Admin will send ₦ to your Opay/bank within 24 hours</li>
+              <li>You'll receive a WhatsApp confirmation from admin</li>
+            </ul>
           </div>
         )}
 
@@ -255,7 +281,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '4px',
+    marginBottom: '16px',
   },
   title: {
     fontSize: '20px',
@@ -272,10 +298,32 @@ const styles = {
     padding: '4px 8px',
     fontFamily: 'inherit',
   },
-  subtitle: {
-    fontSize: '14px',
+  balanceBox: {
+    backgroundColor: '#f0edff',
+    borderRadius: '12px',
+    padding: '16px',
+    marginBottom: '20px',
+    textAlign: 'center',
+    border: '1px solid #d4c4f0',
+  },
+  balanceLabel: {
+    fontSize: '12px',
     color: '#666',
-    margin: '0 0 20px 0',
+    display: 'block',
+    marginBottom: '4px',
+  },
+  balancePoints: {
+    fontSize: '24px',
+    fontWeight: '700',
+    color: '#721CBB',
+    display: 'block',
+  },
+  balanceNaira: {
+    fontSize: '14px',
+    color: '#10964D',
+    fontWeight: '600',
+    display: 'block',
+    marginTop: '4px',
   },
   form: {
     display: 'flex',
@@ -291,19 +339,53 @@ const styles = {
     color: '#333',
     marginBottom: '6px',
   },
-  codeInput: {
+  amountInput: {
     width: '100%',
-    padding: '16px',
-    fontSize: '24px',
+    padding: '14px',
+    fontSize: '20px',
     fontWeight: '700',
-    fontFamily: 'monospace',
     textAlign: 'center',
-    letterSpacing: '8px',
     border: '2px solid #e0e0e0',
     borderRadius: '12px',
     outline: 'none',
     transition: 'border-color 0.2s',
     boxSizing: 'border-box',
+    fontFamily: 'inherit',
+  },
+  conversionText: {
+    fontSize: '13px',
+    color: '#721CBB',
+    margin: '6px 0 0 0',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  quickAmounts: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '16px',
+    flexWrap: 'wrap',
+  },
+  quickButton: {
+    flex: '1 0 auto',
+    padding: '8px 12px',
+    backgroundColor: 'white',
+    border: '1.5px solid #e0e0e0',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#721CBB',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    minWidth: '70px',
+  },
+  quickButtonDisabled: {
+    opacity: 0.4,
+    cursor: 'not-allowed',
+  },
+  quickButtonMax: {
+    backgroundColor: '#f0edff',
+    borderColor: '#721CBB',
+    flexBasis: '100%',
   },
   button: {
     width: '100%',
@@ -311,17 +393,16 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: 'white',
+    backgroundColor: '#10964D',
     border: 'none',
     borderRadius: '12px',
     cursor: 'pointer',
     transition: 'background-color 0.2s',
     fontFamily: 'inherit',
   },
-  merchantButton: {
-    backgroundColor: '#721CBB',
-  },
-  cashButton: {
-    backgroundColor: '#10964D',
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+    cursor: 'not-allowed',
   },
   errorBox: {
     backgroundColor: '#ffebee',
@@ -337,19 +418,34 @@ const styles = {
   },
   successBox: {
     backgroundColor: '#e8f5e9',
-    borderRadius: '10px',
+    borderRadius: '12px',
     padding: '16px',
     border: '1px solid #c8e6c9',
     textAlign: 'center',
   },
   successText: {
     color: '#2e7d32',
-    fontSize: '16px',
+    fontSize: '15px',
     fontWeight: '600',
     margin: '0 0 12px 0',
+    whiteSpace: 'pre-line',
+  },
+  receiptBox: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    padding: '12px',
+    marginBottom: '12px',
+    textAlign: 'left',
+  },
+  receiptRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '4px 0',
+    fontSize: '13px',
+    color: '#555',
   },
   doneButton: {
-    padding: '8px 24px',
+    padding: '10px 24px',
     backgroundColor: '#721CBB',
     color: 'white',
     border: 'none',
@@ -359,115 +455,24 @@ const styles = {
     cursor: 'pointer',
     fontFamily: 'inherit',
   },
-  giftInfo: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: '12px',
-    padding: '16px',
-    marginBottom: '16px',
-  },
-  giftInfoName: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#1a1a1a',
-    margin: '0 0 4px 0',
-  },
-  giftInfoPrice: {
-    fontSize: '24px',
-    fontWeight: '700',
-    color: '#721CBB',
-    margin: '0 0 4px 0',
-  },
-  giftInfoSender: {
-    fontSize: '13px',
-    color: '#888',
-    margin: '0 0 4px 0',
-  },
-  giftInfoMessage: {
-    fontSize: '14px',
-    color: '#555',
-    fontStyle: 'italic',
-    margin: '4px 0 0 0',
-  },
-  paymentInfo: {
-    marginTop: '12px',
-    padding: '12px',
-    backgroundColor: '#fff8e1',
-    borderRadius: '10px',
-    border: '1px solid #ffe082',
-  },
-  paymentTitle: {
-    fontSize: '14px',
-    fontWeight: '700',
-    color: '#e65100',
-    margin: '0 0 8px 0',
-  },
-  paymentText: {
-    fontSize: '13px',
-    color: '#555',
-    margin: '0 0 8px 0',
-  },
-  paymentDetails: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-    padding: '8px',
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    fontSize: '13px',
-    marginBottom: '8px',
-  },
-  paymentNote: {
-    fontSize: '12px',
-    color: '#888',
-    fontStyle: 'italic',
-    margin: 0,
-  },
-  whatsappButton: {
-    width: '100%',
+  infoBox: {
+    marginTop: '20px',
     padding: '14px',
-    fontSize: '16px',
-    fontWeight: '600',
-    color: 'white',
-    backgroundColor: '#25D366',
-    border: 'none',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    transition: 'background-color 0.2s',
-  },
-  merchantInfo: {
-    marginTop: '16px',
-    padding: '12px',
-    backgroundColor: '#f0edff',
+    backgroundColor: '#f8f8f8',
     borderRadius: '10px',
   },
-  merchantInfoText: {
+  infoTitle: {
     fontSize: '13px',
-    color: '#555',
-    margin: '0 0 4px 0',
-    lineHeight: '1.5',
+    fontWeight: '700',
+    color: '#333',
+    margin: '0 0 8px 0',
   },
-  merchantInfoNote: {
-    fontSize: '12px',
-    color: '#888',
+  infoList: {
     margin: 0,
-  },
-  cashInfo: {
-    marginTop: '16px',
-    padding: '12px',
-    backgroundColor: '#e8f5e9',
-    borderRadius: '10px',
-  },
-  cashInfoText: {
-    fontSize: '13px',
-    color: '#555',
-    margin: '0 0 4px 0',
-    lineHeight: '1.5',
-  },
-  cashInfoNote: {
+    paddingLeft: '20px',
     fontSize: '12px',
-    color: '#888',
-    margin: 0,
+    color: '#666',
+    lineHeight: '1.8',
   },
   credit: {
     textAlign: 'center',

@@ -2,8 +2,9 @@
  * VIBRA - Gift Store Component
  * Module: Gift Store
  * 
- * Browse and purchase gifts.
- * Professional design - no emojis.
+ * Browse and send gifts.
+ * Points transferred INSTANTLY to recipient (minus admin fee).
+ * Recipient sees Net Naira value.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -103,7 +104,7 @@ const getIcon = (giftId) => {
 };
 
 const GiftStore = ({ recipientId, onPurchase, onClose }) => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const [gifts, setGifts] = useState([]);
   const [selectedType, setSelectedType] = useState('all');
@@ -164,6 +165,13 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
       return;
     }
 
+    const pointsCost = gift.price * 2;
+
+    if ((user.points || 0) < pointsCost) {
+      setError(`Insufficient points. Need ${pointsCost.toLocaleString()} points, you have ${(user.points || 0).toLocaleString()}`);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setSuccess(null);
@@ -176,20 +184,22 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
         message
       );
 
-      let successMessage = '';
-      if (result.redemptionCode) {
-        successMessage = `Gift sent successfully!\n\nRedemption Code: ${result.redemptionCode}\n\nShare this code with the recipient.`;
-      } else if (gift.type === 'cash') {
-        successMessage = 'Gift sent successfully! Recipient will be notified.';
-      } else {
-        successMessage = result.message;
-      }
+      const pointsSent = result.points_sent || pointsCost;
+      const pointsReceived = result.points_received || 0;
+      const nairaValue = result.recipient_naira_value || 0;
+
+      const successMessage = `Gift sent successfully!\n\nSent: ${pointsSent.toLocaleString()} points\nRecipient receives: ${pointsReceived.toLocaleString()} points (₦${nairaValue.toLocaleString()})\n\nYour new balance: ${(result.sender_new_balance || 0).toLocaleString()} points`;
 
       setSuccess(successMessage);
       setSelectedGift(null);
       setMessage('');
       setRecipientInput('');
-      
+
+      // Refresh user points
+      if (result.sender_new_balance !== undefined) {
+        updateUser({ points: result.sender_new_balance });
+      }
+
       if (onPurchase) {
         onPurchase(result);
       }
@@ -217,6 +227,11 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
     return type === 'cash' ? '#10964D' : '#721CBB';
   };
 
+  const getRecipientReceive = (gift) => {
+    const feeRate = gift.type === 'cash' ? 0.05 : 0.20;
+    return Math.round(gift.price * (1 - feeRate));
+  };
+
   const GiftIcon = selectedGift ? getIcon(selectedGift.id) : null;
 
   return (
@@ -232,7 +247,7 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
               Buy Points
             </button>
             <button onClick={() => navigate('/gifts/redeem')} style={styles.headerButton}>
-              Redeem
+              Withdraw
             </button>
             {onClose && (
               <button onClick={onClose} style={styles.closeButton}>
@@ -240,6 +255,12 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
               </button>
             )}
           </div>
+        </div>
+
+        <div style={styles.pointsBox}>
+          <span style={styles.pointsLabel}>Your Balance:</span>
+          <span style={styles.pointsValue}>{(user?.points || 0).toLocaleString()} points</span>
+          <span style={styles.pointsNaira}>≈ ₦{Math.floor((user?.points || 0) / 2).toLocaleString()}</span>
         </div>
 
         {/* Recipient Selector */}
@@ -346,6 +367,9 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
                     {gift.type === 'cash' ? 'Cash' : 'Service'}
                   </span>
                 </div>
+                <p style={styles.giftReceiveInfo}>
+                  Recipient gets ₦{getRecipientReceive(gift).toLocaleString()}
+                </p>
               </div>
             );
           })}
@@ -359,13 +383,24 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
                 {selectedGift.name} (₦{selectedGift.price.toLocaleString()})
               </h4>
             </div>
-            
-            <div style={styles.purchaseInfo}>
-              <p style={styles.purchaseInfoText}>
-                {selectedGift.type === 'cash' 
-                  ? 'Recipient will receive cash value'
-                  : 'Recipient can redeem at any Vibra merchant'}
-              </p>
+
+            <div style={styles.breakdownBox}>
+              <div style={styles.breakdownRow}>
+                <span>You pay:</span>
+                <span style={styles.breakdownValue}>{(selectedGift.price * 2).toLocaleString()} points</span>
+              </div>
+              <div style={styles.breakdownRow}>
+                <span>Recipient gets:</span>
+                <span style={styles.breakdownValueGreen}>
+                  {Math.round(getRecipientReceive(selectedGift) * 2).toLocaleString()} points (₦{getRecipientReceive(selectedGift).toLocaleString()})
+                </span>
+              </div>
+              <div style={styles.breakdownRow}>
+                <span>Fee:</span>
+                <span style={styles.breakdownValueMuted}>
+                  ₦{(selectedGift.price - getRecipientReceive(selectedGift)).toLocaleString()} ({selectedGift.type === 'cash' ? '5%' : '20%'})
+                </span>
+              </div>
             </div>
 
             <div style={styles.formGroup}>
@@ -393,13 +428,9 @@ const GiftStore = ({ recipientId, onPurchase, onClose }) => {
                 style={styles.button}
                 disabled={isLoading || !(recipientId || recipientInput)}
               >
-                {isLoading ? 'Processing...' : `Send ₦${selectedGift.price.toLocaleString()}`}
+                {isLoading ? 'Sending...' : `Send (${(selectedGift.price * 2).toLocaleString()} pts)`}
               </button>
             </div>
-
-            <p style={styles.pointsInfo}>
-              Cost: {selectedGift.price * 2} points (₦1 = 2 points)
-            </p>
           </div>
         )}
 
@@ -465,6 +496,33 @@ const styles = {
     cursor: 'pointer',
     padding: '4px 8px',
     fontFamily: 'inherit',
+  },
+  pointsBox: {
+    backgroundColor: '#f0edff',
+    borderRadius: '12px',
+    padding: '12px 16px',
+    marginBottom: '16px',
+    textAlign: 'center',
+    border: '1px solid #d4c4f0',
+  },
+  pointsLabel: {
+    fontSize: '12px',
+    color: '#666',
+    display: 'block',
+  },
+  pointsValue: {
+    fontSize: '22px',
+    fontWeight: '700',
+    color: '#721CBB',
+    display: 'block',
+    marginTop: '2px',
+  },
+  pointsNaira: {
+    fontSize: '12px',
+    color: '#10964D',
+    display: 'block',
+    marginTop: '2px',
+    fontWeight: '600',
   },
   recipientSection: {
     marginBottom: '16px',
@@ -598,7 +656,7 @@ const styles = {
   giftDescription: {
     fontSize: '12px',
     color: '#888',
-    margin: '0 0 10px 0',
+    margin: '0 0 8px 0',
     lineHeight: '1.3',
   },
   giftFooter: {
@@ -619,6 +677,12 @@ const styles = {
     fontWeight: '600',
     textTransform: 'uppercase',
   },
+  giftReceiveInfo: {
+    fontSize: '11px',
+    color: '#10964D',
+    fontWeight: '600',
+    margin: '6px 0 0 0',
+  },
   purchasePanel: {
     borderTop: '2px solid #f0f0f0',
     paddingTop: '16px',
@@ -628,7 +692,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    marginBottom: '8px',
+    marginBottom: '12px',
   },
   purchaseTitle: {
     fontSize: '16px',
@@ -636,16 +700,32 @@ const styles = {
     color: '#1a1a1a',
     margin: 0,
   },
-  purchaseInfo: {
+  breakdownBox: {
     backgroundColor: '#f8f8f8',
-    padding: '10px 14px',
+    padding: '12px 14px',
     borderRadius: '10px',
     marginBottom: '12px',
   },
-  purchaseInfoText: {
+  breakdownRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '4px 0',
     fontSize: '13px',
     color: '#666',
-    margin: 0,
+  },
+  breakdownValue: {
+    fontWeight: '700',
+    color: '#721CBB',
+  },
+  breakdownValueGreen: {
+    fontWeight: '700',
+    color: '#10964D',
+  },
+  breakdownValueMuted: {
+    fontWeight: '500',
+    color: '#999',
+    fontSize: '12px',
   },
   formGroup: {
     marginBottom: '12px',
@@ -688,12 +768,6 @@ const styles = {
   cancelButton: {
     backgroundColor: '#e8e8e8',
     color: '#555',
-  },
-  pointsInfo: {
-    fontSize: '12px',
-    color: '#888',
-    margin: '8px 0 0 0',
-    textAlign: 'center',
   },
   credit: {
     textAlign: 'center',

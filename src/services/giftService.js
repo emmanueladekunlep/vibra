@@ -3,6 +3,10 @@
  * Module: Gift Store
  * 
  * Handles all gift operations via API.
+ * 
+ * Model: 2 points = ₦1
+ * - Gifts transfer points INSTANTLY (minus admin fee)
+ * - Withdrawals convert points to Naira
  */
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
@@ -110,6 +114,9 @@ export const COMMISSION = {
   CASH_FEE: 0.05,
 };
 
+// Point conversion rate: 2 points = ₦1
+export const POINTS_PER_NAIRA = 2;
+
 export const getGifts = (type = 'all') => {
   if (type === 'service') return GIFT_CATALOG.service;
   if (type === 'cash') return GIFT_CATALOG.cash;
@@ -122,7 +129,18 @@ export const getGiftById = (giftId) => {
 };
 
 /**
- * Purchase a gift - calls API
+ * Convert Naira to points
+ */
+export const nairaToPoints = (naira) => Math.round(naira * POINTS_PER_NAIRA);
+
+/**
+ * Convert points to Naira
+ */
+export const pointsToNaira = (points) => Math.floor(points / POINTS_PER_NAIRA);
+
+/**
+ * Purchase a gift - INSTANT point transfer to recipient
+ * Calls API
  */
 export const purchaseGift = async (userId, recipientId, giftId, message = '') => {
   const response = await fetch(`${API_URL}/create_gift.php`, {
@@ -146,57 +164,23 @@ export const purchaseGift = async (userId, recipientId, giftId, message = '') =>
 };
 
 /**
- * Get gift by redemption code - calls API
+ * Request withdrawal - converts points to Naira
+ * Points deducted instantly, WhatsApp message to admin
  */
-export const getGiftByCode = async (code) => {
-  const response = await fetch(`${API_URL}/get_gift_by_code.php?code=${encodeURIComponent(code)}`);
-  const data = await response.json();
-
-  if (data.success) {
-    return data.gift;
-  }
-  return null;
-};
-
-/**
- * Redeem a service gift (merchant) - calls API
- */
-export const redeemServiceGift = async (redemptionCode, merchantId) => {
+export const requestWithdrawal = async (userId, amount) => {
   const response = await fetch(`${API_URL}/redeem_gift.php`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      code: redemptionCode,
-      merchant_id: merchantId,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!data.success) {
-    throw new Error(data.message || 'Failed to redeem gift');
-  }
-
-  return data;
-};
-
-/**
- * Withdraw a cash gift - calls API
- */
-export const withdrawCashGift = async (redemptionCode, userId) => {
-  const response = await fetch(`${API_URL}/redeem_gift.php`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      code: redemptionCode,
       user_id: userId,
+      amount: amount,
     }),
   });
 
   const data = await response.json();
 
   if (!data.success) {
-    throw new Error(data.message || 'Failed to withdraw cash gift');
+    throw new Error(data.message || 'Failed to request withdrawal');
   }
 
   return data;
@@ -266,13 +250,14 @@ export const getTotalPointsForUser = (userId) => {
 export default {
   GIFT_CATALOG,
   COMMISSION,
+  POINTS_PER_NAIRA,
   getGifts,
   getGiftById,
+  nairaToPoints,
+  pointsToNaira,
   purchaseGift,
+  requestWithdrawal,
   generateRedemptionCode,
-  redeemServiceGift,
-  withdrawCashGift,
-  getGiftByCode,
   getGiftHistory,
   getMyGifts,
   getGiftStats,
