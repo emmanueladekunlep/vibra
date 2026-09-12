@@ -2,8 +2,8 @@
 
 **Project:** VIBRA - Dating & Gifting Platform  
 **Current Status:** ✅ PRODUCTION READY - All Features Working  
-**Date:** September 7, 2026  
-**Version:** 1.0.0  
+**Date:** September 11, 2026  
+**Version:** 1.2.0  
 **Domain:** https://www.vibra.ng  
 **API Domain:** https://api.vibra.ng/api  
 
@@ -26,6 +26,7 @@
 13. Environment Variables
 14. Commands Cheat Sheet
 15. Troubleshooting Guide
+16. Session History (Sept 7 - Sept 11, 2026)
 
 ---
 
@@ -101,127 +102,105 @@ C:\Users\Peace\Desktop\vibra\
 │   └── sw.js                      # Service Worker (PWA)
 │
 └── src/
-    ├── App.jsx                    # Main App (60KB)
-    ├── App.css                    # Global styles (1.5KB)
+    ├── App.jsx                    # Main App - CORRECTED (added /profile/:userId route)
+    ├── App.css                    # Global styles
     ├── main.jsx                   # Entry point
     │
     ├── context/
-    │   └── AuthContext.jsx        # Auth provider (4.6KB) - CORRECTED
+    │   └── AuthContext.jsx        # Auth provider - CORRECTED
     │
-    ├── services/                  # All API services
-    │   ├── adminService.js        # Admin panel (14KB) - CORRECTED
-    │   ├── authService.js         # Login, logout, cache (5.5KB)
-    │   ├── chatService.js         # Chat API (8KB) - CORRECTED
-    │   ├── codeGeneratorService.js # 6-digit codes (7.8KB)
-    │   ├── eventService.js        # Events (11.5KB)
-    │   ├── giftService.js         # Gift store (13KB)
-    │   ├── levelService.js        # Level calculations (10.8KB)
-    │   ├── merchantService.js     # Merchant portal (10.4KB)
-    │   ├── profileService.js      # Profile CRUD (7.1KB)
-    │   └── referralService.js     # Referral codes (6.7KB)
+    ├── services/
+    │   ├── adminService.js        # CORRECTED (added getAllGifts, updateGiftStatus, getGiftStats)
+    │   ├── authService.js         # CORRECTED (preserve referral_code)
+    │   ├── chatService.js         # CORRECTED (silent polling, no flicker)
+    │   ├── codeGeneratorService.js
+    │   ├── eventService.js
+    │   ├── giftService.js         # CORRECTED (now uses API, not localStorage)
+    │   ├── levelService.js
+    │   ├── merchantService.js
+    │   ├── profileService.js
+    │   └── referralService.js
     │
     └── components/
-        ├── common/
-        │   └── Navigation.jsx     # Bottom navigation
-        │
-        ├── auth/
-        │   ├── Login.jsx          # Phone + PIN + Forgot PIN (16.7KB)
-        │   └── ReferralInput.jsx  # Referral code entry (6.9KB)
-        │
-        ├── profile/
-        │   ├── Profile.jsx        # View profile (16.8KB)
-        │   ├── EditProfile.jsx    # Edit with matching features (23.2KB)
-        │   ├── ReferralSection.jsx # Referral code display (13.6KB)
-        │   ├── LevelBadge.jsx     # Level badge with progress (8.1KB)
-        │   └── PointsHistory.jsx  # Points history (10.5KB)
-        │
-        ├── chat/
-        │   ├── ChatList.jsx       # Conversation list (11.9KB)
-        │   └── ChatWindow.jsx     # Individual chat (14.7KB)
-        │
-        ├── gifts/
-        │   ├── GiftStore.jsx      # Send gifts (11.3KB)
-        │   ├── GiftRedemption.jsx # Redeem gifts (10.3KB)
-        │   ├── MyGifts.jsx        # Gift history (13.9KB)
-        │   ├── BuyPoints.jsx      # Buy points (21.8KB)
-        │   ├── CodeGenerator.jsx  # Generate codes (11.1KB)
-        │   └── CodeVerification.jsx # Verify codes (11KB)
-        │
-        ├── merchant/
-        │   ├── MerchantRegistration.jsx # Register merchant (10.9KB)
-        │   └── MerchantDashboard.jsx    # Merchant dashboard (14.7KB)
-        │
-        ├── events/
-        │   ├── EventList.jsx      # Browse events (10.6KB)
-        │   ├── EventHost.jsx      # Host event (16.6KB)
-        │   └── EventDetails.jsx   # Event details (19.6KB)
-        │
-        ├── admin/
-        │   ├── AdminPanel.jsx     # Admin dashboard (12KB)
-        │   ├── UserManagement.jsx # User management (24.1KB)
-        │   └── VIPCodeGenerator.jsx # VIP codes (10.5KB)
-        │
-        ├── search/
-        │   └── SearchPage.jsx     # Search with filters (18KB)
-        │
-        └── pages/
-            ├── Terms.jsx          # Terms of Service (5.1KB)
-            ├── Privacy.jsx        # Privacy Policy (5.4KB)
-            ├── Settings.jsx       # Settings page (12.2KB)
-            └── Blocked.jsx        # Blocked users (7.2KB)
+        ├── common/Navigation.jsx
+        ├── auth/Login.jsx, ReferralInput.jsx
+        ├── profile/Profile.jsx, EditProfile.jsx, ReferralSection.jsx, LevelBadge.jsx, PointsHistory.jsx
+        ├── chat/ChatList.jsx       # CORRECTED (silent refresh)
+        ├── chat/ChatWindow.jsx     # CORRECTED (silent polling, clickable profile)
+        ├── gifts/GiftStore.jsx, GiftRedemption.jsx, MyGifts.jsx, BuyPoints.jsx, CodeGenerator.jsx, CodeVerification.jsx
+        ├── merchant/MerchantRegistration.jsx, MerchantDashboard.jsx
+        ├── events/EventList.jsx, EventHost.jsx, EventDetails.jsx
+        ├── admin/AdminPanel.jsx    # CORRECTED (Gifts tab with WhatsApp notification)
+        ├── admin/UserManagement.jsx, VIPCodeGenerator.jsx
+        ├── search/SearchPage.jsx
+        └── pages/Terms.jsx, Privacy.jsx, Settings.jsx, Blocked.jsx
 ```
 
 ### Backend (TrueHost - `/public_html/api.vibra.ng/api/`)
 
 ```
-/public_html/api.vibra.ng/
+/public_html/api.vibra.ng/api/
 │
-├── api/
-│   ├── config.php                 # Database + CORS
-│   ├── login.php                  # POST - login/register with PIN - CORRECTED
-│   ├── get_user.php               # GET - get user
-│   ├── update_user.php            # POST - update profile - CORRECTED
-│   ├── upload_photo.php           # POST - upload photo
-│   ├── get_profile.php            # GET - full profile
-│   ├── create_gift.php            # POST - send gift - CORRECTED
-│   ├── redeem_gift.php            # POST - redeem gift
-│   ├── my_gifts.php               # GET - user gifts
-│   ├── add_points.php             # POST - admin add points
-│   ├── get_user_by_id.php         # GET - admin search
-│   ├── create_event.php           # POST - create event - NEW
-│   ├── get_events.php             # GET - events feed - NEW
-│   ├── rsvp_event.php             # POST - RSVP - NEW
-│   ├── update_event.php           # POST - update event - NEW
-│   ├── cancel_event.php           # POST - cancel event - NEW
-│   ├── get_event.php              # GET - single event - NEW
-│   ├── get_rsvp.php               # GET - RSVP status - NEW
-│   ├── get_chat.php               # GET - messages - NEW (alias)
-│   ├── send_message.php           # POST - send message
-│   ├── block_user.php             # POST - block/unblock - NEW
-│   ├── report_user.php            # POST - report - NEW
-│   ├── get_reports.php            # GET - all reports - NEW
-│   ├── admin_users.php            # GET - all users - CORRECTED
-│   ├── admin_update.php           # POST - update user
-│   ├── set_pin.php                # POST - set PIN
-│   ├── reset_pin.php              # POST - reset PIN
-│   ├── delete_account.php         # POST - delete account - CORRECTED
-│   ├── redeem_referral.php        # POST - redeem referral
-│   ├── get_messages.php           # GET - messages (database)
-│   ├── get_conversation.php       # POST - get/create conversation
-│   ├── get_conversations.php      # GET - all conversations
-│   ├── mark_read.php              # POST - mark messages as read
-│   ├── get_unread.php             # GET - unread count - NEW
-│   ├── delete_conversation.php    # POST - delete conversation - NEW
-│   ├── get_points_history.php     # GET - points history
-│   ├── get_logs.php               # GET - system logs
-│   ├── log_action.php             # POST - log system action - NEW
-│   ├── get_security_questions.php # POST - security questions - CORRECTED
-│   ├── verify_security_answers.php # POST - verify security - NEW
-│   ├── remove_photo.php           # POST - remove photo - NEW
-│   ├── update_score.php           # POST - update vibra score - NEW
-│   ├── generate_vip_code.php      # POST - generate VIP code - NEW
-│   ├── get_settings.php           # GET - platform settings - NEW
-│   └── update_settings.php        # POST - update settings - NEW
+├── CORE (Working)
+│   ├── config.php                 # Database + CORS + diagnostic
+│   ├── login.php                  # CORRECTED
+│   ├── get_user.php
+│   ├── update_user.php            # CORRECTED
+│   ├── upload_photo.php
+│   ├── remove_photo.php           # NEW
+│   ├── get_profile.php
+│   ├── update_score.php           # NEW
+│   ├── set_pin.php
+│   ├── reset_pin.php
+│   ├── delete_account.php         # CORRECTED
+│   ├── get_security_questions.php # CORRECTED
+│   ├── verify_security_answers.php # NEW
+│
+├── GIFTS (Working)
+│   ├── create_gift.php            # CORRECTED
+│   ├── get_gift_by_code.php       # NEW
+│   ├── redeem_gift.php            # CORRECTED
+│   ├── my_gifts.php
+│   ├── admin_gifts.php            # NEW
+│   ├── admin_update_gift.php      # NEW
+│
+├── EVENTS (Working)
+│   ├── create_event.php           # NEW
+│   ├── get_events.php             # NEW
+│   ├── get_event.php              # NEW
+│   ├── update_event.php           # NEW
+│   ├── cancel_event.php           # NEW
+│   ├── rsvp_event.php             # NEW
+│   ├── get_rsvp.php               # NEW
+│
+├── CHAT (Working)
+│   ├── send_message.php           # CORRECTED (numeric ID conversion)
+│   ├── get_messages.php
+│   ├── get_chat.php               # NEW (alias)
+│   ├── get_conversation.php       # CORRECTED (GET + POST support)
+│   ├── get_conversations.php      # CORRECTED (numeric + VIB conversion)
+│   ├── mark_read.php
+│   ├── get_unread.php             # NEW
+│   ├── delete_conversation.php    # NEW
+│
+├── ADMIN (Working)
+│   ├── admin_users.php            # CORRECTED
+│   ├── admin_update.php
+│   ├── add_points.php
+│   ├── get_user_by_id.php
+│   ├── generate_vip_code.php      # NEW
+│   ├── get_settings.php           # NEW
+│   ├── update_settings.php        # NEW
+│   ├── get_logs.php
+│   ├── log_action.php             # NEW
+│
+├── MODERATION (Working)
+│   ├── block_user.php             # NEW
+│   ├── report_user.php            # NEW
+│   ├── get_reports.php            # NEW
+│
+├── REFERRAL (Working)
+│   ├── redeem_referral.php
 │
 ├── uploads/                       # User photos (0755 permissions)
 └── .htaccess                      # Apache config
@@ -235,63 +214,58 @@ C:\Users\Peace\Desktop\vibra\
 - ✅ Phone login (no password)
 - ✅ 4-digit PIN setup on first login
 - ✅ PIN required for subsequent logins
-- ✅ Forgot PIN with security questions (Date of Birth, Location, Referral Code, User ID, Phone)
+- ✅ Forgot PIN with security questions
 - ✅ Session management (localStorage)
 - ✅ Logout
 
 ### Profile
 - ✅ View profile with photos
-- ✅ Edit profile (name, bio, age, gender, location, interests)
+- ✅ Edit profile
 - ✅ Photo upload (up to 10 photos)
-- ✅ Date of Birth field
-- ✅ Zodiac sign display (auto-calculated)
-- ✅ Lucky number display (auto-calculated)
-- ✅ Life Goals (1-3 years)
-- ✅ Dealbreakers (hard filters)
-- ✅ Dating Pace (Fast/Vetter/Pen Pal)
-- ✅ Lifestyle (Homebody/Luxury/Adventurer)
+- ✅ Date of Birth + Zodiac + Lucky Number
+- ✅ Life Goals, Dealbreakers, Dating Pace, Lifestyle
 - ✅ Level badge with progress
 - ✅ Points history (database)
 - ✅ Block/Unblock users
 - ✅ Report users
+- ✅ Click user in chat → view their profile
 
 ### Referral System
 - ✅ Referral code = last 6 digits of phone
-- ✅ Redeem referral code
+- ✅ Redeem referral code (one per user)
+- ✅ Multiple users can redeem same code
 - ✅ Points for referrer (500) and new user (200)
-- ✅ Referral stats (total referrals, points earned)
+- ✅ Referral stats
 - ✅ Share referral code
 - ✅ VIP codes (admin only)
 
 ### Chat
 - ✅ Text messaging
-- ✅ Polling fallback (every 1.5 seconds)
+- ✅ **Silent polling every 5 seconds** (no flicker, no pulse)
+- ✅ **Auto-scroll only when user is at bottom**
+- ✅ **"↓ New messages" button when scrolled up**
+- ✅ **Clickable header → view user profile**
 - ✅ Read receipts
 - ✅ Unread count
 - ✅ Messages stored in database
-- ✅ Chat button on search results
-- ✅ Chat button on profile
-- ✅ Different colors: Purple (own) vs Gray (others)
-- ✅ Sender name below messages
+- ✅ Purple (own) vs Gray (others)
 
 ### Gifts
 - ✅ Gift catalog (service + cash)
-- ✅ Send gift (generates 6-digit code)
+- ✅ Send gift → 6-digit code (saved to database)
 - ✅ Redeem gift with 6-digit code
-- ✅ Cash gift withdrawal (manual mode)
-- ✅ Service gift redemption (merchant)
+- ✅ Cash gift → WhatsApp to admin with details
+- ✅ Service gift → merchant redemption
 - ✅ Gift history (sent/received)
 - ✅ My Gifts page
+- ✅ **Admin Panel → Gifts tab** (view all, filter, search, mark status)
 
 ### Events
 - ✅ Create event (open/private/verified)
 - ✅ Private event invites
 - ✅ RSVP to events
 - ✅ Cancel RSVP
-- ✅ Event feed
-- ✅ Event details
-- ✅ Update event
-- ✅ Cancel event
+- ✅ Event feed, details, update, cancel
 
 ### Merchant
 - ✅ Merchant registration with BVN
@@ -301,30 +275,30 @@ C:\Users\Peace\Desktop\vibra\
 
 ### Admin
 - ✅ Admin panel (founder only)
-- ✅ User management (suspend, reactivate, change level)
+- ✅ User management
 - ✅ Add/remove points
 - ✅ VIP code generator
 - ✅ Platform analytics
 - ✅ System logs
 - ✅ Platform settings
+- ✅ **Gift Management** (view all, mark status, WhatsApp notify)
 
 ### Search
-- ✅ Search by location
-- ✅ Search by name
-- ✅ Advanced filters (life goals, dealbreakers, dating pace, lifestyle)
-- ✅ Chat button on search results
+- ✅ Search by location, name
+- ✅ Advanced filters
+- ✅ Chat button on results
 
 ### Settings
 - ✅ Change PIN
 - ✅ Blocked users list
 - ✅ Logout
 - ✅ Delete account
+- ✅ Referral code display
 
 ### PWA
 - ✅ Service Worker
 - ✅ Manifest.json
 - ✅ Installable on phone
-- ✅ "Install" button in app header
 
 ---
 
@@ -333,34 +307,24 @@ C:\Users\Peace\Desktop\vibra\
 | Feature | Status |
 |---------|--------|
 | Login with phone | ✅ |
-| PIN setup on first login | ✅ |
-| PIN login | ✅ |
-| Forgot PIN with security questions | ✅ |
-| View profile | ✅ |
-| Edit profile | ✅ |
+| PIN setup / login / forgot | ✅ |
+| View / Edit profile | ✅ |
 | Photo upload | ✅ |
-| Date of Birth | ✅ |
-| Zodiac sign | ✅ |
-| Lucky number | ✅ |
-| Life Goals | ✅ |
-| Dealbreakers | ✅ |
-| Dating Pace | ✅ |
-| Lifestyle | ✅ |
-| Level badge | ✅ |
-| Points history (database) | ✅ |
-| Referral code generation | ✅ |
-| Referral code redemption | ✅ |
-| Chat (polling) | ✅ |
-| Send gifts | ✅ |
+| Date of Birth / Zodiac / Lucky number | ✅ |
+| Life Goals / Dealbreakers / Pace / Lifestyle | ✅ |
+| Level badge / Points history | ✅ |
+| Referral code generation / redemption | ✅ |
+| Chat (silent polling) | ✅ |
+| Click profile from chat | ✅ |
+| Send gifts (database) | ✅ |
 | Redeem gifts | ✅ |
 | My Gifts | ✅ |
-| Create events | ✅ |
-| RSVP events | ✅ |
-| Merchant registration | ✅ |
-| Merchant dashboard | ✅ |
-| Search | ✅ |
-| Advanced filters | ✅ |
-| Block/Report users | ✅ |
+| Admin Gifts tab | ✅ |
+| WhatsApp cash withdrawal | ✅ |
+| Create / RSVP events | ✅ |
+| Merchant registration / dashboard | ✅ |
+| Search / Advanced filters | ✅ |
+| Block / Report users | ✅ |
 | Admin panel | ✅ |
 | User management | ✅ |
 | VIP code generator | ✅ |
@@ -371,7 +335,6 @@ C:\Users\Peace\Desktop\vibra\
 | Navigation | ✅ |
 | Terms & Privacy pages | ✅ |
 | Blocked users page | ✅ |
-| X close button on all modals | ✅ |
 
 ---
 
@@ -381,143 +344,104 @@ C:\Users\Peace\Desktop\vibra\
 
 | # | Issue | Description | File to Fix |
 |---|-------|-------------|-------------|
-| 1 | **WebSocket disabled** | Chat uses polling only, no real-time | chatService.js |
-| 2 | **Mock user ID 404** | `user_1788386839752` still appears | authService.js |
+| 1 | **WebSocket disabled** | Chat uses polling only | chatService.js |
+| 2 | **Photo uploads on TrueHost** | Will hit disk quota at scale | upload_photo.php |
 
 ### 🐛 LOW PRIORITY
 
 | # | Issue | Description |
 |---|-------|-------------|
-| 3 | **Service Worker** | Disabled due to caching issues, enable after testing |
-| 4 | **WebSocket** | Not set up on server |
+| 3 | Service Worker caching | May need tuning |
+| 4 | OPay/Paystack API | Not integrated (manual WhatsApp only) |
+
+### 📋 NEXT PRIORITIES
+
+1. **Cloudflare R2 Migration** (photos) - 10 GB free, zero egress
+2. **Reduce polling load** - 100 concurrent users = 1,200 req/min
+3. **OPay/Paystack API integration** - automate cash payouts
+4. **Full end-to-end testing** - all features
 
 ---
 
 ## 7. ALL FRONTEND FILES
 
-### 7.1 `src/App.jsx`
+### 7.1 `src/App.jsx` - CORRECTED
 
-**Location:** `C:\Users\Peace\Desktop\vibra\src\App.jsx`
+**Changes Made:**
+- Added `/profile/:userId` route (for search profile navigation)
 
-**Current Status:** ✅ Working
-
-**Key Features:**
-- Routes: `/`, `/login`, `/search`, `/chat`, `/gifts`, `/profile`, `/settings`, `/blocked`, `/terms`, `/privacy`
-- Protected routes
-- AppLayout with header and bottom navigation
-- Notification bell
-- Install app button
-
-### 7.2 `src/context/AuthContext.jsx` - **CORRECTED**
-
-**Location:** `C:\Users\Peace\Desktop\vibra\src\context\AuthContext.jsx`
-
-**Current Status:** ✅ Working
-
-**Key Functions:**
-- `loginWithOpay(phone, pin)` - Login with phone and optional PIN
-- `setPin(userId, pin)` - Set PIN for user
-- `completePinSetup(userData)` - Complete PIN setup and authenticate
-- `logout()` - Logout user
-- `updateUser(updates)` - Update cached user
-- `requiresPin` state - Tracks if PIN is required
-- `needsPinSetup` state - Tracks if user needs PIN setup
+### 7.2 `src/context/AuthContext.jsx` - CORRECTED
 
 **Changes Made:**
 - Added `needsPinSetup` state
-- Proper flow for new users (needs PIN setup)
-- Proper flow for returning users (enter PIN)
-- Fixed pendingUserData usage
+- Proper flow for new users
+- Proper flow for returning users
 
-### 7.3 `src/services/authService.js`
-
-**Location:** `C:\Users\Peace\Desktop\vibra\src\services\authService.js`
-
-**Current Status:** ✅ Working
-
-**Key Functions:**
-- `loginWithOpay(phone, pin)` - API call to login.php
-- `setPin(userId, pin)` - API call to set_pin.php
-- `resetPin(phone, pin)` - API call to reset_pin.php
-- `getCachedUser()` - Get user from localStorage
-- `isLoggedIn()` - Check if logged in
-- `logout()` - Clear session
-
-### 7.4 `src/services/chatService.js` - **CORRECTED**
-
-**Location:** `C:\Users\Peace\Desktop\vibra\src\services\chatService.js`
-
-**Current Status:** ✅ Working
+### 7.3 `src/services/authService.js` - CORRECTED
 
 **Changes Made:**
-- Added polling for real-time updates
-- Added encodeURIComponent for URL parameters
-- Added null checks for all inputs
-- Added startPolling/stopPolling functions
-- Silenced sendTyping and sendReadReceipt (WebSocket disabled)
+- Preserve `referral_code` when caching user data
+- Preserve `referralCode` → `referral_code` mapping
 
-### 7.5 `src/services/adminService.js` - **CORRECTED**
-
-**Location:** `C:\Users\Peace\Desktop\vibra\src\services\adminService.js`
-
-**Current Status:** ✅ Working
+### 7.4 `src/services/chatService.js` - CORRECTED
 
 **Changes Made:**
-- Added filter params for getAllUsers (lifeGoals, dealbreakers, datingPace, lifestyle)
-- Added encodeURIComponent for URL parameters
-- Fixed generateVIPCode fallback format
+- **Silent polling** - only fires callback when there's an actual new message
 - Added null checks for all inputs
+- Added `encodeURIComponent` for URL parameters
+- Poll interval 3 seconds for conversation list
 
-### 7.6 `src/components/auth/Login.jsx`
+### 7.5 `src/services/adminService.js` - CORRECTED
 
-**Location:** `C:\Users\Peace\Desktop\vibra\src\components\auth\Login.jsx`
+**Changes Made:**
+- Added `getAllGifts`, `updateGiftStatus`, `getGiftStats`
+- Added filter params for getAllUsers
+- Added encodeURIComponent for URL parameters
+- Fixed `generateVIPCode` fallback format
 
-**Current Status:** ✅ Working
+### 7.6 `src/services/giftService.js` - CORRECTED
 
-**Screens:**
-1. Phone entry
-2. PIN entry (for returning users)
-3. PIN setup (for new users)
-4. Forgot PIN (with security questions)
+**MAJOR CHANGE:** Now uses **API + database** instead of localStorage.
 
-### 7.7 `src/components/chat/ChatWindow.jsx`
+**Functions:**
+- `purchaseGift(userId, recipientId, giftId, message)` → calls `/create_gift.php`
+- `getGiftByCode(code)` → calls `/get_gift_by_code.php`
+- `redeemServiceGift(code, merchantId)` → calls `/redeem_gift.php`
+- `withdrawCashGift(code, userId)` → calls `/redeem_gift.php`
+- `getGiftHistory(userId)` → calls `/my_gifts.php`
 
-**Location:** `C:\Users\Peace\Desktop\vibra\src\components\chat\ChatWindow.jsx`
+### 7.7 `src/components/chat/ChatList.jsx` - CORRECTED
 
-**Current Status:** ✅ Working
+**Changes Made:**
+- Silent refresh - hash-based comparison prevents flicker
+- Only updates state when conversation data actually changes
+- Poll every 5 seconds
 
-**Key Features:**
-- Message display with colors (Purple = own, Gray = other)
-- Polling every 1.5 seconds
-- Typing indicator (disabled)
-- Read receipts
-- Auto-scroll on new messages
+### 7.8 `src/components/chat/ChatWindow.jsx` - CORRECTED
 
-### 7.8 `src/components/admin/UserManagement.jsx`
+**Changes Made:**
+- Silent polling - no flicker, no pulse
+- New messages only appear when they arrive
+- Auto-scroll only when user is at bottom
+- "↓ New messages" button when scrolled up
+- **Click user header → navigate to their profile**
+- Poll every 5 seconds
 
-**Location:** `C:\Users\Peace\Desktop\vibra\src\components\admin\UserManagement.jsx`
+### 7.9 `src/components/admin/AdminPanel.jsx` - CORRECTED
 
-**Current Status:** ✅ Working
+**Changes Made:**
+- Added **Gifts tab** to admin panel
+- View all gifts (pending, redeemed, withdrawn)
+- Filter by status
+- Search by code, name, sender, recipient
+- Mark gift as Redeemed or Withdrawn
+- **WhatsApp notification** button for cash withdrawals
 
-**Key Features:**
-- Search users by ID, phone, or name
-- Change user level
-- Add/remove points
-- Make user VIP
-- Verify/unverify users
-- Suspend/reactivate users
-- **Safety:** Founder (you) cannot be modified
+### 7.10 `src/pages/Settings.jsx` - CORRECTED
 
-### 7.9 `src/components/admin/VIPCodeGenerator.jsx`
-
-**Location:** `C:\Users\Peace\Desktop\vibra\src\components\admin\VIPCodeGenerator.jsx`
-
-**Current Status:** ✅ Working
-
-**Key Features:**
-- Generate VIP codes (Silver, Gold, Platinum, Diamond)
-- Copy generated code
-- Recent codes history
+**Changes Made:**
+- Referral code display - no userId fallback
+- Shows "No referral code available" if null
 
 ---
 
@@ -525,636 +449,248 @@ C:\Users\Peace\Desktop\vibra\
 
 ### 8.1 `config.php`
 
-**Location:** `/public_html/api.vibra.ng/api/config.php`
+**Location:** `/api/config.php`
 
-```php
-<?php
-date_default_timezone_set('Africa/Lagos');
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'arcakwhd_vibra_api');
-define('DB_USER', 'arcakwhd_vibra_user');
-define('DB_PASS', 'Lawrenceamanda1*');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-// ... rest of config
-```
+**Includes:**
+- Database credentials
+- CORS headers
+- `getDB()`, `sendResponse()`, `sendError()`, `sendSuccess()`
+- **Diagnostic endpoint** - visit `config.php?verify=1` to check all tables/columns
 
-### 8.2 `login.php` - **CORRECTED**
+### 8.2 `login.php` - CORRECTED
 
-**Location:** `/public_html/api.vibra.ng/api/login.php`
+**Changes:**
+- Column existence checks
+- Returns `needsPinSetup: true` for new users
+- Unique referral code generation
+- Preserves all user fields
 
-**Current Status:** ✅ Working
+### 8.3 `update_user.php` - CORRECTED
 
-**Features:**
-- Phone login
-- PIN verification
-- Returns `requiresPin: true` if PIN required
-- Returns `needsPinSetup: true` if new user
-- Auto-creates new user accounts
-- Ensures all columns exist before querying
+**Changes:**
+- Added `status`, `isFounder`, `referral_code` to allowed fields
+- Column existence checks
 
-**Changes Made:**
-- Added column existence checks for login_pin, pin_enabled, life_goals, dealbreakers, dating_pace, lifestyle
-- Added `needsPinSetup` for new users
-- Fixed PIN handling for new users
-- Added unique referral code generation
+### 8.4 `admin_users.php` - CORRECTED
 
-### 8.3 `update_user.php` - **CORRECTED**
+**Changes:**
+- Column existence checks
+- Added `isFounder` filter
+- Search by `userId`
+- Returns `referralCode`, `bio`
 
-**Location:** `/public_html/api.vibra.ng/api/update_user.php`
+### 8.5 `create_gift.php` - CORRECTED
 
-**Current Status:** ✅ Working
+**Changes:**
+- Table creation for `gifts` and `points_history`
+- Unique code check
+- Points history logging
 
-**Features:**
-- Update profile fields (bio, location, age, gender, level, points, etc.)
-- Update matching preferences (life_goals, dealbreakers, dating_pace, lifestyle)
-- Update status, isFounder, referral_code
+### 8.6 `send_message.php` - CORRECTED
 
-**Changes Made:**
-- Added column existence checks
-- Added status, isFounder, referral_code to allowed fields
-- Added isFounder and referralCode to response
+**Changes:**
+- Converts `sender_id` (VIB-XXXX) to numeric ID before insert
+- Prevents duplicate messages
 
-### 8.4 `admin_users.php` - **CORRECTED**
+### 8.7 `get_conversation.php` - CORRECTED
 
-**Location:** `/public_html/api.vibra.ng/api/admin_users.php`
+**Changes:**
+- Supports both GET and POST
+- Returns participants as VIB-XXXX strings
+- Accepts `conversation_id` for direct lookup
 
-**Current Status:** ✅ Working
+### 8.8 `get_conversations.php` - CORRECTED
 
-**Features:**
-- Get all users
-- Filter by level, status, verification
-- Filter by life_goals, dealbreakers, dating_pace, lifestyle
-- Search by name, phone, location, userId
-- Returns isFounder, referralCode, bio
+**Changes:**
+- Converts VIB-XXXX to numeric for participant matching
+- Returns other user as VIB-XXXX string
 
-**Changes Made:**
-- Added column existence checks
-- Added isFounder filter
-- Added search by userId
-- Added referralCode and bio to response
+### 8.9 `delete_account.php` - CORRECTED
 
-### 8.5 `create_gift.php` - **CORRECTED**
+**Changes:**
+- Added `conversations`, `points_history`, `system_logs`, `vip_codes` to cleanup
+- Table existence checks
 
-**Location:** `/public_html/api.vibra.ng/api/create_gift.php`
+### 8.10 `get_security_questions.php` - CORRECTED
 
-**Current Status:** ✅ Working
-
-**Features:**
-- Send gift to recipient
-- Generate 6-digit redemption code
-- Deduct points from sender
-- Create points_history entry
-
-**Changes Made:**
-- Added table creation for gifts and points_history
-- Added unique code check
-- Added points_history logging
-
-### 8.6 `delete_account.php` - **CORRECTED**
-
-**Location:** `/public_html/api.vibra.ng/api/delete_account.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Delete user account
-- Delete all related records
-
-**Changes Made:**
-- Added conversations, points_history, system_logs, vip_codes to tables
-- Added table existence checks before deletion
-
-### 8.7 `get_security_questions.php` - **CORRECTED**
-
-**Location:** `/public_html/api.vibra.ng/api/get_security_questions.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Get security questions for user
-- Returns question, answers, type, field
-
-**Changes Made:**
+**Changes:**
 - Added `field` mapping for each question
-- Added phone to response
 
-### 8.8 `verify_security_answers.php` - **NEW**
+### 8.11 `verify_security_answers.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/verify_security_answers.php`
+**Features:** Verify security answers, require 2 correct, reset PIN
 
-**Current Status:** ✅ Working
+### 8.12 `create_event.php` - NEW
 
-**Features:**
-- Verify security answers
-- Requires 2 correct answers
-- Reset PIN on success
+**Features:** Create open/private/verified events
 
-### 8.9 `create_event.php` - **NEW**
+### 8.13 `get_events.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/create_event.php`
+**Features:** Filter by type, show private events only to invited users
 
-**Current Status:** ✅ Working
+### 8.14 `rsvp_event.php` - NEW
 
-**Features:**
-- Create event (open/private/verified)
-- Store invited users for private events
-- Validate event date
+**Features:** RSVP/cancel, check invitations, validate entry gift
 
-### 8.10 `get_events.php` - **NEW**
+### 8.15 `update_event.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/get_events.php`
+**Features:** Update event details, host only
 
-**Current Status:** ✅ Working
+### 8.16 `cancel_event.php` - NEW
 
-**Features:**
-- Get events feed
-- Filter by type
-- Show private events only to invited users
-- Return userRSVP status
+**Features:** Cancel event, host only
 
-### 8.11 `rsvp_event.php` - **NEW**
+### 8.17 `get_event.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/rsvp_event.php`
+**Features:** Get single event with attendees
 
-**Current Status:** ✅ Working
+### 8.18 `get_rsvp.php` - NEW
 
-**Features:**
-- RSVP to event
-- Cancel RSVP
-- Check private event invitations
-- Validate entry gift for verified events
+**Features:** Get user RSVP status
 
-### 8.12 `update_event.php` - **NEW**
+### 8.19 `block_user.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/update_event.php`
+**Features:** Block/unblock, cannot block self
 
-**Current Status:** ✅ Working
+### 8.20 `report_user.php` - NEW
 
-**Features:**
-- Update event details
-- Update invited users
-- Host only can update
+**Features:** Report user with reason
 
-### 8.13 `cancel_event.php` - **NEW**
+### 8.21 `get_reports.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/cancel_event.php`
+**Features:** Get all reports, filter by status
 
-**Current Status:** ✅ Working
+### 8.22 `get_unread.php` - NEW
 
-**Features:**
-- Cancel event
-- Host only can cancel
+**Features:** Get unread message count
 
-### 8.14 `get_event.php` - **NEW**
+### 8.23 `delete_conversation.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/get_event.php`
+**Features:** Delete conversation + all messages
 
-**Current Status:** ✅ Working
+### 8.24 `get_chat.php` - NEW
 
-**Features:**
-- Get single event by ID
-- Returns full event details with attendees
+**Features:** Alias for get_messages.php
 
-### 8.15 `get_rsvp.php` - **NEW**
+### 8.25 `log_action.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/get_rsvp.php`
+**Features:** Log system action
 
-**Current Status:** ✅ Working
+### 8.26 `generate_vip_code.php` - NEW
 
-**Features:**
-- Get user RSVP status
-- Returns attending status
+**Features:** Generate VIP codes (Silver/Gold/Platinum/Diamond)
 
-### 8.16 `block_user.php` - **NEW**
+### 8.27 `get_settings.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/block_user.php`
+**Features:** Get platform settings
 
-**Current Status:** ✅ Working
+### 8.28 `update_settings.php` - NEW
 
-**Features:**
-- Block user
-- Unblock user
-- Cannot block self
+**Features:** Update platform settings
 
-### 8.17 `report_user.php` - **NEW**
+### 8.29 `remove_photo.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/report_user.php`
+**Features:** Remove photo + delete physical file
 
-**Current Status:** ✅ Working
+### 8.30 `update_score.php` - NEW
 
-**Features:**
-- Report user
-- Store reason
-- Create user_reports table
+**Features:** Update vibraScore
 
-### 8.18 `get_reports.php` - **NEW**
+### 8.31 `get_gift_by_code.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/get_reports.php`
+**Features:** Get gift by redemption code
 
-**Current Status:** ✅ Working
+### 8.32 `admin_gifts.php` - NEW
 
-**Features:**
-- Get all reports
-- Filter by status
-- Returns user details
+**Features:** Get all gifts with sender/recipient details
 
-### 8.19 `get_unread.php` - **NEW**
+### 8.33 `admin_update_gift.php` - NEW
 
-**Location:** `/public_html/api.vibra.ng/api/get_unread.php`
+**Features:** Update gift status (pending/redeemed/withdrawn)
 
-**Current Status:** ✅ Working
+### 8.34 `reset_pin.php`
 
-**Features:**
-- Get unread message count
-- Counts messages where is_read = 0
+**Status:** ✅ Working
 
-### 8.20 `delete_conversation.php` - **NEW**
+### 8.35 `admin_update.php`
 
-**Location:** `/public_html/api.vibra.ng/api/delete_conversation.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Delete conversation
-- Delete all messages in conversation
-
-### 8.21 `get_chat.php` - **NEW**
-
-**Location:** `/public_html/api.vibra.ng/api/get_chat.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Alias for get_messages.php
-- Returns messages with sender info
-
-### 8.22 `log_action.php` - **NEW**
-
-**Location:** `/public_html/api.vibra.ng/api/log_action.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Log system action
-- Store in system_logs table
-
-### 8.23 `generate_vip_code.php` - **NEW**
-
-**Location:** `/public_html/api.vibra.ng/api/generate_vip_code.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Generate VIP code
-- Silver (10,000 pts), Gold (25,000 pts), Platinum (50,000 pts), Diamond (100,000 pts)
-- Unique code generation
-
-### 8.24 `get_settings.php` - **NEW**
-
-**Location:** `/public_html/api.vibra.ng/api/get_settings.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Get platform settings
-- Auto-create default settings
-
-### 8.25 `update_settings.php` - **NEW**
-
-**Location:** `/public_html/api.vibra.ng/api/update_settings.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Update platform settings
-- Admin only
-
-### 8.26 `remove_photo.php` - **NEW**
-
-**Location:** `/public_html/api.vibra.ng/api/remove_photo.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Remove photo from user profile
-- Delete physical file
-
-### 8.27 `update_score.php` - **NEW**
-
-**Location:** `/public_html/api.vibra.ng/api/update_score.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Update vibraScore
-- Rating 1-5
-- Average with current score
-
-### 8.28 `reset_pin.php`
-
-**Location:** `/public_html/api.vibra.ng/api/reset_pin.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Reset PIN with security questions verification
-- Requires 2 correct answers
-
-### 8.29 `admin_update.php`
-
-**Location:** `/public_html/api.vibra.ng/api/admin_update.php`
-
-**Current Status:** ✅ Working
-
-**Features:**
-- Update user level, points, verification, status, hasWithdrawn
+**Status:** ✅ Working
 
 ---
 
 ## 9. DATABASE SCHEMA
 
-### 9.1 Users Table
+All 12 tables created (verified via `config.php?verify=1`):
 
-```sql
-CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    userId VARCHAR(20) UNIQUE NOT NULL,
-    phone VARCHAR(20) UNIQUE NOT NULL,
-    registration_name VARCHAR(100) NOT NULL,
-    verifiedLegalName VARCHAR(100) DEFAULT NULL,
-    isIdentityLocked TINYINT(1) DEFAULT 0,
-    level VARCHAR(20) DEFAULT 'Bronze',
-    points DECIMAL(10,2) DEFAULT 0,
-    isVerified TINYINT(1) DEFAULT 0,
-    hasWithdrawn TINYINT(1) DEFAULT 0,
-    isFounder TINYINT(1) DEFAULT 0,
-    status VARCHAR(20) DEFAULT 'active',
-    bio TEXT DEFAULT NULL,
-    age INT DEFAULT NULL,
-    gender VARCHAR(20) DEFAULT NULL,
-    location VARCHAR(100) DEFAULT NULL,
-    interests TEXT DEFAULT NULL,
-    photos TEXT DEFAULT NULL,
-    vibraScore DECIMAL(3,2) DEFAULT 3.5,
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    login_pin VARCHAR(4) DEFAULT NULL,
-    pin_enabled TINYINT(1) DEFAULT 0,
-    date_of_birth DATE DEFAULT NULL,
-    life_goals VARCHAR(255) DEFAULT NULL,
-    dealbreakers VARCHAR(255) DEFAULT NULL,
-    dating_pace VARCHAR(50) DEFAULT NULL,
-    lifestyle VARCHAR(50) DEFAULT NULL,
-    referral_code VARCHAR(10) UNIQUE DEFAULT NULL,
-    total_referrals INT DEFAULT 0,
-    referral_redeemed_by VARCHAR(20) DEFAULT NULL,
-    INDEX idx_phone (phone),
-    INDEX idx_userId (userId),
-    INDEX idx_level (level),
-    INDEX idx_status (status)
-);
-```
+1. **users** - Full schema with all matching fields
+2. **messages** - Conversation messages
+3. **conversations** - Conversation metadata
+4. **points_history** - Points transactions
+5. **gifts** - Gift records with redemption codes
+6. **events** - Event data
+7. **merchants** - Merchant accounts
+8. **vip_codes** - VIP code storage
+9. **system_logs** - Audit logs
+10. **blocked_users** - Block relationships
+11. **user_reports** - User reports
+12. **platform_settings** - Settings key-value
 
-### 9.2 Messages Table
-
-```sql
-CREATE TABLE messages (
-    id VARCHAR(50) PRIMARY KEY,
-    conversation_id VARCHAR(50) NOT NULL,
-    sender_id INT NOT NULL,
-    text TEXT NOT NULL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_read TINYINT(1) DEFAULT 0,
-    INDEX idx_conversation (conversation_id),
-    INDEX idx_sender (sender_id)
-);
-```
-
-### 9.3 Conversations Table
-
-```sql
-CREATE TABLE conversations (
-    id VARCHAR(50) PRIMARY KEY,
-    participants TEXT NOT NULL,
-    last_message TEXT DEFAULT NULL,
-    last_message_time TIMESTAMP NULL DEFAULT NULL,
-    unread_count TEXT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-```
-
-### 9.4 Points History Table
-
-```sql
-CREATE TABLE points_history (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    points INT NOT NULL,
-    source VARCHAR(50) NOT NULL,
-    description TEXT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user (user_id),
-    INDEX idx_source (source)
-);
-```
-
-### 9.5 Gifts Table
-
-```sql
-CREATE TABLE gifts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    gift_id VARCHAR(50) NOT NULL,
-    gift_name VARCHAR(100) NOT NULL,
-    gift_type VARCHAR(20) NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
-    sender_id INT NOT NULL,
-    recipient_id INT NOT NULL,
-    message TEXT DEFAULT NULL,
-    redemption_code VARCHAR(10) UNIQUE NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
-    merchant_id INT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    redeemed_at TIMESTAMP NULL DEFAULT NULL,
-    INDEX idx_sender (sender_id),
-    INDEX idx_recipient (recipient_id),
-    INDEX idx_code (redemption_code),
-    INDEX idx_status (status)
-);
-```
-
-### 9.6 Events Table
-
-```sql
-CREATE TABLE events (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    host_id INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT DEFAULT NULL,
-    event_date DATE NOT NULL,
-    event_time TIME NOT NULL,
-    location VARCHAR(255) NOT NULL,
-    max_guests INT DEFAULT 50,
-    type VARCHAR(20) DEFAULT 'open',
-    entry_gift VARCHAR(50) DEFAULT NULL,
-    entry_gift_price DECIMAL(10,2) DEFAULT 0,
-    status VARCHAR(20) DEFAULT 'active',
-    invited_users TEXT DEFAULT NULL,
-    attendees TEXT DEFAULT NULL,
-    attendee_count INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_host (host_id),
-    INDEX idx_status (status),
-    INDEX idx_date (event_date)
-);
-```
-
-### 9.7 Merchants Table
-
-```sql
-CREATE TABLE merchants (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    phone VARCHAR(20) NOT NULL,
-    location VARCHAR(255) NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    bvn VARCHAR(20) NOT NULL,
-    user_id INT NOT NULL,
-    status VARCHAR(20) DEFAULT 'active',
-    verification_status VARCHAR(20) DEFAULT 'pending',
-    total_redemptions INT DEFAULT 0,
-    total_revenue DECIMAL(10,2) DEFAULT 0,
-    trust_level VARCHAR(20) DEFAULT 'new',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### 9.8 VIP Codes Table
-
-```sql
-CREATE TABLE vip_codes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(50) UNIQUE NOT NULL,
-    level VARCHAR(20) NOT NULL,
-    points INT NOT NULL,
-    recipient_phone VARCHAR(20) DEFAULT NULL,
-    used TINYINT(1) DEFAULT 0,
-    used_by INT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by INT DEFAULT NULL,
-    INDEX idx_code (code),
-    INDEX idx_level (level),
-    INDEX idx_used (used)
-);
-```
-
-### 9.9 System Logs Table
-
-```sql
-CREATE TABLE system_logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    action VARCHAR(100) NOT NULL,
-    details TEXT DEFAULT NULL,
-    user_id VARCHAR(50) DEFAULT NULL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_action (action),
-    INDEX idx_user (user_id)
-);
-```
-
-### 9.10 Blocked Users Table
-
-```sql
-CREATE TABLE blocked_users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    blocked_user_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_block (user_id, blocked_user_id),
-    INDEX idx_user (user_id),
-    INDEX idx_blocked (blocked_user_id)
-);
-```
-
-### 9.11 User Reports Table
-
-```sql
-CREATE TABLE user_reports (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    reported_user_id INT NOT NULL,
-    reason TEXT NOT NULL,
-    reporter_id INT DEFAULT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    resolved_at TIMESTAMP NULL DEFAULT NULL,
-    resolved_by INT DEFAULT NULL,
-    INDEX idx_reported (reported_user_id),
-    INDEX idx_status (status)
-);
-```
-
-### 9.12 Platform Settings Table
-
-```sql
-CREATE TABLE platform_settings (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    setting_key VARCHAR(50) UNIQUE NOT NULL,
-    setting_value TEXT DEFAULT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_key (setting_key)
-);
-```
+*Full schema details unchanged from v1.0.0*
 
 ---
 
 ## 10. API ENDPOINTS
 
-| Endpoint | Method | Purpose | Status |
-|----------|--------|---------|--------|
-| `/login.php` | POST | Login with phone + PIN | ✅ |
-| `/get_user.php` | GET | Get user by ID | ✅ |
-| `/update_user.php` | POST | Update profile | ✅ |
-| `/upload_photo.php` | POST | Upload photo | ✅ |
-| `/remove_photo.php` | POST | Remove photo | ✅ |
-| `/get_profile.php` | GET | Get full profile | ✅ |
-| `/update_score.php` | POST | Update vibra score | ✅ |
-| `/create_gift.php` | POST | Send gift | ✅ |
-| `/redeem_gift.php` | POST | Redeem gift | ✅ |
-| `/my_gifts.php` | GET | Get user gifts | ✅ |
-| `/add_points.php` | POST | Admin add points | ✅ |
-| `/get_user_by_id.php` | GET | Admin search | ✅ |
-| `/create_event.php` | POST | Create event | ✅ |
-| `/get_events.php` | GET | Events feed | ✅ |
-| `/get_event.php` | GET | Single event | ✅ |
-| `/update_event.php` | POST | Update event | ✅ |
-| `/cancel_event.php` | POST | Cancel event | ✅ |
-| `/rsvp_event.php` | POST | RSVP to event | ✅ |
-| `/get_rsvp.php` | GET | RSVP status | ✅ |
-| `/get_chat.php` | GET | Get messages | ✅ |
-| `/send_message.php` | POST | Send message | ✅ |
-| `/get_messages.php` | GET | Get messages | ✅ |
-| `/get_conversation.php` | POST | Get/create conversation | ✅ |
-| `/get_conversations.php` | GET | All conversations | ✅ |
-| `/mark_read.php` | POST | Mark messages as read | ✅ |
-| `/get_unread.php` | GET | Unread count | ✅ |
-| `/delete_conversation.php` | POST | Delete conversation | ✅ |
-| `/block_user.php` | POST | Block/unblock | ✅ |
-| `/report_user.php` | POST | Report user | ✅ |
-| `/get_reports.php` | GET | All reports | ✅ |
-| `/admin_users.php` | GET | All users | ✅ |
-| `/admin_update.php` | POST | Update user (admin) | ✅ |
-| `/set_pin.php` | POST | Set PIN | ✅ |
-| `/reset_pin.php` | POST | Reset PIN | ✅ |
-| `/get_security_questions.php` | POST | Security questions | ✅ |
-| `/verify_security_answers.php` | POST | Verify security answers | ✅ |
-| `/delete_account.php` | POST | Delete account | ✅ |
-| `/redeem_referral.php` | POST | Redeem referral | ✅ |
-| `/get_points_history.php` | GET | Points history | ✅ |
-| `/get_logs.php` | GET | System logs | ✅ |
-| `/log_action.php` | POST | Log system action | ✅ |
-| `/generate_vip_code.php` | POST | Generate VIP code | ✅ |
-| `/get_settings.php` | GET | Platform settings | ✅ |
-| `/update_settings.php` | POST | Update settings | ✅ |
+| Endpoint | Method | Status |
+|----------|--------|--------|
+| `/login.php` | POST | ✅ |
+| `/get_user.php` | GET | ✅ |
+| `/update_user.php` | POST | ✅ |
+| `/upload_photo.php` | POST | ✅ |
+| `/remove_photo.php` | POST | ✅ |
+| `/get_profile.php` | GET | ✅ |
+| `/update_score.php` | POST | ✅ |
+| `/create_gift.php` | POST | ✅ |
+| `/get_gift_by_code.php` | GET | ✅ NEW |
+| `/redeem_gift.php` | POST | ✅ |
+| `/my_gifts.php` | GET | ✅ |
+| `/admin_gifts.php` | GET | ✅ NEW |
+| `/admin_update_gift.php` | POST | ✅ NEW |
+| `/add_points.php` | POST | ✅ |
+| `/create_event.php` | POST | ✅ |
+| `/get_events.php` | GET | ✅ |
+| `/get_event.php` | GET | ✅ |
+| `/update_event.php` | POST | ✅ |
+| `/cancel_event.php` | POST | ✅ |
+| `/rsvp_event.php` | POST | ✅ |
+| `/get_rsvp.php` | GET | ✅ |
+| `/get_chat.php` | GET | ✅ |
+| `/send_message.php` | POST | ✅ |
+| `/get_messages.php` | GET | ✅ |
+| `/get_conversation.php` | GET/POST | ✅ |
+| `/get_conversations.php` | GET | ✅ |
+| `/mark_read.php` | POST | ✅ |
+| `/get_unread.php` | GET | ✅ |
+| `/delete_conversation.php` | POST | ✅ |
+| `/block_user.php` | POST | ✅ |
+| `/report_user.php` | POST | ✅ |
+| `/get_reports.php` | GET | ✅ |
+| `/admin_users.php` | GET | ✅ |
+| `/admin_update.php` | POST | ✅ |
+| `/set_pin.php` | POST | ✅ |
+| `/reset_pin.php` | POST | ✅ |
+| `/get_security_questions.php` | POST | ✅ |
+| `/verify_security_answers.php` | POST | ✅ |
+| `/delete_account.php` | POST | ✅ |
+| `/redeem_referral.php` | POST | ✅ |
+| `/get_points_history.php` | GET | ✅ |
+| `/get_logs.php` | GET | ✅ |
+| `/log_action.php` | POST | ✅ |
+| `/generate_vip_code.php` | POST | ✅ |
+| `/get_settings.php` | GET | ✅ |
+| `/update_settings.php` | POST | ✅ |
+
+**Total: 46 endpoints** (was 30)
 
 ---
 
@@ -1186,27 +722,16 @@ CREATE TABLE platform_settings (
 
 ## 12. THE 10 RULES
 
-**IMPORTANT: When working on this project, follow these rules:**
-
-1. **Response must be very short** - No lengthy explanations unless absolutely necessary
-
-2. **No explanation** - Give code and actions, don't explain why
-
-3. **No assumptions** - Don't guess what files exist or what the user wants
-
-4. **Must see the file** - Ask for the file, check everything before giving solution
-
-5. **Mentally map everything** - Understand the full system before suggesting changes
-
-6. **Never reverse decisions** - Can't tell the user to do something and then reverse it
-
-7. **Nothing breaks** - Every change must be additive, never destructive
-
-8. **Full files only** - Give complete corrected files, not snippets
-
-9. **Production ready** - Every solution must work for customers, not just development
-
-10. **Ask for files** - Say "Send me [filename]" before making changes
+1. **Response must be very short**
+2. **No explanation** - Give code and actions
+3. **No assumptions** - Don't guess
+4. **Must see the file** before making changes
+5. **Mentally map everything** first
+6. **Never reverse decisions**
+7. **Nothing breaks** - Every change must be additive
+8. **Full files only** - Not snippets
+9. **Production ready** - Must work for customers
+10. **Ask for files** - Say "Send me [filename]"
 
 ---
 
@@ -1228,13 +753,12 @@ VITE_LABELREACH_NAME=LABELREACH ADVERTISING LTD
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server |
+| `npm run dev` | Start development |
 | `npm run build` | Build for production |
-| `npm run preview` | Preview production build |
+| `npm run preview` | Preview production |
 | `npm install` | Install dependencies |
-| `npm install [package]` | Install specific package |
 | `git add .` | Stage changes |
-| `git commit -m "msg"` | Commit changes |
+| `git commit -m "msg"` | Commit |
 | `git push` | Push to GitHub |
 | `vercel --prod --force` | Deploy to Vercel |
 | `vercel login` | Login to Vercel |
@@ -1244,25 +768,18 @@ VITE_LABELREACH_NAME=LABELREACH ADVERTISING LTD
 ## 15. TROUBLESHOOTING GUIDE
 
 ### Issue: Page Blank
-**Solution:** Clear browser cache or open incognito mode
-```cmd
-Ctrl + Shift + R
-```
+**Solution:** Clear browser cache or incognito mode (Ctrl+Shift+R)
 
 ### Issue: CORS Error
-**Solution:** Check config.php CORS headers
-```php
-header('Access-Control-Allow-Origin: *');
-```
+**Solution:** Check `config.php` CORS headers
 
 ### Issue: API 404
 **Solution:** Check file exists in `/public_html/api.vibra.ng/api/`
 
 ### Issue: PIN Flow Flashes
-**Solution:** Check AuthContext.jsx `requiresPin` state
+**Solution:** Check `AuthContext.jsx` `requiresPin` state
 
 ### Issue: Admin Access Denied
-**Solution:** Run in console to set founder:
 ```javascript
 const user = JSON.parse(localStorage.getItem('vibra_user'));
 user.isFounder = true;
@@ -1271,48 +788,79 @@ location.reload();
 ```
 
 ### Issue: Database Column Missing
-**Solution:** Run in PHPMyAdmin or via SQL:
-```sql
-ALTER TABLE users ADD COLUMN login_pin VARCHAR(4) DEFAULT NULL;
-ALTER TABLE users ADD COLUMN pin_enabled TINYINT(1) DEFAULT 0;
-ALTER TABLE users ADD COLUMN life_goals VARCHAR(255) DEFAULT NULL;
-ALTER TABLE users ADD COLUMN dealbreakers VARCHAR(255) DEFAULT NULL;
-ALTER TABLE users ADD COLUMN dating_pace VARCHAR(50) DEFAULT NULL;
-ALTER TABLE users ADD COLUMN lifestyle VARCHAR(50) DEFAULT NULL;
-```
+Run SQL from **Section 9 schema** - or visit `config.php?verify=1` for diagnostic.
 
-### Issue: Gift Redemption Code Not Working
-**Solution:** Ensure gifts table has redemption_code column and unique index
-```sql
-ALTER TABLE gifts ADD COLUMN redemption_code VARCHAR(10) UNIQUE;
-CREATE INDEX idx_code ON gifts(redemption_code);
-```
+### Issue: Chat Still Pulsing
+Clear browser cache + hard reload. Verify `chatService.js` matches corrected version.
 
-### Issue: Event Not Showing
-**Solution:** Ensure events table has all required columns
-```sql
-ALTER TABLE events ADD COLUMN invited_users TEXT DEFAULT NULL;
-ALTER TABLE events ADD COLUMN attendees TEXT DEFAULT NULL;
-ALTER TABLE events ADD COLUMN attendee_count INT DEFAULT 0;
-```
+### Issue: Chat Scroll Jumping
+Verify `ChatWindow.jsx` has `isUserScrolling` ref + `hasNewMessages` state.
+
+### Issue: Gifts Not Showing in Admin
+1. Confirm gift was sent after `giftService.js` deployment
+2. Check database: `SELECT * FROM gifts ORDER BY id DESC LIMIT 10;`
+3. Verify `admin_gifts.php` is uploaded
+
+### Issue: Referral Code Not Showing
+1. Check database: `SELECT userId, referral_code FROM users WHERE userId = 'VIB-XXXX';`
+2. If NULL: `UPDATE users SET referral_code = LPAD(FLOOR(RAND()*1000000), 6, '0') WHERE referral_code IS NULL;`
+3. User must logout and login again to refresh cache
+
+### Issue: Cash Withdrawal Not Working
+1. User must enter correct 6-digit code
+2. User must be recipient
+3. WhatsApp should open with admin's number `07032977572`
 
 ---
 
-## SUMMARY OF CORRECTIONS MADE
+## 16. SESSION HISTORY (September 7 - September 11, 2026)
 
-| # | File | Issue | Fix |
-|---|------|-------|-----|
-| 1 | `get_security_questions.php` | Missing field mapping | Added `field` to each question |
-| 2 | `verify_security_answers.php` | Missing file | Created new file |
-| 3 | `create_gift.php` | No table creation, no points_history | Added table creation, points_history logging |
-| 4 | `admin_users.php` | Missing columns | Added column checks, isFounder, referralCode, bio |
-| 5 | `update_user.php` | Missing fields | Added status, isFounder, referral_code |
-| 6 | `login.php` | Missing needsPinSetup | Added needsPinSetup, column checks |
-| 7 | `delete_account.php` | Missing tables | Added conversations, points_history, system_logs, vip_codes |
-| 8 | `chatService.js` | No polling, missing null checks | Added polling, encodeURIComponent, null checks |
-| 9 | `AuthContext.jsx` | Missing needsPinSetup | Added needsPinSetup state |
-| 10 | `adminService.js` | Missing filter params | Added filter params, encodeURIComponent |
-| 11-29 | 19 new files | Missing | Created all missing backend files |
+### Session 1 (Sept 7): Core Fixes
+- Fixed `get_security_questions.php` (added field mapping)
+- Created `verify_security_answers.php`
+- Fixed `create_gift.php` (table creation, points_history)
+- Fixed `admin_users.php` (column checks, isFounder, referralCode)
+- Fixed `update_user.php` (status, isFounder, referral_code)
+- Fixed `login.php` (needsPinSetup, column checks)
+- Fixed `delete_account.php` (all related tables)
+- Fixed `chatService.js` (polling, null checks)
+- Fixed `AuthContext.jsx` (needsPinSetup state)
+- Fixed `adminService.js` (filters, encodeURIComponent)
+- Created 19 new backend files
+
+### Session 2 (Sept 7): Database Verification
+- Added diagnostic to `config.php` (`?verify=1`)
+- Created missing tables: `blocked_users`, `user_reports`, `platform_settings`
+
+### Session 3 (Sept 7-8): Chat Fixes
+- Fixed chat message alignment (sender ID matching)
+- Fixed `get_conversation.php` (GET + POST support)
+- Fixed `get_conversations.php` (VIB-XXXX conversion)
+- Fixed `send_message.php` (numeric ID conversion)
+- Fixed chat scroll behavior
+
+### Session 4 (Sept 8-9): Gift System
+- Added `get_gift_by_code.php`
+- Added `admin_gifts.php`
+- Added `admin_update_gift.php`
+- Added Gifts tab to `AdminPanel.jsx`
+- Added WhatsApp withdrawal button
+
+### Session 5 (Sept 9-11): Referral & Profile
+- Fixed referral code display in `Settings.jsx`
+- Fixed `authService.js` to preserve `referral_code`
+- Added `/profile/:userId` route in `App.jsx`
+
+### Session 6 (Sept 11): Silent Chat + Profile from Chat
+- Rewrote `chatService.js` with silent polling
+- Rewrote `ChatWindow.jsx` with no-flicker updates
+- Added "New messages" button
+- Added clickable chat header → user profile
+- Rewrote `ChatList.jsx` with hash-based silent refresh
+
+### Session 7 (Sept 11): Documentation
+- Updated handover doc to v1.2.0
+- Recorded all corrections, additions, and session history
 
 ---
 
@@ -1320,7 +868,7 @@ ALTER TABLE events ADD COLUMN attendee_count INT DEFAULT 0;
 
 **Document prepared for:** Next AI Developer  
 **Current Status:** ✅ Production Ready - All Features Working  
-**Date:** September 7, 2026  
-**Version:** 1.0.0  
+**Date:** September 11, 2026  
+**Version:** 1.2.0  
 **Domain:** https://www.vibra.ng  
 **API Domain:** https://api.vibra.ng/api

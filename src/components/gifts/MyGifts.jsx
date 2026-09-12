@@ -29,10 +29,10 @@ const MyGifts = ({ onClose }) => {
     setError(null);
     
     try {
-      const history = await giftService.getGiftHistory(user.userId);
+      const data = await giftService.getMyGifts(user.userId);
       
-      const sent = history.filter(g => g.senderId === user.userId);
-      const received = history.filter(g => g.recipientId === user.userId);
+      const sent = data.sent || [];
+      const received = data.received || [];
       
       setSentGifts(sent);
       setReceivedGifts(received);
@@ -63,7 +63,9 @@ const MyGifts = ({ onClose }) => {
   };
 
   const formatDate = (timestamp) => {
+    if (!timestamp) return '';
     const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-NG', { 
       month: 'short', 
       day: 'numeric',
@@ -152,7 +154,7 @@ const MyGifts = ({ onClose }) => {
               receivedGifts.map((gift) => (
                 <div key={gift.id} style={styles.giftItem}>
                   <div style={styles.giftHeader}>
-                    <span style={styles.giftName}>{gift.giftName}</span>
+                    <span style={styles.giftName}>{gift.gift_name || gift.giftName}</span>
                     <span 
                       style={{
                         ...styles.statusBadge,
@@ -163,31 +165,31 @@ const MyGifts = ({ onClose }) => {
                     </span>
                   </div>
                   <div style={styles.giftDetails}>
-                    <span>From: {gift.senderId}</span>
-                    <span>₦{gift.price.toLocaleString()}</span>
-                    <span>{formatDate(gift.createdAt)}</span>
+                    <span>From: {gift.sender_userId || gift.sender_name || gift.senderId}</span>
+                    <span>₦{parseFloat(gift.price || 0).toLocaleString()}</span>
+                    <span>{formatDate(gift.created_at || gift.createdAt)}</span>
                   </div>
                   {gift.message && (
                     <p style={styles.giftMessage}>"{gift.message}"</p>
                   )}
-                  {gift.status === 'pending' && gift.redemptionCode && (
+                  {gift.status === 'pending' && gift.redemption_code && (
                     <div style={styles.codeSection}>
                       <span style={styles.codeLabel}>Redemption Code:</span>
-                      <span style={styles.codeValue}>{formatCode(gift.redemptionCode)}</span>
+                      <span style={styles.codeValue}>{formatCode(gift.redemption_code)}</span>
                       <button
-                        onClick={() => handleCopyCode(gift.redemptionCode)}
+                        onClick={() => handleCopyCode(gift.redemption_code)}
                         style={styles.copyButton}
                       >
                         Copy
                       </button>
                     </div>
                   )}
-                  {gift.status === 'pending' && gift.giftType === 'cash' && (
+                  {gift.status === 'pending' && gift.gift_type === 'cash' && (
                     <div style={styles.redeemHint}>
                       <span>Go to Gifts → Redeem Gift to withdraw this cash gift</span>
                     </div>
                   )}
-                  {gift.status === 'pending' && gift.giftType === 'service' && (
+                  {gift.status === 'pending' && gift.gift_type === 'service' && (
                     <div style={styles.redeemHint}>
                       <span>Present this code at any Vibra merchant to redeem</span>
                     </div>
@@ -209,7 +211,7 @@ const MyGifts = ({ onClose }) => {
               sentGifts.map((gift) => (
                 <div key={gift.id} style={styles.giftItem}>
                   <div style={styles.giftHeader}>
-                    <span style={styles.giftName}>{gift.giftName}</span>
+                    <span style={styles.giftName}>{gift.gift_name || gift.giftName}</span>
                     <span 
                       style={{
                         ...styles.statusBadge,
@@ -220,19 +222,19 @@ const MyGifts = ({ onClose }) => {
                     </span>
                   </div>
                   <div style={styles.giftDetails}>
-                    <span>To: {gift.recipientId}</span>
-                    <span>₦{gift.price.toLocaleString()}</span>
-                    <span>{formatDate(gift.createdAt)}</span>
+                    <span>To: {gift.recipient_userId || gift.recipient_name || gift.recipientId}</span>
+                    <span>₦{parseFloat(gift.price || 0).toLocaleString()}</span>
+                    <span>{formatDate(gift.created_at || gift.createdAt)}</span>
                   </div>
                   {gift.message && (
                     <p style={styles.giftMessage}>"{gift.message}"</p>
                   )}
-                  {gift.status === 'pending' && gift.redemptionCode && (
+                  {gift.status === 'pending' && gift.redemption_code && (
                     <div style={styles.codeSection}>
                       <span style={styles.codeLabel}>Redemption Code:</span>
-                      <span style={styles.codeValue}>{formatCode(gift.redemptionCode)}</span>
+                      <span style={styles.codeValue}>{formatCode(gift.redemption_code)}</span>
                       <button
-                        onClick={() => handleCopyCode(gift.redemptionCode)}
+                        onClick={() => handleCopyCode(gift.redemption_code)}
                         style={styles.copyButton}
                       >
                         Copy

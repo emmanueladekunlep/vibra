@@ -33,3 +33,8 @@ desktop.ini
 *.temp
 .vercel
 .env*
+node_modules/
+dist/
+.env
+vendor/
+composer.lock

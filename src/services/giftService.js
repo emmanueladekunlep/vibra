@@ -203,16 +203,33 @@ export const withdrawCashGift = async (redemptionCode, userId) => {
 };
 
 /**
- * Get gift history for a user - calls API
+ * Get gift history for a user (flattened array) - calls API
  */
 export const getGiftHistory = async (userId) => {
   const response = await fetch(`${API_URL}/my_gifts.php?user_id=${encodeURIComponent(userId)}`);
   const data = await response.json();
 
   if (data.success) {
-    return [...data.sent, ...data.received];
+    return [...(data.sent || []), ...(data.received || [])];
   }
   return [];
+};
+
+/**
+ * Get separated sent/received gifts - calls API
+ * Returns { sent: [...], received: [...] }
+ */
+export const getMyGifts = async (userId) => {
+  const response = await fetch(`${API_URL}/my_gifts.php?user_id=${encodeURIComponent(userId)}`);
+  const data = await response.json();
+
+  if (data.success) {
+    return {
+      sent: data.sent || [],
+      received: data.received || [],
+    };
+  }
+  return { sent: [], received: [] };
 };
 
 /**
@@ -221,8 +238,8 @@ export const getGiftHistory = async (userId) => {
 export const getGiftStats = async (userId) => {
   const history = await getGiftHistory(userId);
 
-  const sent = history.filter(g => g.sender_id === userId);
-  const received = history.filter(g => g.recipient_id === userId);
+  const sent = history.filter(g => String(g.sender_id) === String(userId));
+  const received = history.filter(g => String(g.recipient_id) === String(userId));
 
   return {
     totalSent: sent.reduce((sum, g) => sum + parseFloat(g.price || 0), 0),
@@ -239,12 +256,10 @@ export const generateRedemptionCode = () => {
 };
 
 export const getVIPPointsForUser = (userId) => {
-  // VIP points are handled server-side
   return 0;
 };
 
 export const getTotalPointsForUser = (userId) => {
-  // Total points are handled server-side
   return 0;
 };
 
@@ -259,6 +274,7 @@ export default {
   withdrawCashGift,
   getGiftByCode,
   getGiftHistory,
+  getMyGifts,
   getGiftStats,
   getVIPPointsForUser,
   getTotalPointsForUser,
