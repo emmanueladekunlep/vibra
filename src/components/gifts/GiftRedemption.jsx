@@ -12,13 +12,14 @@ import { useAuth } from '../../context/AuthContext';
 import * as giftService from '../../services/giftService';
 
 const WHATSAPP_NUMBER = '07032977572';
-const ADMIN_OPAY = '07032977572';
-const ADMIN_NAME = 'LabelReach Advertising Ltd';
 const POINTS_PER_NAIRA = 2;
 
 const GiftRedemption = ({ onRedeemed, onClose }) => {
   const { user, updateUser } = useAuth();
   const [amount, setAmount] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -28,7 +29,7 @@ const GiftRedemption = ({ onRedeemed, onClose }) => {
   const maxNaira = Math.floor(userPoints / POINTS_PER_NAIRA);
   const nairaAmount = parseFloat(amount) || 0;
   const pointsRequired = nairaAmount * POINTS_PER_NAIRA;
-  const canWithdraw = nairaAmount > 0 && pointsRequired <= userPoints;
+  const canWithdraw = nairaAmount > 0 && pointsRequired <= userPoints && bankName && accountNumber && accountName;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,7 +52,12 @@ const GiftRedemption = ({ onRedeemed, onClose }) => {
       return;
     }
 
-    if (!confirm(`Withdraw ₦${nairaAmount.toLocaleString()}?\n\nThis will deduct ${pointsRequired.toLocaleString()} points from your account immediately.`)) {
+    if (!bankName || !accountNumber || !accountName) {
+      setError('Please fill in all bank details');
+      return;
+    }
+
+    if (!confirm(`Withdraw ₦${nairaAmount.toLocaleString()}?\n\nThis will deduct ${pointsRequired.toLocaleString()} points from your account immediately.\n\nMoney will be sent to:\n${bankName}\n${accountNumber}\n${accountName}`)) {
       return;
     }
 
@@ -72,32 +78,33 @@ const GiftRedemption = ({ onRedeemed, onClose }) => {
         updateUser({ points: result.new_points_balance });
       }
 
-      // Open WhatsApp with message
+      // Open WhatsApp with message TO ADMIN asking admin to send money to user
       const message = `🔔 *VIBRA WITHDRAWAL REQUEST*
 
 👤 *User ID:* ${user.userId}
 👤 *Name:* ${user.name || 'N/A'}
 📱 *Phone:* ${user.phone || 'N/A'}
 
-💵 *Amount:* ₦${nairaAmount.toLocaleString()}
+💵 *Amount to Send:* ₦${nairaAmount.toLocaleString()}
 🪙 *Points Deducted:* ${result.points_deducted.toLocaleString()}
 📝 *Reference:* #${result.withdrawal_id}
 📅 *Date:* ${new Date().toLocaleString()}
 
-📤 *Please send ₦${nairaAmount.toLocaleString()} to:*
-Bank: ${ADMIN_OPAY ? 'Opay' : ''}
-Account: ${ADMIN_OPAY}
-Name: ${ADMIN_NAME}
+🏦 *Please send the money to:*
+Bank: ${bankName}
+Account Number: ${accountNumber}
+Account Name: ${accountName}
 
-📎 *Please attach your bank details and phone number for payment.*
-
-I have submitted this withdrawal request.`;
+I have submitted this withdrawal request. Please process it within 24 hours.`;
 
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
 
-      setSuccess(`Withdrawal request submitted!\n\n₦${nairaAmount.toLocaleString()} will be sent to your account within 24 hours.`);
+      setSuccess(`Withdrawal request submitted!\n\n₦${nairaAmount.toLocaleString()} will be sent to your bank account within 24 hours.`);
       setAmount('');
+      setBankName('');
+      setAccountNumber('');
+      setAccountName('');
 
       // Open WhatsApp
       window.open(whatsappUrl, '_blank');
@@ -228,6 +235,50 @@ I have submitted this withdrawal request.`;
               </button>
             </div>
 
+            <div style={styles.bankSection}>
+              <p style={styles.bankSectionTitle}>Bank Details (for receiving money)</p>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Bank Name</label>
+                <input
+                  type="text"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  placeholder="e.g. Opay, GTBank, Access Bank"
+                  style={styles.input}
+                  disabled={isLoading}
+                  maxLength="50"
+                />
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Account Number</label>
+                <input
+                  type="text"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
+                  placeholder="10 digits"
+                  style={styles.input}
+                  disabled={isLoading}
+                  maxLength="10"
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Account Name</label>
+                <input
+                  type="text"
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                  placeholder="Name on bank account"
+                  style={styles.input}
+                  disabled={isLoading}
+                  maxLength="100"
+                />
+              </div>
+            </div>
+
             <button
               type="submit"
               style={{
@@ -248,7 +299,7 @@ I have submitted this withdrawal request.`;
               <li>2 points = ₦1</li>
               <li>Minimum withdrawal: ₦100</li>
               <li>Points deducted instantly</li>
-              <li>Admin will send ₦ to your Opay/bank within 24 hours</li>
+              <li>Admin will send ₦ to your bank within 24 hours</li>
               <li>You'll receive a WhatsApp confirmation from admin</li>
             </ul>
           </div>
@@ -352,6 +403,17 @@ const styles = {
     boxSizing: 'border-box',
     fontFamily: 'inherit',
   },
+  input: {
+    width: '100%',
+    padding: '10px 14px',
+    fontSize: '14px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '10px',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    boxSizing: 'border-box',
+    fontFamily: 'inherit',
+  },
   conversionText: {
     fontSize: '13px',
     color: '#721CBB',
@@ -386,6 +448,19 @@ const styles = {
     backgroundColor: '#f0edff',
     borderColor: '#721CBB',
     flexBasis: '100%',
+  },
+  bankSection: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: '12px',
+    padding: '14px',
+    marginBottom: '16px',
+    border: '1px solid #e8e8e8',
+  },
+  bankSectionTitle: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: '#333',
+    margin: '0 0 10px 0',
   },
   button: {
     width: '100%',

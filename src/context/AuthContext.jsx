@@ -3,19 +3,17 @@
  * Module: Authentication
  * 
  * Provides global authentication state across the app.
- * Isolated - does not affect other modules.
+ * Auto-refreshes user data from server every 30s so points stay live.
  */
 
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import * as authService from '../services/authService';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.vibra.ng/api';
 
 // Create context
 const AuthContext = createContext(null);
 
-/**
- * Auth Provider component
- * Wraps the app to provide auth state
- */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,6 +23,7 @@ export const AuthProvider = ({ children }) => {
   const [pendingPhone, setPendingPhone] = useState(null);
   const [pendingUserData, setPendingUserData] = useState(null);
   const [needsPinSetup, setNeedsPinSetup] = useState(false);
+  const refreshIntervalRef = useRef(null);
 
   // Load cached user on mount
   useEffect(() => {
@@ -34,13 +33,10 @@ export const AuthProvider = ({ children }) => {
         const loggedIn = authService.isLoggedIn();
         
         if (cached && loggedIn) {
-          // Ensure isFounder is properly set from cached data
           if (cached.isFounder === undefined) cached.isFounder = false;
-          // Ensure userId is used as the primary identifier
           if (!cached.userId && cached.id) {
             cached.userId = cached.id;
           }
-          // Ensure pinEnabled is boolean
           if (cached.pinEnabled === undefined) cached.pinEnabled = false;
           setUser(cached);
           setIsAuthenticated(true);
@@ -56,9 +52,86 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
+   * Refresh user data from server (silent - no flicker)
+   */
+  const refreshUser = useCallback(async () => {
+    if (!user?.userId) return null;
+    
+    try {
+      const response = await fetch(`${API_URL}/get_user.php?user_id=${encodeURIComponent(user.userId)}`);
+      const data = await response.json();
+      
+      if (data.success && data.user) {
+        const freshData = {
+          ...user,
+          ...data.user,
+          isFounder: data.user.isFounder === 1 || data.user.isFounder === true,
+          isVerified: data.user.isVerified === 1 || data.user.isVerified === true,
+          pinEnabled: data.user.pinEnabled === 1 || data.user.pinEnabled === true,
+          hasWithdrawn: data.user.hasWithdrawn === 1 || data.user.hasWithdrawn === true,
+        };
+        
+        // Only update if something actually changed (prevents re-renders)
+        const pointsChanged = user.points !== freshData.points;
+        const levelChanged = user.level !== freshData.level;
+        const verifiedChanged = user.isVerified !== freshData.isVerified;
+        
+        if (pointsChanged || levelChanged || verifiedChanged) {
+          authService.updateCachedUser(freshData);
+          setUser(freshData);
+        }
+        
+        return freshData;
+      }
+    } catch (err) {
+      console.warn('Refresh user failed:', err);
+    }
+    return null;
+  }, [user]);
+
+  // Auto-refresh every 30 seconds when authenticated
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Initial refresh after 2 seconds
+    const initialTimeout = setTimeout(() => {
+      refreshUser();
+    }, 2000);
+
+    // Then every 30 seconds
+    refreshIntervalRef.current = setInterval(() => {
+      refreshUser();
+    }, 30000);
+
+    return () => {
+      clearTimeout(initialTimeout);
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
+      }
+    };
+  }, [isAuthenticated, user?.userId, refreshUser]);
+
+  // Refresh on window focus (user returns to tab)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const handleFocus = () => {
+      refreshUser();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isAuthenticated, refreshUser]);
+
+  /**
    * Login with phone number
-   * @param {string} phone - User's phone number
-   * @param {string} pin - Optional PIN
    */
   const loginWithOpay = useCallback(async (phone, pin = null) => {
     setError(null);
@@ -73,16 +146,12 @@ export const AuthProvider = ({ children }) => {
       if (result.success) {
         const userData = result.user;
         if (userData) {
-          // Ensure isFounder is set from database
           if (userData.isFounder === undefined) userData.isFounder = false;
-          // Ensure userId is set
           if (!userData.userId && userData.id) {
             userData.userId = userData.id;
           }
-          // Ensure pinEnabled is boolean
           if (userData.pinEnabled === undefined) userData.pinEnabled = false;
           
-          // Check if user needs to set up PIN (new user - pinEnabled is false and no pin provided)
           if (!userData.pinEnabled && !pin) {
             setPendingPhone(phone);
             setPendingUserData(userData);
@@ -96,7 +165,6 @@ export const AuthProvider = ({ children }) => {
             };
           }
           
-          // Check if PIN is enabled and user needs to enter PIN
           if (userData.pinEnabled && !pin) {
             setPendingPhone(phone);
             setPendingUserData(userData);
@@ -110,7 +178,6 @@ export const AuthProvider = ({ children }) => {
             };
           }
           
-          // Full authentication (PIN was provided and verified)
           if (userData.hasWithdrawn === undefined) userData.hasWithdrawn = false;
           if (userData.isFounder === undefined) userData.isFounder = false;
           setUser(userData);
@@ -141,14 +208,11 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Set PIN for user
-   * @param {string} userId - User ID
-   * @param {string} pin - 4-digit PIN
    */
   const setPin = useCallback(async (userId, pin) => {
     try {
       const result = await authService.setPin(userId, pin);
       if (result.success && result.user) {
-        // Update pending user data with pinEnabled
         if (pendingUserData) {
           const updated = { ...pendingUserData, pinEnabled: true };
           setPendingUserData(updated);
@@ -185,6 +249,10 @@ export const AuthProvider = ({ children }) => {
    * Logout user
    */
   const logout = useCallback(() => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
     authService.logout();
     setUser(null);
     setIsAuthenticated(false);
@@ -196,7 +264,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Update current user data
+   * Update current user data (local cache only)
    */
   const updateUser = useCallback((updates) => {
     const updated = authService.updateCachedUser(updates);
@@ -212,7 +280,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Check Opay availability (for withdrawal only)
+   * Check Opay availability
    */
   const checkOpayStatus = useCallback(async () => {
     return await authService.checkOpayStatus();
@@ -248,6 +316,7 @@ export const AuthProvider = ({ children }) => {
     completePinSetup,
     logout,
     updateUser,
+    refreshUser,
     checkOpayStatus,
     markHasWithdrawn,
   };
